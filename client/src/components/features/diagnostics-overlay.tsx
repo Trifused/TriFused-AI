@@ -124,6 +124,30 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
     await new Promise(r => setTimeout(r, 500));
     addLog("Diagnostic complete. Security perimeter established.");
     setStatus('complete');
+
+    // Send diagnostic data to server
+    try {
+      const diagnosticPayload = {
+        platform: systemInfo.platform,
+        userAgent: systemInfo.userAgent,
+        screenResolution: systemInfo.screen,
+        isSecure: systemInfo.secure ? 1 : 0,
+        browserCores: systemInfo.cores,
+      };
+
+      await fetch("/api/diagnostics", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(diagnosticPayload),
+      });
+      
+      addLog("Analytics synchronized.");
+    } catch (error) {
+      console.error("Failed to save diagnostic data:", error);
+      // Silent fail - don't show error to user as it's analytics only
+    }
   };
 
   useEffect(() => {
