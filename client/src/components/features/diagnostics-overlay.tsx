@@ -86,13 +86,18 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
     addLog("Requesting orbital positioning lock...");
     
     try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0
-        });
-      });
+      const pos = await Promise.race([
+        new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          });
+        }),
+        new Promise<GeolocationPosition>((_, reject) => 
+          setTimeout(() => reject(new Error("Timeout")), 5000)
+        )
+      ]);
       
       setData(prev => ({
         ...prev,
@@ -105,11 +110,13 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
       addLog(`Coordinates Locked: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
       addLog(`Accuracy: ${pos.coords.accuracy.toFixed(1)}m`);
     } catch (err: any) {
+      console.error("Geolocation error:", err);
       setData(prev => ({
         ...prev,
-        location: { lat: null, lng: null, accuracy: null, error: err.message }
+        location: { lat: null, lng: null, accuracy: null, error: err.message || "Timeout" }
       }));
-      addLog(`GPS Lock Failed: ${err.message || "Signal Jammed"}`);
+      addLog(`GPS Lock Failed: ${err.message === "Timeout" ? "Signal Timed Out" : (err.message || "Signal Jammed")}`);
+      addLog("Continuing with estimated coordinates...");
     }
     setScanProgress(100);
 
