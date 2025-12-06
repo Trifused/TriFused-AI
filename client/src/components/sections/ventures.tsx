@@ -15,8 +15,17 @@ export function Ventures() {
               TriFused <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-500">Labs</span>
             </h2>
           </div>
-          <div className="max-w-md text-muted-foreground text-sm md:text-base">
-            We release select internal tools to the community to advance the state of open security protocols.
+          <div className="max-w-md text-muted-foreground text-sm md:text-base flex flex-col items-end text-right">
+            <p className="mb-2">We release select internal tools to the community to advance the state of open security protocols.</p>
+            <a 
+              href="https://github.com/Trifused" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary hover:text-white transition-colors text-xs font-mono flex items-center gap-1 group"
+            >
+              View Full GitHub Profile 
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+            </a>
           </div>
         </div>
 
