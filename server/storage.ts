@@ -4,13 +4,16 @@ import {
   contactSubmissions, 
   diagnosticScans, 
   users,
+  blogPosts,
   InsertContactSubmission, 
   InsertDiagnosticScan, 
   ContactSubmission, 
   DiagnosticScan,
   User,
   UpsertUser,
-  UserRole
+  UserRole,
+  BlogPost,
+  InsertBlogPost
 } from "@shared/schema";
 
 export interface IStorage {
@@ -22,6 +25,10 @@ export interface IStorage {
   
   createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission>;
   createDiagnosticScan(data: InsertDiagnosticScan): Promise<DiagnosticScan>;
+  
+  getBlogPosts(): Promise<BlogPost[]>;
+  upsertBlogPost(data: InsertBlogPost): Promise<BlogPost>;
+  clearBlogCache(): Promise<void>;
 }
 
 class Storage implements IStorage {
@@ -71,6 +78,39 @@ class Storage implements IStorage {
   async createDiagnosticScan(data: InsertDiagnosticScan): Promise<DiagnosticScan> {
     const [scan] = await db.insert(diagnosticScans).values(data).returning();
     return scan;
+  }
+
+  async getBlogPosts(): Promise<BlogPost[]> {
+    return await db.select().from(blogPosts).orderBy(desc(blogPosts.publishedAt));
+  }
+
+  async upsertBlogPost(data: InsertBlogPost): Promise<BlogPost> {
+    const [post] = await db
+      .insert(blogPosts)
+      .values({
+        ...data,
+        cachedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: blogPosts.id,
+        set: {
+          title: data.title,
+          excerpt: data.excerpt,
+          content: data.content,
+          author: data.author,
+          publishedAt: data.publishedAt,
+          url: data.url,
+          tags: data.tags,
+          readTime: data.readTime,
+          cachedAt: new Date(),
+        },
+      })
+      .returning();
+    return post;
+  }
+
+  async clearBlogCache(): Promise<void> {
+    await db.delete(blogPosts);
   }
 }
 

@@ -69,3 +69,24 @@ export const insertDiagnosticScanSchema = createInsertSchema(diagnosticScans).om
 
 export type InsertDiagnosticScan = z.infer<typeof insertDiagnosticScanSchema>;
 export type DiagnosticScan = typeof diagnosticScans.$inferSelect;
+
+// Cached blog posts from Blogger
+export const blogPosts = pgTable("blog_posts", {
+  id: varchar("id").primaryKey(),
+  title: text("title").notNull(),
+  excerpt: text("excerpt").notNull(),
+  content: text("content"),
+  author: text("author"),
+  publishedAt: timestamp("published_at").notNull(),
+  url: text("url").notNull(),
+  tags: text("tags").array(),
+  readTime: text("read_time"),
+  cachedAt: timestamp("cached_at").defaultNow().notNull(),
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
+  cachedAt: true,
+});
+
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type BlogPost = typeof blogPosts.$inferSelect;

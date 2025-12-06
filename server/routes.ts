@@ -1,9 +1,10 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSubmissionSchema, insertDiagnosticScanSchema, userRoles, UserRole } from "@shared/schema";
+import { insertContactSubmissionSchema, insertDiagnosticScanSchema, userRoles, UserRole, InsertBlogPost } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { z } from "zod";
+import { format } from "date-fns";
 
 const SUPERUSER_EMAIL_DOMAIN = "@trifused.com";
 
@@ -105,6 +106,62 @@ export async function registerRoutes(
         success: false, 
         error: error.message || "Failed to save diagnostic scan" 
       });
+    }
+  });
+
+  app.get("/api/blog", async (req, res) => {
+    try {
+      const posts = await storage.getBlogPosts();
+      res.json(posts);
+    } catch (error: any) {
+      console.error("Blog fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch blog posts" });
+    }
+  });
+
+  app.post("/api/blog/refresh", isAuthenticated, isSuperuser, async (req, res) => {
+    try {
+      const response = await fetch('https://blog.trifused.com/feeds/posts/default?alt=json&max-results=20');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch from Blogger');
+      }
+
+      const data = await response.json();
+      const entries = data.feed.entry || [];
+
+      await storage.clearBlogCache();
+
+      const upsertedPosts = [];
+      for (const entry of entries) {
+        const link = entry.link.find((l: any) => l.rel === 'alternate')?.href || '#';
+        const tags = entry.category?.map((c: any) => c.term) || [];
+        const content = entry.content?.$t || entry.summary?.$t || "";
+        const wordCount = content.split(/\s+/).length;
+        const readTime = Math.ceil(wordCount / 200) + " min read";
+        const rawExcerpt = content.replace(/<[^>]*>?/gm, "").substring(0, 200) + "...";
+        const publishedDate = new Date(entry.published.$t);
+
+        const blogPost: InsertBlogPost = {
+          id: entry.id.$t,
+          title: entry.title.$t,
+          excerpt: rawExcerpt,
+          content: content,
+          author: entry.author?.[0]?.name?.$t || "TriFused",
+          publishedAt: publishedDate,
+          url: link,
+          tags: tags.slice(0, 5),
+          readTime: readTime,
+        };
+
+        const upserted = await storage.upsertBlogPost(blogPost);
+        upsertedPosts.push(upserted);
+      }
+
+      res.json({ success: true, count: upsertedPosts.length });
+    } catch (error: any) {
+      console.error("Blog refresh error:", error);
+      res.status(500).json({ error: "Failed to refresh blog cache" });
     }
   });
 
