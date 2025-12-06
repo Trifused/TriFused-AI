@@ -2,6 +2,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Hero } from "@/components/sections/hero";
 import { Services } from "@/components/sections/services";
+import { Ventures } from "@/components/sections/ventures";
 import { ChatWidget } from "@/components/ui/chat-widget";
 import { CookieConsent } from "@/components/ui/cookie-consent";
 import { motion } from "framer-motion";
@@ -15,6 +16,7 @@ export default function Home() {
       <main>
         <Hero />
         <Services />
+        <Ventures />
         
         {/* Partners Section */}
         <section className="py-24 border-t border-white/10 bg-black/40">
