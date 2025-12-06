@@ -81,7 +81,16 @@ export function Services() {
                     {service.description}
                   </p>
                   
-                  <button className="flex items-center text-sm font-medium text-white/70 group-hover:text-primary transition-colors uppercase tracking-wider">
+                  <button 
+                    className="flex items-center text-sm font-medium text-white/70 group-hover:text-primary transition-colors uppercase tracking-wider"
+                    onClick={() => {
+                      import("sonner").then(({ toast }) => {
+                        toast(`Accessing ${service.title} Protocol`, {
+                          description: "Requesting secure clearance...",
+                        });
+                      });
+                    }}
+                  >
                     Learn Protocol <ArrowUpRight className="ml-2 w-4 h-4" />
                   </button>
                 </div>

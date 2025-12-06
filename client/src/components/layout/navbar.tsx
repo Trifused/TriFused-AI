@@ -20,10 +20,20 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Button variant="outline" className="hidden md:flex border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/50 text-foreground transition-all duration-300">
+          <Button 
+            variant="outline" 
+            className="hidden md:flex border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/50 text-foreground transition-all duration-300"
+            onClick={() => window.open('https://portal.trifused.com', '_blank')}
+          >
             Client Portal
           </Button>
-          <Button className="bg-primary text-background font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300">
+          <Button 
+            className="bg-primary text-background font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all duration-300"
+            onClick={() => {
+              const event = new CustomEvent('open-chat');
+              window.dispatchEvent(event);
+            }}
+          >
             <Sparkles className="w-4 h-4 mr-2" />
             Initialize AI
           </Button>

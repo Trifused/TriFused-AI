@@ -87,10 +87,30 @@ export function Hero() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <Button size="lg" className="h-14 px-8 text-base bg-white text-black hover:bg-white/90 font-bold rounded-full transition-all hover:scale-105">
+            <Button 
+              size="lg" 
+              className="h-14 px-8 text-base bg-white text-black hover:bg-white/90 font-bold rounded-full transition-all hover:scale-105"
+              onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+            >
               Start Transformation <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <Button size="lg" variant="outline" className="h-14 px-8 text-base border-white/20 hover:bg-white/10 rounded-full font-mono">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="h-14 px-8 text-base border-white/20 hover:bg-white/10 rounded-full font-mono"
+              onClick={() => {
+                import("sonner").then(({ toast }) => {
+                  toast.info("Running System Diagnostics...", {
+                    description: "Checking neural pathways and security nodes.",
+                  });
+                  setTimeout(() => {
+                    toast.success("System Optimal", {
+                      description: "All systems operating at 100% efficiency.",
+                    });
+                  }, 2000);
+                });
+              }}
+            >
               <Terminal className="mr-2 w-5 h-5" />
               Run Diagnostics
             </Button>
