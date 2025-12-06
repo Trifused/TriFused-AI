@@ -5,6 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
 import Blog from "@/pages/blog";
+import Signup from "@/pages/signup";
+import PortalLogin from "@/pages/portal/login";
+import Dashboard from "@/pages/portal/dashboard";
 import Privacy from "@/pages/legal/privacy";
 import Terms from "@/pages/legal/terms";
 import Cookies from "@/pages/legal/cookies";
@@ -15,6 +18,9 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/blog" component={Blog} />
+      <Route path="/signup" component={Signup} />
+      <Route path="/portal" component={PortalLogin} />
+      <Route path="/portal/dashboard" component={Dashboard} />
       <Route path="/legal/privacy" component={Privacy} />
       <Route path="/legal/terms" component={Terms} />
       <Route path="/legal/cookies" component={Cookies} />

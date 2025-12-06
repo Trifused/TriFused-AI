@@ -1,17 +1,20 @@
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { Shield, Lock, FileText } from "lucide-react";
 
 export function Footer() {
+  const [, setLocation] = useLocation();
+
   return (
     <footer className="py-12 border-t border-white/10 bg-black/40 backdrop-blur-sm relative z-10">
       <div className="container mx-auto px-6">
         <div className="grid md:grid-cols-4 gap-8 mb-12">
           <div className="col-span-1 md:col-span-2">
-            <Link href="/">
-              <a className="text-2xl font-bold font-heading tracking-tighter mb-4 block">
-                <span className="text-primary">Tri</span>Fused
-              </a>
-            </Link>
+            <button 
+              onClick={() => setLocation("/")}
+              className="text-2xl font-bold font-heading tracking-tighter mb-4 block"
+            >
+              <span className="text-primary">Tri</span>Fused
+            </button>
             <p className="text-muted-foreground text-sm max-w-xs leading-relaxed">
               Empowering the autonomous enterprise with cognitive cybersecurity and next-gen infrastructure protocols.
             </p>
@@ -20,10 +23,24 @@ export function Footer() {
           <div>
             <h3 className="font-bold text-white mb-4">Sitemap</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/"><a className="hover:text-primary transition-colors">Home</a></Link></li>
-              <li><Link href="/#services"><a className="hover:text-primary transition-colors">Services</a></Link></li>
-              <li><Link href="/blog"><a className="hover:text-primary transition-colors">Intelligence Logs</a></Link></li>
-              <li><a href="https://portal.trifused.com" className="hover:text-primary transition-colors">Client Portal</a></li>
+              <li>
+                <button onClick={() => setLocation("/")} className="hover:text-primary transition-colors">
+                  Home
+                </button>
+              </li>
+              <li>
+                <a href="/#services" className="hover:text-primary transition-colors">Services</a>
+              </li>
+              <li>
+                <button onClick={() => setLocation("/blog")} className="hover:text-primary transition-colors">
+                  Intelligence Logs
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setLocation("/portal")} className="hover:text-primary transition-colors">
+                  Client Portal
+                </button>
+              </li>
             </ul>
           </div>
 
@@ -31,25 +48,28 @@ export function Footer() {
             <h3 className="font-bold text-white mb-4">Legal Protocols</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/legal/privacy">
-                  <a className="hover:text-primary transition-colors flex items-center gap-2">
-                    <Lock className="w-3 h-3" /> Privacy Policy
-                  </a>
-                </Link>
+                <button 
+                  onClick={() => setLocation("/legal/privacy")}
+                  className="hover:text-primary transition-colors flex items-center gap-2"
+                >
+                  <Lock className="w-3 h-3" /> Privacy Policy
+                </button>
               </li>
               <li>
-                <Link href="/legal/terms">
-                  <a className="hover:text-primary transition-colors flex items-center gap-2">
-                    <FileText className="w-3 h-3" /> Terms of Service
-                  </a>
-                </Link>
+                <button 
+                  onClick={() => setLocation("/legal/terms")}
+                  className="hover:text-primary transition-colors flex items-center gap-2"
+                >
+                  <FileText className="w-3 h-3" /> Terms of Service
+                </button>
               </li>
               <li>
-                <Link href="/legal/cookies">
-                  <a className="hover:text-primary transition-colors flex items-center gap-2">
-                    <Shield className="w-3 h-3" /> Cookie Policy
-                  </a>
-                </Link>
+                <button 
+                  onClick={() => setLocation("/legal/cookies")}
+                  className="hover:text-primary transition-colors flex items-center gap-2"
+                >
+                  <Shield className="w-3 h-3" /> Cookie Policy
+                </button>
               </li>
             </ul>
           </div>

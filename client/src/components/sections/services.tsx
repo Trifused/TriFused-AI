@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useLocation } from "wouter";
 import securityImg from "@assets/generated_images/cybersecurity_data_shield.png";
 import infraImg from "@assets/generated_images/futuristic_server_infrastructure.png";
 import marketingImg from "@assets/generated_images/ai_marketing_network.png";
@@ -56,6 +57,8 @@ const services = [
 ];
 
 export function Services() {
+  const [, setLocation] = useLocation();
+
   return (
     <section id="services" className="py-24 relative overflow-hidden bg-background">
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -107,13 +110,8 @@ export function Services() {
                   
                   <button 
                     className="flex items-center text-sm font-medium text-white/70 group-hover:text-primary transition-colors uppercase tracking-wider"
-                    onClick={() => {
-                      import("sonner").then(({ toast }) => {
-                        toast(`Accessing ${service.title} Protocol`, {
-                          description: "Requesting secure clearance...",
-                        });
-                      });
-                    }}
+                    onClick={() => setLocation("/signup")}
+                    data-testid={`button-learn-protocol-${service.id}`}
                   >
                     Learn Protocol <ArrowUpRight className="ml-2 w-4 h-4" />
                   </button>
