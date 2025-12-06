@@ -1,38 +1,24 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { db } from "../db";
+import { contactSubmissions, diagnosticScans, InsertContactSubmission, InsertDiagnosticScan, ContactSubmission, DiagnosticScan } from "@shared/schema";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // Contact form operations
+  createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission>;
+  
+  // Diagnostic scan operations
+  createDiagnosticScan(data: InsertDiagnosticScan): Promise<DiagnosticScan>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+class Storage implements IStorage {
+  async createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission> {
+    const [submission] = await db.insert(contactSubmissions).values(data).returning();
+    return submission;
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async createDiagnosticScan(data: InsertDiagnosticScan): Promise<DiagnosticScan> {
+    const [scan] = await db.insert(diagnosticScans).values(data).returning();
+    return scan;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new Storage();

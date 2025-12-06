@@ -5,6 +5,7 @@ import { Services } from "@/components/sections/services";
 import { Ventures } from "@/components/sections/ventures";
 import { ChatWidget } from "@/components/ui/chat-widget";
 import { CookieConsent } from "@/components/ui/cookie-consent";
+import { ContactFormDialog } from "@/components/features/contact-form-dialog";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { ArrowRight, Terminal } from "lucide-react";
@@ -119,9 +120,7 @@ export default function Home() {
             <p className="text-xl mb-10 max-w-2xl mx-auto font-medium">
               Join the new era of autonomous business operations.
             </p>
-            <button className="bg-black text-white px-10 py-4 rounded-full text-lg font-bold hover:scale-105 transition-transform shadow-2xl">
-              Schedule Consultation
-            </button>
+            <ContactFormDialog />
           </div>
         </section>
       </main>
