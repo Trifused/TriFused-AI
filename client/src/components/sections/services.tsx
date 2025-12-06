@@ -2,32 +2,56 @@ import { motion } from "framer-motion";
 import securityImg from "@assets/generated_images/cybersecurity_data_shield.png";
 import infraImg from "@assets/generated_images/futuristic_server_infrastructure.png";
 import marketingImg from "@assets/generated_images/ai_marketing_network.png";
-import { ArrowUpRight, Shield, Server, BrainCircuit } from "lucide-react";
+import { ArrowUpRight, Shield, Server, BrainCircuit, Code, Database, Cloud, Smartphone, Lock } from "lucide-react";
 
 const services = [
   {
-    id: "cybersecurity",
-    title: "Cognitive Cybersecurity",
-    description: "AI-driven threat detection that evolves faster than the attackers. Predictive defense systems that secure your data before a breach occurs.",
+    id: "pentesting",
+    title: "Advanced Pen-Testing",
+    description: "Offensive security protocols simulating sophisticated cyber-attacks to identify and patch vulnerabilities before exploitation.",
+    icon: Lock,
+    image: securityImg,
+    color: "text-red-400"
+  },
+  {
+    id: "mdr",
+    title: "MDR & Threat Hunting",
+    description: "Managed Detection and Response systems that actively hunt for threats across your endpoints, networks, and cloud environments.",
     icon: Shield,
     image: securityImg,
     color: "text-cyan-400"
   },
   {
-    id: "infrastructure",
-    title: "Autonomous Infrastructure",
-    description: "Self-healing server architectures managed by intelligent agents. Reduce downtime to zero with predictive maintenance and auto-scaling.",
-    icon: Server,
+    id: "mdm",
+    title: "Mobile Device Management",
+    description: "Secure, remote administration of mobile endpoints. Enforce encryption, wipe lost devices, and manage app deployment at scale.",
+    icon: Smartphone,
     image: infraImg,
     color: "text-purple-400"
   },
   {
+    id: "cloud-db",
+    title: "Cloud & Database Architecture",
+    description: "Scalable, resilient cloud infrastructure design. Optimized database clusters for high-availability and zero-latency performance.",
+    icon: Database,
+    image: infraImg,
+    color: "text-blue-400"
+  },
+  {
+    id: "coding",
+    title: "AI-Native Development",
+    description: "Building next-gen applications with LLM integration. From chatbots to autonomous agents, we code the future.",
+    icon: Code,
+    image: marketingImg,
+    color: "text-green-400"
+  },
+  {
     id: "growth",
     title: "Generative Growth Engines",
-    description: "Marketing strategies supercharged by LLMs. Hyper-personalized customer journeys created in real-time by our proprietary AI models.",
+    description: "Marketing strategies supercharged by AI. Hyper-personalized customer journeys created in real-time.",
     icon: BrainCircuit,
     image: marketingImg,
-    color: "text-blue-400"
+    color: "text-pink-400"
   }
 ];
 
@@ -41,15 +65,15 @@ export function Services() {
           <h2 className="text-3xl md:text-5xl font-bold font-heading mb-6">
             Services <span className="text-muted-foreground">/</span> <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50">
-              Supercharged Capabilities
+              Operational Capabilities
             </span>
           </h2>
           <p className="text-muted-foreground text-lg">
-            We fuse traditional IT expertise with cutting-edge Large Language Models to deliver exponential value.
+            Deploying military-grade security and next-gen infrastructure for the modern enterprise.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {services.map((service, index) => (
             <motion.div
               key={service.id}
@@ -66,7 +90,7 @@ export function Services() {
                   <img 
                     src={service.image} 
                     alt={service.title}
-                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-100"
                   />
                   <div className="absolute top-4 left-4 p-2 bg-black/50 backdrop-blur-md rounded-lg border border-white/10">
                     <service.icon className={`w-6 h-6 ${service.color}`} />

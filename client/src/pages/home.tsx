@@ -14,6 +14,42 @@ export default function Home() {
         <Hero />
         <Services />
         
+        {/* Partners Section */}
+        <section className="py-24 border-t border-white/10 bg-black/40">
+          <div className="container mx-auto px-6 text-center">
+            <h2 className="text-sm font-mono text-muted-foreground uppercase tracking-widest mb-12">
+              Strategic Technology Alliance
+            </h2>
+            
+            <div className="flex flex-wrap justify-center gap-x-16 gap-y-12 items-center opacity-70">
+               {/* Neon Tech */}
+               <div className="flex items-center gap-2 group cursor-pointer hover:opacity-100 transition-opacity">
+                 <div className="text-2xl font-bold font-heading tracking-tight text-white group-hover:text-[#00E599] transition-colors">Neon</div>
+               </div>
+
+               {/* Replit */}
+               <div className="flex items-center gap-2 group cursor-pointer hover:opacity-100 transition-opacity">
+                 <div className="text-2xl font-bold font-heading tracking-tight text-white group-hover:text-[#F26207] transition-colors">Replit</div>
+               </div>
+
+               {/* Lovable */}
+               <div className="flex items-center gap-2 group cursor-pointer hover:opacity-100 transition-opacity">
+                 <div className="text-2xl font-bold font-heading tracking-tight text-white group-hover:text-[#FF3366] transition-colors">Lovable</div>
+               </div>
+
+               {/* Famous AI */}
+               <div className="flex items-center gap-2 group cursor-pointer hover:opacity-100 transition-opacity">
+                 <div className="text-2xl font-bold font-heading tracking-tight text-white group-hover:text-purple-400 transition-colors">Famous</div>
+               </div>
+
+               {/* Vibe Coding */}
+               <div className="flex items-center gap-2 group cursor-pointer hover:opacity-100 transition-opacity">
+                 <div className="text-2xl font-bold font-heading tracking-tight text-white group-hover:text-blue-400 transition-colors">Vibe Coding</div>
+               </div>
+            </div>
+          </div>
+        </section>
+
         {/* Latest Intelligence Teaser */}
         <section className="py-24 border-t border-white/10 bg-black/20">
           <div className="container mx-auto px-6">
@@ -64,19 +100,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Trusted By Section */}
-        <section className="py-24 border-t border-white/10">
-          <div className="container mx-auto px-6 text-center">
-            <h2 className="text-3xl font-heading font-bold mb-8">Trusted by Future-Forward Companies</h2>
-            <div className="flex flex-wrap justify-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-               {/* Mock Logos */}
-               {['Nexus', 'CyberDyne', 'OmniCorp', 'Massive Dynamic'].map((company) => (
-                 <div key={company} className="text-2xl font-bold font-heading">{company}</div>
-               ))}
-            </div>
-          </div>
-        </section>
-
+        {/* CTA Section */}
         <section className="py-24 bg-primary text-background relative overflow-hidden">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
           <div className="container mx-auto px-6 relative z-10 text-center">
