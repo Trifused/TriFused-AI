@@ -7,10 +7,12 @@ import { ChatWidget } from "@/components/ui/chat-widget";
 import { CookieConsent } from "@/components/ui/cookie-consent";
 import { ContactFormDialog } from "@/components/features/contact-form-dialog";
 import { motion } from "framer-motion";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { ArrowRight, Terminal } from "lucide-react";
 
 export default function Home() {
+  const [, setLocation] = useLocation();
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
       <Navbar />
@@ -68,12 +70,14 @@ export default function Home() {
                   Latest <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-500">Intelligence</span>
                 </h2>
               </div>
-              <Link href="/blog">
-                <a className="group flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
-                  Access Full Archives 
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </a>
-              </Link>
+              <button 
+                onClick={() => setLocation('/blog')}
+                className="group flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                data-testid="link-blog-archives"
+              >
+                Access Full Archives 
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
@@ -82,24 +86,27 @@ export default function Home() {
                 { title: "Windows God Mode Protocol", date: "June 22, 2024", tag: "OS Hacks" },
                 { title: "PowerShell Vulnerability Scan", date: "January 12, 2020", tag: "Scripting" }
               ].map((post, i) => (
-                <Link href="/blog" key={i}>
-                  <a className="block group">
-                    <div className="glass-panel p-6 rounded-xl border border-white/5 hover:border-primary/30 transition-all h-full flex flex-col">
-                      <div className="flex justify-between items-start mb-4">
-                        <span className="text-xs font-mono px-2 py-1 rounded bg-white/5 text-primary/80 border border-white/10">
-                          #{post.tag}
-                        </span>
-                        <span className="text-xs text-muted-foreground font-mono">{post.date}</span>
-                      </div>
-                      <h3 className="text-lg font-bold font-heading group-hover:text-primary transition-colors mb-2">
-                        {post.title}
-                      </h3>
-                      <div className="mt-auto pt-4 flex items-center text-sm text-muted-foreground group-hover:text-white transition-colors">
-                        <span className="font-mono text-xs">Read Log_</span>
-                      </div>
+                <div 
+                  key={i}
+                  onClick={() => setLocation('/blog')}
+                  className="block group cursor-pointer"
+                  data-testid={`card-blog-post-${i}`}
+                >
+                  <div className="glass-panel p-6 rounded-xl border border-white/5 hover:border-primary/30 transition-all h-full flex flex-col">
+                    <div className="flex justify-between items-start mb-4">
+                      <span className="text-xs font-mono px-2 py-1 rounded bg-white/5 text-primary/80 border border-white/10">
+                        #{post.tag}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-mono">{post.date}</span>
                     </div>
-                  </a>
-                </Link>
+                    <h3 className="text-lg font-bold font-heading group-hover:text-primary transition-colors mb-2">
+                      {post.title}
+                    </h3>
+                    <div className="mt-auto pt-4 flex items-center text-sm text-muted-foreground group-hover:text-white transition-colors">
+                      <span className="font-mono text-xs">Read Log_</span>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
