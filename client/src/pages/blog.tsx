@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
 import { motion } from "framer-motion";
 import { Calendar, Clock, ArrowRight, Tag, Terminal } from "lucide-react";
 import { Link } from "wouter";
@@ -140,6 +141,8 @@ export default function Blog() {
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }
+

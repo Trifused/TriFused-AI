@@ -1,7 +1,9 @@
 import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
 import { Hero } from "@/components/sections/hero";
 import { Services } from "@/components/sections/services";
 import { ChatWidget } from "@/components/ui/chat-widget";
+import { CookieConsent } from "@/components/ui/cookie-consent";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { ArrowRight, Terminal } from "lucide-react";
@@ -122,18 +124,9 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="py-12 border-t border-white/10 bg-black/20">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="text-2xl font-bold font-heading tracking-tighter">
-            <span className="text-primary">Tri</span>Fused
-          </div>
-          <div className="text-sm text-muted-foreground">
-            © 2025 TriFused Technologies. All systems operational.
-          </div>
-        </div>
-      </footer>
-      
+      <Footer />
       <ChatWidget />
+      <CookieConsent />
     </div>
   );
 }
