@@ -3,6 +3,7 @@ import { ArrowRight, Terminal } from "lucide-react";
 import heroBg from "@assets/generated_images/hero_background_with_neural_network_fusion.png";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import { DiagnosticsOverlay } from "@/components/features/diagnostics-overlay";
 
 const Typewriter = ({ sequences, speed = 50, pause = 2000 }: { sequences: string[], speed?: number, pause?: number }) => {
   const [index, setIndex] = useState(0);
@@ -42,8 +43,12 @@ const Typewriter = ({ sequences, speed = 50, pause = 2000 }: { sequences: string
 };
 
 export function Hero() {
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
   return (
     <div className="relative min-h-screen flex items-center pt-20 overflow-hidden">
+      <DiagnosticsOverlay open={showDiagnostics} onOpenChange={setShowDiagnostics} />
+      
       {/* Background */}
       <div className="absolute inset-0 z-0">
         <img 
@@ -98,18 +103,7 @@ export function Hero() {
               size="lg" 
               variant="outline" 
               className="h-14 px-8 text-base border-white/20 hover:bg-white/10 rounded-full font-mono"
-              onClick={() => {
-                import("sonner").then(({ toast }) => {
-                  toast.info("Running System Diagnostics...", {
-                    description: "Checking neural pathways and security nodes.",
-                  });
-                  setTimeout(() => {
-                    toast.success("System Optimal", {
-                      description: "All systems operating at 100% efficiency.",
-                    });
-                  }, 2000);
-                });
-              }}
+              onClick={() => setShowDiagnostics(true)}
             >
               <Terminal className="mr-2 w-5 h-5" />
               Run Diagnostics

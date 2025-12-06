@@ -1,0 +1,257 @@
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Shield, Globe, Cpu, MapPin, Wifi, Lock, AlertTriangle, CheckCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
+interface SystemData {
+  ip: string;
+  userAgent: string;
+  platform: string;
+  language: string;
+  screen: string;
+  cores: number;
+  memory: number | string;
+  connection: string;
+  location: {
+    lat: number | null;
+    lng: number | null;
+    accuracy: number | null;
+    error?: string;
+  };
+  secure: boolean;
+}
+
+export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [logs, setLogs] = useState<string[]>([]);
+  const [data, setData] = useState<Partial<SystemData>>({});
+  const [status, setStatus] = useState<'idle' | 'scanning' | 'complete'>('idle');
+  const [scanProgress, setScanProgress] = useState(0);
+
+  const addLog = (msg: string) => {
+    setLogs(prev => [...prev, `> ${msg}`]);
+  };
+
+  const runDiagnostics = async () => {
+    setStatus('scanning');
+    setLogs([]);
+    setData({});
+    setScanProgress(0);
+
+    // Step 1: System Info
+    addLog("Initializing heuristic scan...");
+    await new Promise(r => setTimeout(r, 800));
+    setScanProgress(10);
+    
+    const nav = window.navigator as any;
+    const systemInfo = {
+      userAgent: nav.userAgent,
+      platform: nav.platform,
+      language: nav.language,
+      cores: nav.hardwareConcurrency || 4,
+      memory: nav.deviceMemory ? `${nav.deviceMemory} GB` : "Unknown",
+      screen: `${window.screen.width}x${window.screen.height}`,
+      secure: window.location.protocol === 'https:',
+    };
+    
+    setData(prev => ({ ...prev, ...systemInfo }));
+    addLog(`System Core: ${systemInfo.platform} (${systemInfo.cores} Cores)`);
+    addLog(`Display Matrix: ${systemInfo.screen}`);
+    setScanProgress(30);
+
+    // Step 2: Network
+    await new Promise(r => setTimeout(r, 600));
+    addLog("Triangulating network nodes...");
+    
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const ipData = await res.json();
+      setData(prev => ({ ...prev, ip: ipData.ip }));
+      addLog(`Public Endpoint Identified: ${ipData.ip}`);
+      
+      // Mock connection info if nav.connection exists
+      if (nav.connection) {
+         const conn = nav.connection;
+         const connData = `${conn.effectiveType.toUpperCase()} (${conn.downlink} Mbps)`;
+         setData(prev => ({ ...prev, connection: connData }));
+         addLog(`Link Velocity: ${connData}`);
+      }
+    } catch (e) {
+      addLog("Network triangulation failed: Proxy detected or request blocked.");
+    }
+    setScanProgress(60);
+
+    // Step 3: Geolocation
+    await new Promise(r => setTimeout(r, 600));
+    addLog("Requesting orbital positioning lock...");
+    
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        });
+      });
+      
+      setData(prev => ({
+        ...prev,
+        location: {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy
+        }
+      }));
+      addLog(`Coordinates Locked: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
+      addLog(`Accuracy: ${pos.coords.accuracy.toFixed(1)}m`);
+    } catch (err: any) {
+      setData(prev => ({
+        ...prev,
+        location: { lat: null, lng: null, accuracy: null, error: err.message }
+      }));
+      addLog(`GPS Lock Failed: ${err.message || "Signal Jammed"}`);
+    }
+    setScanProgress(100);
+
+    // Finalize
+    await new Promise(r => setTimeout(r, 500));
+    addLog("Diagnostic complete. Security perimeter established.");
+    setStatus('complete');
+  };
+
+  useEffect(() => {
+    if (open && status === 'idle') {
+      runDiagnostics();
+    } else if (!open) {
+      setStatus('idle');
+      setLogs([]);
+    }
+  }, [open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-black/90 border-primary/20 text-white max-w-2xl backdrop-blur-xl p-0 overflow-hidden sm:rounded-xl shadow-[0_0_50px_rgba(6,182,212,0.15)]">
+        <DialogTitle className="sr-only">System Diagnostics</DialogTitle>
+        
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="font-mono text-sm tracking-widest uppercase text-muted-foreground">
+              TriFused Diagnostic Protocol v9.2
+            </span>
+          </div>
+          <div className="font-mono text-xs text-primary">
+            {status === 'scanning' ? 'SCANNING...' : 'COMPLETE'}
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 h-[500px]">
+          {/* Terminal Output */}
+          <div className="bg-black p-6 font-mono text-xs md:text-sm overflow-y-auto border-r border-white/10 relative">
+             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none" />
+             <div className="relative z-10 space-y-2">
+               {logs.map((log, i) => (
+                 <motion.div 
+                   key={i}
+                   initial={{ opacity: 0, x: -10 }}
+                   animate={{ opacity: 1, x: 0 }}
+                   className="text-white/80"
+                 >
+                   <span className="text-primary mr-2">➜</span>
+                   {log}
+                 </motion.div>
+               ))}
+               {status === 'scanning' && (
+                 <motion.div 
+                   animate={{ opacity: [0, 1, 0] }}
+                   transition={{ repeat: Infinity, duration: 0.8 }}
+                   className="w-2 h-4 bg-primary"
+                 />
+               )}
+             </div>
+          </div>
+
+          {/* Visual Data Visualization */}
+          <div className="p-6 bg-gradient-to-b from-slate-900 to-black relative overflow-hidden">
+             {/* Scanning Grid Background */}
+             <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.05)_1px,transparent_1px)] bg-[size:20px_20px]" />
+             
+             <div className="relative z-10 h-full flex flex-col justify-between">
+                
+                {/* Center Visualization */}
+                <div className="flex-1 flex items-center justify-center">
+                   {status === 'scanning' ? (
+                     <div className="relative">
+                       <motion.div 
+                         animate={{ rotate: 360 }}
+                         transition={{ duration: 4, ease: "linear", repeat: Infinity }}
+                         className="w-32 h-32 border-2 border-primary/30 rounded-full border-t-primary"
+                       />
+                       <motion.div 
+                         animate={{ rotate: -360 }}
+                         transition={{ duration: 6, ease: "linear", repeat: Infinity }}
+                         className="absolute inset-2 border-2 border-purple-500/30 rounded-full border-b-purple-500"
+                       />
+                       <div className="absolute inset-0 flex items-center justify-center font-mono text-2xl font-bold text-white">
+                         {scanProgress}%
+                       </div>
+                     </div>
+                   ) : (
+                     <motion.div 
+                       initial={{ scale: 0.8, opacity: 0 }}
+                       animate={{ scale: 1, opacity: 1 }}
+                       className="text-center"
+                     >
+                        <Shield className="w-20 h-20 text-primary mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-white">System Secure</h3>
+                        <p className="text-sm text-muted-foreground mt-2">No active threats detected.</p>
+                     </motion.div>
+                   )}
+                </div>
+
+                {/* Data Grid */}
+                <div className="grid grid-cols-2 gap-3 mt-8">
+                  <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                      <Globe className="w-3 h-3" /> Public IP
+                    </div>
+                    <div className="font-mono text-sm text-white truncate">
+                      {data.ip || "---.---.---.---"}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                      <MapPin className="w-3 h-3" /> Location
+                    </div>
+                    <div className="font-mono text-sm text-white truncate">
+                      {data.location?.lat ? `${data.location.lat.toFixed(2)}, ${data.location.lng?.toFixed(2)}` : "Scanning..."}
+                    </div>
+                  </div>
+
+                  <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                      <Cpu className="w-3 h-3" /> System
+                    </div>
+                    <div className="font-mono text-sm text-white truncate">
+                      {data.platform || "Unknown"}
+                    </div>
+                  </div>
+
+                  <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                      <Lock className="w-3 h-3" /> Connection
+                    </div>
+                    <div className="font-mono text-sm text-green-400 truncate">
+                      {data.secure ? "Encrypted (SSL)" : "Unsecured"}
+                    </div>
+                  </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
