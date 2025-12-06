@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Shield, Globe, Cpu, MapPin, Wifi, Lock, AlertTriangle, CheckCircle } from "lucide-react";
+import { X, Shield, Globe, Cpu, MapPin, Wifi, Lock, AlertTriangle, CheckCircle, RefreshCw, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -237,27 +237,85 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                         <Shield className="w-16 h-16 md:w-20 md:h-20 text-primary mx-auto mb-2 md:mb-4" />
                         <h3 className="text-lg md:text-xl font-bold text-white">System Secure</h3>
                         <p className="text-xs md:text-sm text-muted-foreground mt-1 md:mt-2">No active threats detected.</p>
+                        <Button
+                          onClick={() => {
+                            setStatus('idle');
+                            setTimeout(() => runDiagnostics(), 100);
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="mt-4 border-primary/30 text-primary hover:bg-primary/10 font-mono text-xs"
+                          data-testid="button-rescan"
+                        >
+                          <RefreshCw className="w-3 h-3 mr-2" />
+                          Re-Scan System
+                        </Button>
                      </motion.div>
                    )}
                 </div>
 
+                {/* Geo Location Display */}
+                {status === 'complete' && data.location && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-gradient-to-r from-primary/10 to-purple-500/10 p-3 rounded-lg border border-primary/20 mb-3"
+                    data-testid="geo-location-display"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 text-xs text-primary font-mono uppercase tracking-wider">
+                        <MapPin className="w-4 h-4" />
+                        Geo Location
+                      </div>
+                      {data.location.lat && (
+                        <a
+                          href={`https://www.google.com/maps?q=${data.location.lat},${data.location.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:text-white flex items-center gap-1 transition-colors"
+                          data-testid="link-open-map"
+                        >
+                          Open Map <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div className="text-[10px] text-muted-foreground mb-1">Latitude</div>
+                        <div className="font-mono text-sm text-white">
+                          {data.location.lat?.toFixed(4) || "N/A"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-muted-foreground mb-1">Longitude</div>
+                        <div className="font-mono text-sm text-white">
+                          {data.location.lng?.toFixed(4) || "N/A"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-muted-foreground mb-1">Accuracy</div>
+                        <div className="font-mono text-sm text-white">
+                          {data.location.accuracy ? `${data.location.accuracy.toFixed(0)}m` : "N/A"}
+                        </div>
+                      </div>
+                    </div>
+                    {data.location.error && (
+                      <div className="mt-2 text-xs text-yellow-400 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        {data.location.error === "Timeout" ? "GPS signal timed out" : "Location access denied"}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+
                 {/* Data Grid */}
-                <div className="grid grid-cols-2 gap-2 md:gap-3 mt-4 md:mt-8 pb-4 md:pb-0">
+                <div className="grid grid-cols-2 gap-2 md:gap-3 pb-4 md:pb-0">
                   <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
                     <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
                       <Globe className="w-3 h-3" /> Public IP
                     </div>
                     <div className="font-mono text-xs md:text-sm text-white truncate">
                       {data.ip || "---.---.---.---"}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
-                      <MapPin className="w-3 h-3" /> Location
-                    </div>
-                    <div className="font-mono text-xs md:text-sm text-white truncate">
-                      {data.location?.lat ? `${data.location.lat.toFixed(2)}, ${data.location.lng?.toFixed(2)}` : "Scanning..."}
                     </div>
                   </div>
 
@@ -267,6 +325,15 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                     </div>
                     <div className="font-mono text-xs md:text-sm text-white truncate">
                       {data.platform || "Unknown"}
+                    </div>
+                  </div>
+
+                  <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
+                      <Wifi className="w-3 h-3" /> Network
+                    </div>
+                    <div className="font-mono text-xs md:text-sm text-white truncate">
+                      {data.connection || "Detecting..."}
                     </div>
                   </div>
 
