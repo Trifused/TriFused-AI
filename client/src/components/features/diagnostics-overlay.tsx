@@ -153,17 +153,17 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 h-[500px]">
+        <div className="flex flex-col md:grid md:grid-cols-2 h-[80vh] md:h-[500px]">
           {/* Terminal Output */}
-          <div className="bg-black p-6 font-mono text-xs md:text-sm overflow-y-auto border-r border-white/10 relative">
+          <div className="bg-black p-4 md:p-6 font-mono text-xs md:text-sm overflow-y-auto border-b md:border-b-0 md:border-r border-white/10 relative h-[35%] md:h-full">
              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none" />
-             <div className="relative z-10 space-y-2">
+             <div className="relative z-10 space-y-1 md:space-y-2">
                {logs.map((log, i) => (
                  <motion.div 
                    key={i}
                    initial={{ opacity: 0, x: -10 }}
                    animate={{ opacity: 1, x: 0 }}
-                   className="text-white/80"
+                   className="text-white/80 break-words"
                  >
                    <span className="text-primary mr-2">➜</span>
                    {log}
@@ -180,27 +180,27 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
           </div>
 
           {/* Visual Data Visualization */}
-          <div className="p-6 bg-gradient-to-b from-slate-900 to-black relative overflow-hidden">
+          <div className="p-4 md:p-6 bg-gradient-to-b from-slate-900 to-black relative overflow-hidden flex-1 flex flex-col">
              {/* Scanning Grid Background */}
              <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.05)_1px,transparent_1px)] bg-[size:20px_20px]" />
              
-             <div className="relative z-10 h-full flex flex-col justify-between">
+             <div className="relative z-10 h-full flex flex-col justify-between overflow-y-auto">
                 
                 {/* Center Visualization */}
-                <div className="flex-1 flex items-center justify-center">
+                <div className="flex-1 flex items-center justify-center min-h-[160px]">
                    {status === 'scanning' ? (
-                     <div className="relative">
+                     <div className="relative scale-75 md:scale-100">
                        <motion.div 
                          animate={{ rotate: 360 }}
                          transition={{ duration: 4, ease: "linear", repeat: Infinity }}
-                         className="w-32 h-32 border-2 border-primary/30 rounded-full border-t-primary"
+                         className="w-24 h-24 md:w-32 md:h-32 border-2 border-primary/30 rounded-full border-t-primary"
                        />
                        <motion.div 
                          animate={{ rotate: -360 }}
                          transition={{ duration: 6, ease: "linear", repeat: Infinity }}
                          className="absolute inset-2 border-2 border-purple-500/30 rounded-full border-b-purple-500"
                        />
-                       <div className="absolute inset-0 flex items-center justify-center font-mono text-2xl font-bold text-white">
+                       <div className="absolute inset-0 flex items-center justify-center font-mono text-xl md:text-2xl font-bold text-white">
                          {scanProgress}%
                        </div>
                      </div>
@@ -208,49 +208,49 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                      <motion.div 
                        initial={{ scale: 0.8, opacity: 0 }}
                        animate={{ scale: 1, opacity: 1 }}
-                       className="text-center"
+                       className="text-center scale-90 md:scale-100"
                      >
-                        <Shield className="w-20 h-20 text-primary mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-white">System Secure</h3>
-                        <p className="text-sm text-muted-foreground mt-2">No active threats detected.</p>
+                        <Shield className="w-16 h-16 md:w-20 md:h-20 text-primary mx-auto mb-2 md:mb-4" />
+                        <h3 className="text-lg md:text-xl font-bold text-white">System Secure</h3>
+                        <p className="text-xs md:text-sm text-muted-foreground mt-1 md:mt-2">No active threats detected.</p>
                      </motion.div>
                    )}
                 </div>
 
                 {/* Data Grid */}
-                <div className="grid grid-cols-2 gap-3 mt-8">
-                  <div className="bg-white/5 p-3 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <div className="grid grid-cols-2 gap-2 md:gap-3 mt-4 md:mt-8 pb-4 md:pb-0">
+                  <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
                       <Globe className="w-3 h-3" /> Public IP
                     </div>
-                    <div className="font-mono text-sm text-white truncate">
+                    <div className="font-mono text-xs md:text-sm text-white truncate">
                       {data.ip || "---.---.---.---"}
                     </div>
                   </div>
                   
-                  <div className="bg-white/5 p-3 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                  <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
                       <MapPin className="w-3 h-3" /> Location
                     </div>
-                    <div className="font-mono text-sm text-white truncate">
+                    <div className="font-mono text-xs md:text-sm text-white truncate">
                       {data.location?.lat ? `${data.location.lat.toFixed(2)}, ${data.location.lng?.toFixed(2)}` : "Scanning..."}
                     </div>
                   </div>
 
-                  <div className="bg-white/5 p-3 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                  <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
                       <Cpu className="w-3 h-3" /> System
                     </div>
-                    <div className="font-mono text-sm text-white truncate">
+                    <div className="font-mono text-xs md:text-sm text-white truncate">
                       {data.platform || "Unknown"}
                     </div>
                   </div>
 
-                  <div className="bg-white/5 p-3 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                  <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
                       <Lock className="w-3 h-3" /> Connection
                     </div>
-                    <div className="font-mono text-sm text-green-400 truncate">
+                    <div className="font-mono text-xs md:text-sm text-green-400 truncate">
                       {data.secure ? "Encrypted (SSL)" : "Unsecured"}
                     </div>
                   </div>
