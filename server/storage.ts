@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { 
   contactSubmissions, 
   diagnosticScans, 
@@ -9,24 +9,29 @@ import {
   ContactSubmission, 
   DiagnosticScan,
   User,
-  UpsertUser
+  UpsertUser,
+  UserRole
 } from "@shared/schema";
 
 export interface IStorage {
-  // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  updateUserRole(id: string, role: UserRole): Promise<User | undefined>;
   
-  // Contact form operations
   createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission>;
-  
-  // Diagnostic scan operations
   createDiagnosticScan(data: InsertDiagnosticScan): Promise<DiagnosticScan>;
 }
 
 class Storage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
   }
 
@@ -41,6 +46,19 @@ class Storage implements IStorage {
           updatedAt: new Date(),
         },
       })
+      .returning();
+    return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async updateUserRole(id: string, role: UserRole): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ role, updatedAt: new Date() })
+      .where(eq(users.id, id))
       .returning();
     return user;
   }

@@ -50,15 +50,26 @@ function updateUserSession(
   user.expires_at = user.claims?.exp;
 }
 
+const SUPERUSER_EMAIL_DOMAIN = "@trifused.com";
+
 async function upsertUser(
   claims: any,
 ) {
+  const email = claims["email"];
+  const existingUser = await storage.getUser(claims["sub"]);
+  
+  let role = existingUser?.role || "guest";
+  if (email?.endsWith(SUPERUSER_EMAIL_DOMAIN) && role !== "superuser") {
+    role = "superuser";
+  }
+
   await storage.upsertUser({
     id: claims["sub"],
-    email: claims["email"],
+    email: email,
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
+    role: role,
   });
 }
 

@@ -10,7 +10,10 @@ import {
   Activity,
   FileText,
   MessageSquare,
-  ChevronRight
+  ChevronRight,
+  Crown,
+  UserCheck,
+  Users
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
@@ -84,20 +87,34 @@ export default function Dashboard() {
                 <Settings className="w-5 h-5" />
               </Button>
               <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+                {user?.role === 'superuser' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setLocation("/portal/admin")}
+                    className="border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/10"
+                    data-testid="button-admin"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Admin
+                  </Button>
+                )}
                 {user?.profileImageUrl && (
                   <img 
                     src={user.profileImageUrl} 
                     alt="Profile" 
-                    className="w-8 h-8 rounded-full object-cover border border-white/10"
+                    className={`w-8 h-8 rounded-full object-cover border ${user?.role === 'superuser' ? 'border-yellow-500/30' : 'border-white/10'}`}
                     data-testid="img-user-avatar"
                   />
                 )}
                 <div className="text-sm">
-                  <div className="text-white font-medium" data-testid="text-user-name">
+                  <div className="text-white font-medium flex items-center gap-2" data-testid="text-user-name">
                     {user?.firstName || user?.email?.split('@')[0] || 'User'}
+                    {user?.role === 'superuser' && <Crown className="w-3 h-3 text-yellow-500" />}
+                    {user?.role === 'validated' && <UserCheck className="w-3 h-3 text-green-500" />}
                   </div>
-                  <div className="text-muted-foreground text-xs" data-testid="text-user-email">
-                    {user?.email}
+                  <div className={`text-xs ${user?.role === 'superuser' ? 'text-yellow-500/80' : user?.role === 'validated' ? 'text-green-500/80' : 'text-muted-foreground'}`} data-testid="text-user-role">
+                    {user?.role === 'superuser' ? 'Superuser' : user?.role === 'validated' ? 'Validated' : 'Guest'}
                   </div>
                 </div>
                 <Button 
