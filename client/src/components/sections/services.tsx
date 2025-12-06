@@ -3,16 +3,56 @@ import { useLocation } from "wouter";
 import securityImg from "@assets/generated_images/cybersecurity_data_shield.png";
 import infraImg from "@assets/generated_images/futuristic_server_infrastructure.png";
 import marketingImg from "@assets/generated_images/ai_marketing_network.png";
-import { ArrowUpRight, Shield, Server, BrainCircuit, Code, Database, Cloud, Smartphone, Lock } from "lucide-react";
+import { ArrowUpRight, Shield, Server, BrainCircuit, Code, Database, Cloud, Smartphone, Lock, Monitor, HardDrive, KeyRound, Activity } from "lucide-react";
 
 const services = [
+  {
+    id: "secure-workstations",
+    title: "Secure Workstations",
+    description: "Simple secure workstations with the latest software and security updates. Keep your endpoints protected and compliant.",
+    icon: Monitor,
+    image: securityImg,
+    color: "text-blue-400"
+  },
+  {
+    id: "data-services",
+    title: "Your Data Your Services",
+    description: "Deep insights into your servers and data with advanced monitoring tools. Recover any system in 30 minutes.",
+    icon: HardDrive,
+    image: infraImg,
+    color: "text-green-400"
+  },
+  {
+    id: "accounts-security",
+    title: "Accounts, Passwords & Security",
+    description: "Protect your passwords and accounts, keep them secure and use Multi-Factor Authentication for maximum protection.",
+    icon: KeyRound,
+    image: securityImg,
+    color: "text-yellow-400"
+  },
+  {
+    id: "cloud-systems",
+    title: "Cloud Systems",
+    description: "From Office 365 to Microsoft Azure and Amazon hosted servers - built and managed for you with enterprise-grade reliability.",
+    icon: Cloud,
+    image: infraImg,
+    color: "text-purple-400"
+  },
+  {
+    id: "advanced-security",
+    title: "Advanced Security",
+    description: "Security monitoring using SIEM and EDR tools leveraging emerging AI for real-time threat detection and response.",
+    icon: Activity,
+    image: securityImg,
+    color: "text-red-400"
+  },
   {
     id: "pentesting",
     title: "Advanced Pen-Testing",
     description: "Offensive security protocols simulating sophisticated cyber-attacks to identify and patch vulnerabilities before exploitation.",
     icon: Lock,
     image: securityImg,
-    color: "text-red-400"
+    color: "text-orange-400"
   },
   {
     id: "mdr",
@@ -28,7 +68,7 @@ const services = [
     description: "Secure, remote administration of mobile endpoints. Enforce encryption, wipe lost devices, and manage app deployment at scale.",
     icon: Smartphone,
     image: infraImg,
-    color: "text-purple-400"
+    color: "text-pink-400"
   },
   {
     id: "cloud-db",
@@ -36,7 +76,7 @@ const services = [
     description: "Scalable, resilient cloud infrastructure design. Optimized database clusters for high-availability and zero-latency performance.",
     icon: Database,
     image: infraImg,
-    color: "text-blue-400"
+    color: "text-indigo-400"
   },
   {
     id: "coding",
@@ -44,7 +84,7 @@ const services = [
     description: "Building next-gen applications with LLM integration. From chatbots to autonomous agents, we code the future.",
     icon: Code,
     image: marketingImg,
-    color: "text-green-400"
+    color: "text-emerald-400"
   },
   {
     id: "growth",
@@ -52,7 +92,7 @@ const services = [
     description: "Marketing strategies supercharged by AI. Hyper-personalized customer journeys created in real-time.",
     icon: BrainCircuit,
     image: marketingImg,
-    color: "text-pink-400"
+    color: "text-rose-400"
   }
 ];
 
