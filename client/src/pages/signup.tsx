@@ -11,10 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 declare global {
   interface Window {
     grecaptcha: {
-      enterprise: {
-        ready: (callback: () => void) => void;
-        execute: (siteKey: string, options: { action: string }) => Promise<string>;
-      };
+      ready: (callback: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
     };
   }
 }
@@ -41,10 +39,10 @@ export default function Signup() {
   useEffect(() => {
     if (!siteKey) return;
     
-    const existingScript = document.querySelector('script[src*="recaptcha/enterprise.js"]');
+    const existingScript = document.querySelector('script[src*="recaptcha/api.js"]');
     if (!existingScript) {
       const script = document.createElement('script');
-      script.src = `https://www.google.com/recaptcha/enterprise.js?render=${siteKey}`;
+      script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
       script.async = true;
       script.onload = () => setRecaptchaLoaded(true);
       document.head.appendChild(script);
@@ -93,8 +91,10 @@ export default function Signup() {
     if (!email || !siteKey || !recaptchaLoaded) return;
     
     try {
-      const token = await window.grecaptcha.enterprise.execute(siteKey, { action: 'subscribe' });
-      subscribeMutation.mutate({ email, captchaToken: token });
+      window.grecaptcha.ready(async () => {
+        const token = await window.grecaptcha.execute(siteKey, { action: 'subscribe' });
+        subscribeMutation.mutate({ email, captchaToken: token });
+      });
     } catch (error) {
       toast({
         title: "Error",

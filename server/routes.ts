@@ -155,46 +155,35 @@ export async function registerRoutes(
       }
 
       const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY;
-      const recaptchaSiteKey = process.env.RECAPTCHA_SITE_KEY;
-      if (recaptchaSecretKey && recaptchaSiteKey) {
-        const projectId = recaptchaSiteKey;
+      if (recaptchaSecretKey) {
         const captchaResponse = await fetch(
-          `https://recaptchaenterprise.googleapis.com/v1/projects/${projectId}/assessments?key=${recaptchaSecretKey}`,
+          'https://www.google.com/recaptcha/api/siteverify',
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              event: {
-                token: captchaToken,
-                siteKey: recaptchaSiteKey,
-                expectedAction: 'subscribe'
-              }
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              secret: recaptchaSecretKey,
+              response: captchaToken
             })
           }
         );
         
         const captchaResult = await captchaResponse.json() as { 
-          tokenProperties?: { valid: boolean; action?: string };
-          riskAnalysis?: { score: number };
-          error?: { message: string };
+          success: boolean;
+          score?: number;
+          action?: string;
+          'error-codes'?: string[];
         };
         
-        if (captchaResult.error) {
-          console.error("reCAPTCHA Enterprise error:", captchaResult.error);
+        if (!captchaResult.success) {
+          console.error("reCAPTCHA verification failed:", captchaResult['error-codes']);
           return res.status(400).json({ 
             success: false, 
             error: "Captcha verification failed" 
           });
         }
         
-        if (!captchaResult.tokenProperties?.valid) {
-          return res.status(400).json({ 
-            success: false, 
-            error: "Invalid captcha token" 
-          });
-        }
-        
-        const score = captchaResult.riskAnalysis?.score || 0;
+        const score = captchaResult.score || 0;
         if (score < 0.5) {
           return res.status(400).json({ 
             success: false, 
