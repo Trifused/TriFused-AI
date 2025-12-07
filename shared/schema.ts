@@ -143,3 +143,20 @@ export const insertEmailSubscriberSchema = createInsertSchema(emailSubscribers).
 
 export type InsertEmailSubscriber = z.infer<typeof insertEmailSubscriberSchema>;
 export type EmailSubscriber = typeof emailSubscribers.$inferSelect;
+
+// Chat conversations for AI assistant
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  role: varchar("role").notNull(), // "user" or "assistant"
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;

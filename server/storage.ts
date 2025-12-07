@@ -8,6 +8,7 @@ import {
   fileTransfers,
   storageConnections,
   emailSubscribers,
+  chatMessages,
   InsertContactSubmission, 
   InsertDiagnosticScan, 
   ContactSubmission, 
@@ -22,7 +23,9 @@ import {
   StorageConnection,
   InsertStorageConnection,
   EmailSubscriber,
-  InsertEmailSubscriber
+  InsertEmailSubscriber,
+  ChatMessage,
+  InsertChatMessage
 } from "@shared/schema";
 
 export interface IStorage {
@@ -48,6 +51,9 @@ export interface IStorage {
   
   createEmailSubscriber(data: InsertEmailSubscriber): Promise<EmailSubscriber>;
   getEmailSubscriberByEmail(email: string): Promise<EmailSubscriber | undefined>;
+  
+  getChatMessages(sessionId: string): Promise<ChatMessage[]>;
+  createChatMessage(data: InsertChatMessage): Promise<ChatMessage>;
 }
 
 class Storage implements IStorage {
@@ -169,6 +175,17 @@ class Storage implements IStorage {
   async getEmailSubscriberByEmail(email: string): Promise<EmailSubscriber | undefined> {
     const [subscriber] = await db.select().from(emailSubscribers).where(eq(emailSubscribers.email, email));
     return subscriber;
+  }
+
+  async getChatMessages(sessionId: string): Promise<ChatMessage[]> {
+    return await db.select().from(chatMessages)
+      .where(eq(chatMessages.sessionId, sessionId))
+      .orderBy(chatMessages.createdAt);
+  }
+
+  async createChatMessage(data: InsertChatMessage): Promise<ChatMessage> {
+    const [message] = await db.insert(chatMessages).values(data).returning();
+    return message;
   }
 }
 
