@@ -156,11 +156,13 @@ export async function registerRoutes(
       }
 
       const recaptchaSiteKey = process.env.RECAPTCHA_SITE_KEY;
+      const gcpCredentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
       const gcpProjectId = process.env.GCP_PROJECT_ID || "trifused-gemini--1765086064132";
       
-      if (recaptchaSiteKey) {
+      if (recaptchaSiteKey && gcpCredentialsJson) {
         try {
-          const client = new RecaptchaEnterpriseServiceClient();
+          const credentials = JSON.parse(gcpCredentialsJson);
+          const client = new RecaptchaEnterpriseServiceClient({ credentials });
           const projectPath = client.projectPath(gcpProjectId);
           
           const [response] = await client.createAssessment({
