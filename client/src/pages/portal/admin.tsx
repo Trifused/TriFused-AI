@@ -2,16 +2,23 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { 
-  LayoutDashboard, 
   LogOut, 
-  Settings, 
   Users,
   Shield,
   Crown,
   UserCheck,
   UserX,
   ChevronLeft,
-  HardDrive
+  HardDrive,
+  MessageSquare,
+  AlertTriangle,
+  Mail,
+  Phone,
+  Search,
+  Eye,
+  X,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -25,6 +32,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { format } from "date-fns";
 
 interface User {
   id: string;
@@ -38,15 +48,87 @@ interface User {
   updatedAt: string;
 }
 
+interface ChatLead {
+  id: string;
+  sessionId: string;
+  name: string;
+  contactMethod: string;
+  contactValue: string;
+  inquiry: string;
+  createdAt: string;
+  messageCount: number;
+  isSpam: boolean;
+  reasons: string[];
+}
+
+interface ChatSession {
+  sessionId: string;
+  messageCount: number;
+  firstMessageAt: string;
+  lastMessageAt: string;
+  hasLead: boolean;
+  isSpam: boolean;
+  reasons: string[];
+}
+
+interface ChatMessage {
+  id: string;
+  sessionId: string;
+  role: string;
+  content: string;
+  createdAt: string;
+}
+
 export default function Admin() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("users");
+  const [chatSubTab, setChatSubTab] = useState("leads");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSession, setSelectedSession] = useState<string | null>(null);
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
 
   const { data: users, isLoading: usersLoading, error } = useQuery<User[]>({
     queryKey: ['/api/admin/users'],
     enabled: isAuthenticated && user?.role === 'superuser',
+  });
+
+  const { data: leads, isLoading: leadsLoading } = useQuery<ChatLead[]>({
+    queryKey: ['/api/admin/chat/leads'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/chat/leads', {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch leads');
+      return res.json();
+    },
+    enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'chat',
+  });
+
+  const { data: sessions, isLoading: sessionsLoading } = useQuery<ChatSession[]>({
+    queryKey: ['/api/admin/chat/sessions'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/chat/sessions', {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch sessions');
+      return res.json();
+    },
+    enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'chat',
+  });
+
+  const { data: sessionMessages } = useQuery<ChatMessage[]>({
+    queryKey: ['/api/admin/chat/sessions', selectedSession, 'messages'],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/chat/sessions/${selectedSession}/messages`, {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch messages');
+      return res.json();
+    },
+    enabled: !!selectedSession,
   });
 
   const updateRoleMutation = useMutation({
@@ -170,6 +252,35 @@ export default function Admin() {
     }
   };
 
+  const filteredLeads = leads?.filter(lead => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      lead.name.toLowerCase().includes(query) ||
+      lead.contactValue.toLowerCase().includes(query) ||
+      lead.inquiry.toLowerCase().includes(query)
+    );
+  }) || [];
+
+  const filteredSessions = sessions?.filter(session => {
+    if (!searchQuery) return true;
+    return session.sessionId.toLowerCase().includes(searchQuery.toLowerCase());
+  }) || [];
+
+  const toggleSessionExpanded = (sessionId: string) => {
+    const newExpanded = new Set(expandedSessions);
+    if (newExpanded.has(sessionId)) {
+      newExpanded.delete(sessionId);
+      if (selectedSession === sessionId) {
+        setSelectedSession(null);
+      }
+    } else {
+      newExpanded.add(sessionId);
+      setSelectedSession(sessionId);
+    }
+    setExpandedSessions(newExpanded);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-white/5">
@@ -184,7 +295,7 @@ export default function Admin() {
               </button>
               <span className="text-muted-foreground">/</span>
               <span className="text-muted-foreground flex items-center gap-2">
-                <Users className="w-4 h-4" />
+                <Shield className="w-4 h-4" />
                 Admin
               </span>
             </div>
@@ -236,132 +347,372 @@ export default function Admin() {
         >
           <h1 className="text-3xl font-bold font-heading text-white mb-2 flex items-center gap-3">
             <Shield className="w-8 h-8 text-primary" />
-            User Management
+            Admin Panel
           </h1>
           <p className="text-muted-foreground">
-            Manage user accounts and roles. Users with @trifused.com emails are automatically promoted to superuser.
+            Manage users, chat leads, and view conversation analytics.
           </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="glass-panel rounded-2xl overflow-hidden"
-        >
-          <div className="p-4 border-b border-white/5 bg-white/5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">All Users</h2>
-              <div className="text-sm text-muted-foreground">
-                {users?.length || 0} total users
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="bg-white/5 border border-white/10">
+            <TabsTrigger value="users" className="data-[state=active]:bg-primary" data-testid="tab-users">
+              <Users className="w-4 h-4 mr-2" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="data-[state=active]:bg-primary" data-testid="tab-chat">
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Chat Intelligence
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="users">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="glass-panel rounded-2xl overflow-hidden"
+            >
+              <div className="p-4 border-b border-white/5 bg-white/5">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-white">All Users</h2>
+                  <div className="text-sm text-muted-foreground">
+                    {users?.length || 0} total users
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {usersLoading ? (
-            <div className="p-12 text-center">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading users...</p>
-            </div>
-          ) : error ? (
-            <div className="p-12 text-center">
-              <p className="text-red-400">Failed to load users</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-white/5">
-              {users?.map((u, index) => (
-                <motion.div
-                  key={u.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="p-4 hover:bg-white/5 transition-colors"
-                  data-testid={`row-user-${u.id}`}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      {u.profileImageUrl ? (
-                        <img 
-                          src={u.profileImageUrl} 
-                          alt="" 
-                          className="w-10 h-10 rounded-full object-cover border border-white/10"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
-                          <Users className="w-5 h-5 text-muted-foreground" />
+              {usersLoading ? (
+                <div className="p-12 text-center">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-muted-foreground">Loading users...</p>
+                </div>
+              ) : error ? (
+                <div className="p-12 text-center">
+                  <p className="text-red-400">Failed to load users</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-white/5">
+                  {users?.map((u, index) => (
+                    <motion.div
+                      key={u.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="p-4 hover:bg-white/5 transition-colors"
+                      data-testid={`row-user-${u.id}`}
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          {u.profileImageUrl ? (
+                            <img 
+                              src={u.profileImageUrl} 
+                              alt="" 
+                              className="w-10 h-10 rounded-full object-cover border border-white/10"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
+                              <Users className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="text-white font-medium truncate">
+                              {u.firstName && u.lastName 
+                                ? `${u.firstName} ${u.lastName}` 
+                                : u.firstName || u.email?.split('@')[0] || 'Unknown'}
+                            </div>
+                            <div className="text-sm text-muted-foreground truncate">
+                              {u.email || 'No email'}
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="text-white font-medium truncate">
-                          {u.firstName && u.lastName 
-                            ? `${u.firstName} ${u.lastName}` 
-                            : u.firstName || u.email?.split('@')[0] || 'Unknown'}
-                        </div>
-                        <div className="text-sm text-muted-foreground truncate">
-                          {u.email || 'No email'}
+
+                        <div className="flex items-center gap-4">
+                          <div className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-2 ${getRoleBadge(u.role)}`}>
+                            {getRoleIcon(u.role)}
+                            {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                          </div>
+
+                          <Select
+                            value={u.role}
+                            onValueChange={(value) => updateRoleMutation.mutate({ userId: u.id, role: value })}
+                            disabled={u.id === user?.id || updateRoleMutation.isPending}
+                          >
+                            <SelectTrigger className="w-36 bg-white/5 border-white/10" data-testid={`select-role-${u.id}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="guest">
+                                <span className="flex items-center gap-2">
+                                  <UserX className="w-4 h-4" /> Guest
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="validated">
+                                <span className="flex items-center gap-2">
+                                  <UserCheck className="w-4 h-4" /> Validated
+                                </span>
+                              </SelectItem>
+                              <SelectItem value="superuser">
+                                <span className="flex items-center gap-2">
+                                  <Crown className="w-4 h-4" /> Superuser
+                                </span>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          <div className="flex items-center gap-2 pl-4 border-l border-white/10">
+                            <HardDrive className={`w-4 h-4 ${u.ftpAccess === 1 ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <Switch
+                              checked={u.ftpAccess === 1}
+                              onCheckedChange={(checked) => 
+                                updateFtpAccessMutation.mutate({ userId: u.id, ftpAccess: checked ? 1 : 0 })
+                              }
+                              disabled={updateFtpAccessMutation.isPending}
+                              data-testid={`switch-ftp-${u.id}`}
+                            />
+                            <span className="text-xs text-muted-foreground">MFT</span>
+                          </div>
                         </div>
                       </div>
+                    </motion.div>
+                  ))}
+
+                  {users?.length === 0 && (
+                    <div className="p-12 text-center">
+                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No users found</p>
                     </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </TabsContent>
 
-                    <div className="flex items-center gap-4">
-                      <div className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-2 ${getRoleBadge(u.role)}`}>
-                        {getRoleIcon(u.role)}
-                        {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
-                      </div>
+          <TabsContent value="chat">
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search leads or sessions..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-white/5 border-white/10"
+                    data-testid="input-search-chat"
+                  />
+                </div>
+                <Tabs value={chatSubTab} onValueChange={setChatSubTab}>
+                  <TabsList className="bg-white/5 border border-white/10">
+                    <TabsTrigger value="leads" className="data-[state=active]:bg-primary" data-testid="subtab-leads">
+                      Leads ({leads?.filter(l => !l.isSpam).length || 0})
+                    </TabsTrigger>
+                    <TabsTrigger value="sessions" className="data-[state=active]:bg-primary" data-testid="subtab-sessions">
+                      Sessions ({sessions?.length || 0})
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
 
-                      <Select
-                        value={u.role}
-                        onValueChange={(value) => updateRoleMutation.mutate({ userId: u.id, role: value })}
-                        disabled={u.id === user?.id || updateRoleMutation.isPending}
-                      >
-                        <SelectTrigger className="w-36 bg-white/5 border-white/10" data-testid={`select-role-${u.id}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="guest">
-                            <span className="flex items-center gap-2">
-                              <UserX className="w-4 h-4" /> Guest
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="validated">
-                            <span className="flex items-center gap-2">
-                              <UserCheck className="w-4 h-4" /> Validated
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="superuser">
-                            <span className="flex items-center gap-2">
-                              <Crown className="w-4 h-4" /> Superuser
-                            </span>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      <div className="flex items-center gap-2 pl-4 border-l border-white/10">
-                        <HardDrive className={`w-4 h-4 ${u.ftpAccess === 1 ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <Switch
-                          checked={u.ftpAccess === 1}
-                          onCheckedChange={(checked) => 
-                            updateFtpAccessMutation.mutate({ userId: u.id, ftpAccess: checked ? 1 : 0 })
-                          }
-                          disabled={updateFtpAccessMutation.isPending}
-                          data-testid={`switch-ftp-${u.id}`}
-                        />
-                        <span className="text-xs text-muted-foreground">MFT</span>
+              {chatSubTab === "leads" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="glass-panel rounded-2xl overflow-hidden"
+                >
+                  <div className="p-4 border-b border-white/5 bg-white/5">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-white">Chat Leads</h2>
+                      <div className="text-sm text-muted-foreground">
+                        {filteredLeads.length} leads found
                       </div>
                     </div>
                   </div>
-                </motion.div>
-              ))}
 
-              {users?.length === 0 && (
-                <div className="p-12 text-center">
-                  <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No users found</p>
-                </div>
+                  {leadsLoading ? (
+                    <div className="p-12 text-center">
+                      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                      <p className="text-muted-foreground">Loading leads...</p>
+                    </div>
+                  ) : filteredLeads.length === 0 ? (
+                    <div className="p-12 text-center">
+                      <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No leads captured yet</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-white/5">
+                      {filteredLeads.map((lead, index) => (
+                        <motion.div
+                          key={lead.id}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: index * 0.03 }}
+                          className="p-4 hover:bg-white/5 transition-colors"
+                          data-testid={`row-lead-${lead.id}`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-3 mb-2">
+                                <span className="text-white font-medium">{lead.name}</span>
+                                {lead.isSpam && (
+                                  <span className="px-2 py-0.5 rounded-full text-xs bg-orange-500/10 text-orange-400 border border-orange-500/20 flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    Spam
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+                                {lead.contactMethod === 'email' ? (
+                                  <span className="flex items-center gap-1">
+                                    <Mail className="w-4 h-4" />
+                                    {lead.contactValue}
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    <Phone className="w-4 h-4" />
+                                    {lead.contactValue}
+                                  </span>
+                                )}
+                                <span>{format(new Date(lead.createdAt), 'MMM d, yyyy h:mm a')}</span>
+                              </div>
+                              <p className="text-sm text-white/70">{lead.inquiry}</p>
+                              {lead.isSpam && lead.reasons.length > 0 && (
+                                <p className="text-xs text-orange-400/70 mt-1">
+                                  Reasons: {lead.reasons.join(', ')}
+                                </p>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {lead.messageCount} messages
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {chatSubTab === "sessions" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="glass-panel rounded-2xl overflow-hidden"
+                >
+                  <div className="p-4 border-b border-white/5 bg-white/5">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-white">Chat Sessions</h2>
+                      <div className="text-sm text-muted-foreground">
+                        {filteredSessions.length} sessions
+                      </div>
+                    </div>
+                  </div>
+
+                  {sessionsLoading ? (
+                    <div className="p-12 text-center">
+                      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                      <p className="text-muted-foreground">Loading sessions...</p>
+                    </div>
+                  ) : filteredSessions.length === 0 ? (
+                    <div className="p-12 text-center">
+                      <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No chat sessions yet</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-white/5">
+                      {filteredSessions.map((session, index) => (
+                        <div key={session.sessionId} data-testid={`row-session-${session.sessionId}`}>
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: index * 0.03 }}
+                            className="p-4 hover:bg-white/5 transition-colors cursor-pointer"
+                            onClick={() => toggleSessionExpanded(session.sessionId)}
+                          >
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                {expandedSessions.has(session.sessionId) ? (
+                                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                )}
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-white font-mono text-sm">
+                                      {session.sessionId.slice(0, 8)}...
+                                    </span>
+                                    {session.hasLead && (
+                                      <span className="px-2 py-0.5 rounded-full text-xs bg-green-500/10 text-green-400 border border-green-500/20">
+                                        Has Lead
+                                      </span>
+                                    )}
+                                    {session.isSpam && (
+                                      <span className="px-2 py-0.5 rounded-full text-xs bg-orange-500/10 text-orange-400 border border-orange-500/20 flex items-center gap-1">
+                                        <AlertTriangle className="w-3 h-3" />
+                                        Spam
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {format(new Date(session.firstMessageAt), 'MMM d, yyyy h:mm a')}
+                                    {session.isSpam && session.reasons.length > 0 && (
+                                      <span className="text-orange-400/70 ml-2">
+                                        ({session.reasons.join(', ')})
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {session.messageCount} messages
+                              </div>
+                            </div>
+                          </motion.div>
+
+                          {expandedSessions.has(session.sessionId) && selectedSession === session.sessionId && (
+                            <div className="bg-white/5 border-t border-white/5 p-4">
+                              {sessionMessages ? (
+                                <div className="space-y-3 max-h-96 overflow-y-auto">
+                                  {sessionMessages.map((msg) => (
+                                    <div
+                                      key={msg.id}
+                                      className={`p-3 rounded-lg ${
+                                        msg.role === 'user'
+                                          ? 'bg-primary/10 ml-8'
+                                          : 'bg-white/5 mr-8'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between mb-1">
+                                        <span className={`text-xs font-medium ${
+                                          msg.role === 'user' ? 'text-primary' : 'text-muted-foreground'
+                                        }`}>
+                                          {msg.role === 'user' ? 'User' : 'TriFused AI'}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {format(new Date(msg.createdAt), 'h:mm a')}
+                                        </span>
+                                      </div>
+                                      <p className="text-sm text-white/80 whitespace-pre-wrap">
+                                        {msg.content}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-center py-4">
+                                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
               )}
             </div>
-          )}
-        </motion.div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
