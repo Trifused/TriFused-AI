@@ -17,13 +17,25 @@ import {
   HardDrive,
   Mail,
   BarChart3,
-  Contact
+  Contact,
+  X,
+  Monitor,
+  Cpu,
+  Lock,
+  Unlock
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AdminStats {
   subscribers: number;
@@ -59,6 +71,16 @@ interface ContactSubmission {
   createdAt: string;
 }
 
+interface DiagnosticScan {
+  id: string;
+  platform: string | null;
+  userAgent: string | null;
+  screenResolution: string | null;
+  isSecure: number | null;
+  browserCores: number | null;
+  scannedAt: string;
+}
+
 interface ActivityItem {
   icon: React.ComponentType<{ className?: string }>;
   iconColor: string;
@@ -75,6 +97,7 @@ export default function Dashboard() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const isSuperuser = user?.role === 'superuser';
+  const [showDiagnosticsModal, setShowDiagnosticsModal] = useState(false);
 
   const { data: stats } = useQuery<AdminStats>({
     queryKey: ['/api/admin/stats'],
@@ -116,6 +139,16 @@ export default function Dashboard() {
     enabled: isAuthenticated && isSuperuser,
   });
 
+  const { data: diagnosticScans } = useQuery<DiagnosticScan[]>({
+    queryKey: ['/api/admin/diagnostics'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/diagnostics', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch diagnostics');
+      return res.json();
+    },
+    enabled: isAuthenticated && isSuperuser,
+  });
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
@@ -144,34 +177,48 @@ export default function Dashboard() {
     return null;
   }
 
+  const parseBrowser = (userAgent: string | null): string => {
+    if (!userAgent) return "Unknown";
+    if (userAgent.includes("Chrome") && !userAgent.includes("Edg")) return "Chrome";
+    if (userAgent.includes("Firefox")) return "Firefox";
+    if (userAgent.includes("Safari") && !userAgent.includes("Chrome")) return "Safari";
+    if (userAgent.includes("Edg")) return "Edge";
+    if (userAgent.includes("Opera") || userAgent.includes("OPR")) return "Opera";
+    return "Other";
+  };
+
   const quickActions = isSuperuser ? [
     { 
       icon: MessageSquare, 
       label: "Chat Leads", 
       description: `${stats?.leads || 0} leads captured`, 
       status: (stats?.leads || 0) > 0 ? "green" : "gray",
-      count: stats?.leads || 0
+      count: stats?.leads || 0,
+      onClick: undefined
     },
     { 
       icon: Mail, 
       label: "Email Signups", 
       description: `${stats?.subscribers || 0} subscribers`, 
       status: (stats?.subscribers || 0) > 0 ? "blue" : "gray",
-      count: stats?.subscribers || 0
+      count: stats?.subscribers || 0,
+      onClick: undefined
     },
     { 
       icon: BarChart3, 
       label: "Diagnostic Scans", 
       description: `${stats?.diagnostics || 0} scans run`, 
       status: (stats?.diagnostics || 0) > 0 ? "purple" : "gray",
-      count: stats?.diagnostics || 0
+      count: stats?.diagnostics || 0,
+      onClick: () => setShowDiagnosticsModal(true)
     },
     { 
       icon: Contact, 
       label: "Contact Submissions", 
       description: `${stats?.contacts || 0} messages`, 
       status: (stats?.contacts || 0) > 0 ? "cyan" : "gray",
-      count: stats?.contacts || 0
+      count: stats?.contacts || 0,
+      onClick: undefined
     },
   ] : [
     { icon: Shield, label: "Security Status", description: "All systems operational", status: "green" },
@@ -345,6 +392,7 @@ export default function Dashboard() {
               transition={{ delay: index * 0.1 }}
               className="glass-panel rounded-xl p-6 hover:border-primary/30 transition-colors cursor-pointer group"
               data-testid={`card-stat-${action.label.toLowerCase().replace(/\s+/g, '-')}`}
+              onClick={'onClick' in action ? action.onClick : undefined}
             >
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${
                 action.status === 'green' ? 'bg-green-500/10 text-green-500' :
@@ -439,6 +487,81 @@ export default function Dashboard() {
           </div>
         </motion.div>
       </main>
+
+      <Dialog open={showDiagnosticsModal} onOpenChange={setShowDiagnosticsModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] bg-background border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-purple-500" />
+              Diagnostic Scan Logs
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh] pr-4">
+            {diagnosticScans && diagnosticScans.length > 0 ? (
+              <div className="space-y-4">
+                {diagnosticScans.map((scan) => (
+                  <div 
+                    key={scan.id} 
+                    className="glass-panel rounded-lg p-4 border border-white/5"
+                    data-testid={`scan-log-${scan.id}`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-muted-foreground">
+                        {format(new Date(scan.scannedAt), 'MMM d, yyyy h:mm a')}
+                      </span>
+                      <span className={`px-2 py-1 rounded text-xs ${scan.isSecure === 1 ? 'bg-green-500/10 text-green-500' : 'bg-yellow-500/10 text-yellow-500'}`}>
+                        {scan.isSecure === 1 ? 'Secure' : 'Not Secure'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="flex items-center gap-2">
+                        <Monitor className="w-4 h-4 text-blue-500" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Platform</p>
+                          <p className="text-sm text-white">{scan.platform || 'Unknown'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-cyan-500" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Browser</p>
+                          <p className="text-sm text-white">{parseBrowser(scan.userAgent)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-purple-500" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Resolution</p>
+                          <p className="text-sm text-white">{scan.screenResolution || 'Unknown'}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Cpu className="w-4 h-4 text-orange-500" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">CPU Cores</p>
+                          <p className="text-sm text-white">{scan.browserCores || 'Unknown'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    {scan.userAgent && (
+                      <div className="mt-3 pt-3 border-t border-white/5">
+                        <p className="text-xs text-muted-foreground mb-1">User Agent</p>
+                        <p className="text-xs text-white/60 font-mono break-all">{scan.userAgent}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No diagnostic scans yet</p>
+                <p className="text-sm">Visitor scans will appear here when they run diagnostics</p>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
