@@ -18,7 +18,13 @@ import {
   Eye,
   X,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Video,
+  Music,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Play
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -79,6 +85,21 @@ interface ChatMessage {
   createdAt: string;
 }
 
+interface PendingMedia {
+  id: string;
+  title: string;
+  description: string | null;
+  type: "video" | "audio";
+  url: string;
+  thumbnailUrl: string | null;
+  duration: number | null;
+  fileSize: number | null;
+  status: "private" | "pending" | "public";
+  uploadedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function Admin() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -129,6 +150,78 @@ export default function Admin() {
       return res.json();
     },
     enabled: !!selectedSession,
+  });
+
+  const { data: pendingMedia = [], isLoading: pendingMediaLoading } = useQuery<PendingMedia[]>({
+    queryKey: ['/api/admin/media/pending'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/media/pending', {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch pending media');
+      return res.json();
+    },
+    enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'media',
+  });
+
+  const approveMediaMutation = useMutation({
+    mutationFn: async (mediaId: string) => {
+      const res = await fetch(`/api/media/${mediaId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'public' }),
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to approve media');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/media/pending'] });
+      toast({
+        title: "Media Approved",
+        description: "The media is now publicly visible.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rejectMediaMutation = useMutation({
+    mutationFn: async (mediaId: string) => {
+      const res = await fetch(`/api/media/${mediaId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'private' }),
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to reject media');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/media/pending'] });
+      toast({
+        title: "Media Rejected",
+        description: "The media has been set back to private.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const updateRoleMutation = useMutation({
@@ -363,6 +456,10 @@ export default function Admin() {
             <TabsTrigger value="chat" className="data-[state=active]:bg-primary" data-testid="tab-chat">
               <MessageSquare className="w-4 h-4 mr-2" />
               Chat Intelligence
+            </TabsTrigger>
+            <TabsTrigger value="media" className="data-[state=active]:bg-primary" data-testid="tab-media">
+              <Video className="w-4 h-4 mr-2" />
+              Media ({pendingMedia.length})
             </TabsTrigger>
           </TabsList>
 
@@ -711,6 +808,102 @@ export default function Admin() {
                 </motion.div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="media">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-panel rounded-2xl overflow-hidden"
+            >
+              <div className="p-4 border-b border-white/5 bg-white/5">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-yellow-500" />
+                    Pending Media Approval
+                  </h2>
+                  <div className="text-sm text-muted-foreground">
+                    {pendingMedia.length} items awaiting review
+                  </div>
+                </div>
+              </div>
+
+              {pendingMediaLoading ? (
+                <div className="p-12 text-center">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-muted-foreground">Loading pending media...</p>
+                </div>
+              ) : pendingMedia.length === 0 ? (
+                <div className="p-12 text-center">
+                  <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-white mb-2">All caught up!</h3>
+                  <p className="text-muted-foreground">No media waiting for approval.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-white/5">
+                  {pendingMedia.map((item, index) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="p-4 hover:bg-white/5 transition-colors"
+                      data-testid={`row-media-${item.id}`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                            item.type === 'video' ? 'bg-blue-500/10' : 'bg-purple-500/10'
+                          }`}>
+                            {item.type === 'video' ? (
+                              <Video className="w-6 h-6 text-blue-400" />
+                            ) : (
+                              <Music className="w-6 h-6 text-purple-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-white font-medium truncate">{item.title}</div>
+                            {item.description && (
+                              <div className="text-sm text-muted-foreground truncate mb-1">
+                                {item.description}
+                              </div>
+                            )}
+                            <div className="text-xs text-muted-foreground">
+                              Uploaded {format(new Date(item.createdAt), 'MMM d, yyyy h:mm a')}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => approveMediaMutation.mutate(item.id)}
+                            disabled={approveMediaMutation.isPending}
+                            className="text-green-500 border-green-500/30 hover:bg-green-500/10"
+                            data-testid={`button-approve-${item.id}`}
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => rejectMediaMutation.mutate(item.id)}
+                            disabled={rejectMediaMutation.isPending}
+                            className="text-red-500 border-red-500/30 hover:bg-red-500/10"
+                            data-testid={`button-reject-${item.id}`}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
           </TabsContent>
         </Tabs>
       </main>

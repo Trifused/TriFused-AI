@@ -11,6 +11,7 @@ import Dashboard from "@/pages/portal/dashboard";
 import Admin from "@/pages/portal/admin";
 import MFT from "@/pages/portal/mft";
 import Media from "@/pages/portal/media";
+import PublicMedia from "@/pages/public-media";
 import Privacy from "@/pages/legal/privacy";
 import Terms from "@/pages/legal/terms";
 import Cookies from "@/pages/legal/cookies";
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/portal/admin" component={Admin} />
       <Route path="/portal/mft" component={MFT} />
       <Route path="/portal/media" component={Media} />
+      <Route path="/media" component={PublicMedia} />
       <Route path="/legal/privacy" component={Privacy} />
       <Route path="/legal/terms" component={Terms} />
       <Route path="/legal/cookies" component={Cookies} />

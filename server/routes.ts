@@ -994,7 +994,30 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
-  // Media download/stream URL
+  // Public media URL (no auth required for public items)
+  app.get("/api/media/:id/public-url", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const item = await storage.getMediaItem(id);
+      if (!item) {
+        return res.status(404).json({ error: "Media not found" });
+      }
+      
+      if (item.status !== "public") {
+        return res.status(403).json({ error: "Media is not public" });
+      }
+      
+      const objectStorageService = new ObjectStorageService();
+      const downloadURL = await objectStorageService.getDownloadURL(item.url);
+      res.json({ downloadURL });
+    } catch (error: any) {
+      console.error("Get public media URL error:", error);
+      res.status(500).json({ error: "Failed to get media URL" });
+    }
+  });
+
+  // Media download/stream URL (authenticated)
   app.get("/api/media/:id/url", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
