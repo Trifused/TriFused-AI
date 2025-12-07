@@ -160,3 +160,22 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
 
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
+
+// Chat leads captured from AI conversations
+export const chatLeads = pgTable("chat_leads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  name: text("name").notNull(),
+  contactMethod: text("contact_method").notNull(), // "email", "phone", "linkedin", etc.
+  contactValue: text("contact_value").notNull(),
+  inquiry: text("inquiry").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertChatLeadSchema = createInsertSchema(chatLeads).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertChatLead = z.infer<typeof insertChatLeadSchema>;
+export type ChatLead = typeof chatLeads.$inferSelect;

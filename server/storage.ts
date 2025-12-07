@@ -9,6 +9,7 @@ import {
   storageConnections,
   emailSubscribers,
   chatMessages,
+  chatLeads,
   InsertContactSubmission, 
   InsertDiagnosticScan, 
   ContactSubmission, 
@@ -25,7 +26,9 @@ import {
   EmailSubscriber,
   InsertEmailSubscriber,
   ChatMessage,
-  InsertChatMessage
+  InsertChatMessage,
+  ChatLead,
+  InsertChatLead
 } from "@shared/schema";
 
 export interface IStorage {
@@ -54,6 +57,9 @@ export interface IStorage {
   
   getChatMessages(sessionId: string): Promise<ChatMessage[]>;
   createChatMessage(data: InsertChatMessage): Promise<ChatMessage>;
+  
+  createChatLead(data: InsertChatLead): Promise<ChatLead>;
+  getChatLeads(): Promise<ChatLead[]>;
 }
 
 class Storage implements IStorage {
@@ -186,6 +192,15 @@ class Storage implements IStorage {
   async createChatMessage(data: InsertChatMessage): Promise<ChatMessage> {
     const [message] = await db.insert(chatMessages).values(data).returning();
     return message;
+  }
+
+  async createChatLead(data: InsertChatLead): Promise<ChatLead> {
+    const [lead] = await db.insert(chatLeads).values(data).returning();
+    return lead;
+  }
+
+  async getChatLeads(): Promise<ChatLead[]> {
+    return await db.select().from(chatLeads).orderBy(desc(chatLeads.createdAt));
   }
 }
 
