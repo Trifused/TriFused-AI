@@ -721,5 +721,305 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Media API routes
+  app.get("/api/media/my", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const items = await storage.getMediaItemsByUser(userId);
+      res.json(items);
+    } catch (error: any) {
+      console.error("Get my media error:", error);
+      res.status(500).json({ error: "Failed to fetch media" });
+    }
+  });
+
+  app.get("/api/media/shared", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      const sharedByUserId = await storage.getMediaSharedWithUser(userId);
+      const sharedByEmail = user?.email ? await storage.getMediaSharedWithEmail(user.email) : [];
+      
+      const allShared = [...sharedByUserId, ...sharedByEmail];
+      const uniqueItems = allShared.filter((item, index, self) => 
+        index === self.findIndex(i => i.id === item.id)
+      );
+      
+      res.json(uniqueItems);
+    } catch (error: any) {
+      console.error("Get shared media error:", error);
+      res.status(500).json({ error: "Failed to fetch shared media" });
+    }
+  });
+
+  app.get("/api/media/public", async (req, res) => {
+    try {
+      const items = await storage.getPublicMediaItems();
+      res.json(items);
+    } catch (error: any) {
+      console.error("Get public media error:", error);
+      res.status(500).json({ error: "Failed to fetch public media" });
+    }
+  });
+
+  app.get("/api/media/:id", async (req, res: any) => {
+    try {
+      const { id } = req.params;
+      const item = await storage.getMediaItem(id);
+      
+      if (!item) {
+        return res.status(404).json({ error: "Media not found" });
+      }
+      
+      res.json(item);
+    } catch (error: any) {
+      console.error("Get media error:", error);
+      res.status(500).json({ error: "Failed to fetch media" });
+    }
+  });
+
+  app.post("/api/media/upload-url", isAuthenticated, async (req: any, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error: any) {
+      console.error("Media upload URL error:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  const insertMediaSchema = z.object({
+    title: z.string().min(1),
+    description: z.string().optional(),
+    type: z.enum(["video", "audio"]),
+    url: z.string(),
+    thumbnailUrl: z.string().optional(),
+    duration: z.number().optional(),
+    fileSize: z.number().optional(),
+  });
+
+  app.post("/api/media", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const data = insertMediaSchema.parse(req.body);
+      
+      const item = await storage.createMediaItem({
+        ...data,
+        uploadedBy: userId,
+        status: "private",
+      });
+      
+      res.json(item);
+    } catch (error: any) {
+      console.error("Create media error:", error);
+      res.status(400).json({ error: error.message || "Failed to create media" });
+    }
+  });
+
+  app.post("/api/media/upload-complete", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { uploadURL, fileName, fileSize, title, description, type } = req.body;
+      
+      if (!uploadURL || !fileName || !type) {
+        return res.status(400).json({ error: "uploadURL, fileName, and type are required" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        uploadURL,
+        {
+          owner: userId,
+          visibility: "private",
+        }
+      );
+
+      const item = await storage.createMediaItem({
+        title: title || fileName,
+        description: description || null,
+        type,
+        url: objectPath,
+        fileSize: fileSize || null,
+        uploadedBy: userId,
+        status: "private",
+      });
+
+      res.json(item);
+    } catch (error: any) {
+      console.error("Media upload complete error:", error);
+      res.status(500).json({ error: "Failed to complete upload" });
+    }
+  });
+
+  app.patch("/api/media/:id/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      const item = await storage.getMediaItem(id);
+      if (!item) {
+        return res.status(404).json({ error: "Media not found" });
+      }
+      
+      // Only owner can change to pending, only admin can change to public
+      if (status === "pending" && item.uploadedBy !== userId) {
+        return res.status(403).json({ error: "Only owner can submit for approval" });
+      }
+      
+      if (status === "public" && user?.role !== "superuser") {
+        return res.status(403).json({ error: "Only admins can approve media" });
+      }
+      
+      const updated = await storage.updateMediaStatus(id, status);
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Update media status error:", error);
+      res.status(500).json({ error: "Failed to update media status" });
+    }
+  });
+
+  app.delete("/api/media/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const { id } = req.params;
+      
+      const item = await storage.getMediaItem(id);
+      if (!item) {
+        return res.status(404).json({ error: "Media not found" });
+      }
+      
+      // Only owner or superuser can delete
+      if (item.uploadedBy !== userId && user?.role !== "superuser") {
+        return res.status(403).json({ error: "Permission denied" });
+      }
+      
+      await storage.deleteMediaItem(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Delete media error:", error);
+      res.status(500).json({ error: "Failed to delete media" });
+    }
+  });
+
+  // Media sharing routes
+  app.post("/api/media/:id/share", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      const { email, sharedWithUserId } = req.body;
+      
+      const item = await storage.getMediaItem(id);
+      if (!item) {
+        return res.status(404).json({ error: "Media not found" });
+      }
+      
+      if (item.uploadedBy !== userId) {
+        return res.status(403).json({ error: "Only owner can share media" });
+      }
+      
+      if (!email && !sharedWithUserId) {
+        return res.status(400).json({ error: "Must provide email or userId to share with" });
+      }
+      
+      const share = await storage.createMediaShare({
+        mediaId: id,
+        sharedWithUserId: sharedWithUserId || null,
+        sharedWithEmail: email || null,
+        sharedByUserId: userId,
+      });
+      
+      res.json(share);
+    } catch (error: any) {
+      console.error("Share media error:", error);
+      res.status(500).json({ error: "Failed to share media" });
+    }
+  });
+
+  app.get("/api/media/:id/shares", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+      
+      const item = await storage.getMediaItem(id);
+      if (!item) {
+        return res.status(404).json({ error: "Media not found" });
+      }
+      
+      if (item.uploadedBy !== userId) {
+        return res.status(403).json({ error: "Only owner can view shares" });
+      }
+      
+      const shares = await storage.getMediaSharesForMedia(id);
+      res.json(shares);
+    } catch (error: any) {
+      console.error("Get shares error:", error);
+      res.status(500).json({ error: "Failed to get shares" });
+    }
+  });
+
+  app.delete("/api/media/shares/:shareId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { shareId } = req.params;
+      await storage.deleteMediaShare(shareId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Delete share error:", error);
+      res.status(500).json({ error: "Failed to delete share" });
+    }
+  });
+
+  // Admin media moderation
+  app.get("/api/admin/media/pending", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const items = await storage.getPendingMediaItems();
+      res.json(items);
+    } catch (error: any) {
+      console.error("Get pending media error:", error);
+      res.status(500).json({ error: "Failed to fetch pending media" });
+    }
+  });
+
+  // Media download/stream URL
+  app.get("/api/media/:id/url", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const { id } = req.params;
+      
+      const item = await storage.getMediaItem(id);
+      if (!item) {
+        return res.status(404).json({ error: "Media not found" });
+      }
+      
+      // Check access: owner, shared with, or public
+      const isOwner = item.uploadedBy === userId;
+      const isPublic = item.status === "public";
+      const isAdmin = user?.role === "superuser";
+      
+      if (!isOwner && !isPublic && !isAdmin) {
+        // Check if shared with user
+        const sharedWithUser = await storage.getMediaSharedWithUser(userId);
+        const sharedWithEmail = user?.email ? await storage.getMediaSharedWithEmail(user.email) : [];
+        const hasAccess = [...sharedWithUser, ...sharedWithEmail].some(m => m.id === id);
+        
+        if (!hasAccess) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+      
+      const objectStorageService = new ObjectStorageService();
+      const downloadURL = await objectStorageService.getDownloadURL(item.url);
+      res.json({ downloadURL });
+    } catch (error: any) {
+      console.error("Get media URL error:", error);
+      res.status(500).json({ error: "Failed to get media URL" });
+    }
+  });
+
   return httpServer;
 }

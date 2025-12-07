@@ -22,7 +22,8 @@ import {
   Monitor,
   Cpu,
   Lock,
-  Unlock
+  Unlock,
+  Video
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -337,6 +338,16 @@ export default function Dashboard() {
                     MFT
                   </Button>
                 )}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setLocation("/portal/media")}
+                  className="border-purple-500/30 text-purple-500 hover:bg-purple-500/10"
+                  data-testid="button-media"
+                >
+                  <Video className="w-4 h-4 mr-2" />
+                  Media
+                </Button>
                 {user?.role === 'superuser' && (
                   <Button 
                     variant="outline" 
