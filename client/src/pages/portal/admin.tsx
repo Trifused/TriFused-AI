@@ -10,7 +10,8 @@ import {
   Crown,
   UserCheck,
   UserX,
-  ChevronLeft
+  ChevronLeft,
+  HardDrive
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -23,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 interface User {
   id: string;
@@ -31,6 +33,7 @@ interface User {
   lastName: string | null;
   profileImageUrl: string | null;
   role: string;
+  ftpAccess: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -65,6 +68,36 @@ export default function Admin() {
       toast({
         title: "Role Updated",
         description: "User role has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateFtpAccessMutation = useMutation({
+    mutationFn: async ({ userId, ftpAccess }: { userId: string; ftpAccess: number }) => {
+      const res = await fetch(`/api/admin/users/${userId}/ftp-access`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ftpAccess }),
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to update FTP access');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      toast({
+        title: "FTP Access Updated",
+        description: "User MFT access has been updated successfully.",
       });
     },
     onError: (error: Error) => {
@@ -302,6 +335,19 @@ export default function Admin() {
                           </SelectItem>
                         </SelectContent>
                       </Select>
+
+                      <div className="flex items-center gap-2 pl-4 border-l border-white/10">
+                        <HardDrive className={`w-4 h-4 ${u.ftpAccess === 1 ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <Switch
+                          checked={u.ftpAccess === 1}
+                          onCheckedChange={(checked) => 
+                            updateFtpAccessMutation.mutate({ userId: u.id, ftpAccess: checked ? 1 : 0 })
+                          }
+                          disabled={updateFtpAccessMutation.isPending}
+                          data-testid={`switch-ftp-${u.id}`}
+                        />
+                        <span className="text-xs text-muted-foreground">MFT</span>
+                      </div>
                     </div>
                   </div>
                 </motion.div>

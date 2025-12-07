@@ -5,6 +5,8 @@ import {
   diagnosticScans, 
   users,
   blogPosts,
+  fileTransfers,
+  storageConnections,
   InsertContactSubmission, 
   InsertDiagnosticScan, 
   ContactSubmission, 
@@ -13,7 +15,11 @@ import {
   UpsertUser,
   UserRole,
   BlogPost,
-  InsertBlogPost
+  InsertBlogPost,
+  FileTransfer,
+  InsertFileTransfer,
+  StorageConnection,
+  InsertStorageConnection
 } from "@shared/schema";
 
 export interface IStorage {
@@ -22,6 +28,7 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
   updateUserRole(id: string, role: UserRole): Promise<User | undefined>;
+  updateUserFtpAccess(id: string, ftpAccess: number): Promise<User | undefined>;
   
   createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission>;
   createDiagnosticScan(data: InsertDiagnosticScan): Promise<DiagnosticScan>;
@@ -29,6 +36,12 @@ export interface IStorage {
   getBlogPosts(): Promise<BlogPost[]>;
   upsertBlogPost(data: InsertBlogPost): Promise<BlogPost>;
   clearBlogCache(): Promise<void>;
+  
+  createFileTransfer(data: InsertFileTransfer): Promise<FileTransfer>;
+  getFileTransfers(userId: string): Promise<FileTransfer[]>;
+  
+  getStorageConnections(): Promise<StorageConnection[]>;
+  createStorageConnection(data: InsertStorageConnection): Promise<StorageConnection>;
 }
 
 class Storage implements IStorage {
@@ -111,6 +124,35 @@ class Storage implements IStorage {
 
   async clearBlogCache(): Promise<void> {
     await db.delete(blogPosts);
+  }
+
+  async updateUserFtpAccess(id: string, ftpAccess: number): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ ftpAccess, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async createFileTransfer(data: InsertFileTransfer): Promise<FileTransfer> {
+    const [transfer] = await db.insert(fileTransfers).values(data).returning();
+    return transfer;
+  }
+
+  async getFileTransfers(userId: string): Promise<FileTransfer[]> {
+    return await db.select().from(fileTransfers)
+      .where(eq(fileTransfers.userId, userId))
+      .orderBy(desc(fileTransfers.createdAt));
+  }
+
+  async getStorageConnections(): Promise<StorageConnection[]> {
+    return await db.select().from(storageConnections).orderBy(desc(storageConnections.createdAt));
+  }
+
+  async createStorageConnection(data: InsertStorageConnection): Promise<StorageConnection> {
+    const [connection] = await db.insert(storageConnections).values(data).returning();
+    return connection;
   }
 }
 

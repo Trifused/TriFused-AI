@@ -1,8 +1,10 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSubmissionSchema, insertDiagnosticScanSchema, userRoles, UserRole, InsertBlogPost } from "@shared/schema";
+import { insertContactSubmissionSchema, insertDiagnosticScanSchema, userRoles, UserRole, InsertBlogPost, insertFileTransferSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { ObjectPermission } from "./objectAcl";
 import { z } from "zod";
 import { format } from "date-fns";
 
@@ -23,6 +25,29 @@ const isSuperuser = async (req: any, res: Response, next: NextFunction) => {
     next();
   } catch (error) {
     console.error("Superuser check error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const hasFtpAccess = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+    
+    if (user.role === "superuser" || user.ftpAccess === 1) {
+      next();
+    } else {
+      return res.status(403).json({ message: "Forbidden: MFT access required" });
+    }
+  } catch (error) {
+    console.error("FTP access check error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -162,6 +187,158 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Blog refresh error:", error);
       res.status(500).json({ error: "Failed to refresh blog cache" });
+    }
+  });
+
+  app.get("/api/mft/files", isAuthenticated, hasFtpAccess, async (req: any, res) => {
+    try {
+      const prefix = req.query.prefix as string | undefined;
+      const objectStorageService = new ObjectStorageService();
+      const files = await objectStorageService.listObjects(prefix);
+      res.json(files);
+    } catch (error: any) {
+      console.error("MFT list files error:", error);
+      res.status(500).json({ error: "Failed to list files" });
+    }
+  });
+
+  app.post("/api/mft/upload-url", isAuthenticated, hasFtpAccess, async (req: any, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error: any) {
+      console.error("MFT upload URL error:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  app.post("/api/mft/upload-complete", isAuthenticated, hasFtpAccess, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { uploadURL, fileName, fileSize } = req.body;
+      
+      if (!uploadURL || !fileName) {
+        return res.status(400).json({ error: "uploadURL and fileName are required" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        uploadURL,
+        {
+          owner: userId,
+          visibility: "private",
+        }
+      );
+
+      await storage.createFileTransfer({
+        userId,
+        fileName,
+        fileSize: fileSize || 0,
+        operation: "upload",
+        status: "success",
+      });
+
+      res.json({ success: true, objectPath });
+    } catch (error: any) {
+      console.error("MFT upload complete error:", error);
+      res.status(500).json({ error: "Failed to complete upload" });
+    }
+  });
+
+  app.get("/api/mft/download/:path(*)", isAuthenticated, hasFtpAccess, async (req: any, res) => {
+    try {
+      const objectPath = req.params.path;
+      const userId = req.user.claims.sub;
+      const objectStorageService = new ObjectStorageService();
+      
+      const downloadURL = await objectStorageService.getDownloadURL(objectPath);
+      
+      await storage.createFileTransfer({
+        userId,
+        fileName: objectPath.split('/').pop() || objectPath,
+        fileSize: 0,
+        operation: "download",
+        status: "success",
+      });
+
+      res.json({ downloadURL });
+    } catch (error: any) {
+      console.error("MFT download error:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      res.status(500).json({ error: "Failed to get download URL" });
+    }
+  });
+
+  app.delete("/api/mft/files/:path(*)", isAuthenticated, hasFtpAccess, async (req: any, res) => {
+    try {
+      const objectPath = req.params.path;
+      const userId = req.user.claims.sub;
+      const objectStorageService = new ObjectStorageService();
+      
+      await objectStorageService.deleteObject(objectPath);
+      
+      await storage.createFileTransfer({
+        userId,
+        fileName: objectPath.split('/').pop() || objectPath,
+        fileSize: 0,
+        operation: "delete",
+        status: "success",
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("MFT delete error:", error);
+      res.status(500).json({ error: "Failed to delete file" });
+    }
+  });
+
+  app.get("/api/mft/transfers", isAuthenticated, hasFtpAccess, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const transfers = await storage.getFileTransfers(userId);
+      res.json(transfers);
+    } catch (error: any) {
+      console.error("MFT transfers error:", error);
+      res.status(500).json({ error: "Failed to get transfer history" });
+    }
+  });
+
+  app.patch('/api/admin/users/:id/ftp-access', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { ftpAccess } = req.body;
+      
+      if (ftpAccess !== 0 && ftpAccess !== 1) {
+        return res.status(400).json({ message: "ftpAccess must be 0 or 1" });
+      }
+      
+      const user = await storage.updateUserFtpAccess(id, ftpAccess);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(user);
+    } catch (error: any) {
+      console.error("Error updating user FTP access:", error);
+      res.status(400).json({ message: error.message || "Failed to update FTP access" });
+    }
+  });
+
+  app.get("/public-objects/:filePath(*)", async (req, res) => {
+    const filePath = req.params.filePath;
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const file = await objectStorageService.searchPublicObject(filePath);
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      objectStorageService.downloadObject(file, res);
+    } catch (error) {
+      console.error("Error searching for public object:", error);
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 

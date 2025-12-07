@@ -26,6 +26,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").default("guest").notNull(),
+  ftpAccess: integer("ftp_access").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -90,3 +91,40 @@ export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
 
 export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
 export type BlogPost = typeof blogPosts.$inferSelect;
+
+// File transfers log for MFT service
+export const fileTransfers = pgTable("file_transfers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size"),
+  operation: text("operation").notNull(),
+  status: text("status").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertFileTransferSchema = createInsertSchema(fileTransfers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertFileTransfer = z.infer<typeof insertFileTransferSchema>;
+export type FileTransfer = typeof fileTransfers.$inferSelect;
+
+// Storage connections for MFT (S3-compatible storage configs)
+export const storageConnections = pgTable("storage_connections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: text("type").notNull(),
+  config: jsonb("config"),
+  isDefault: integer("is_default").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertStorageConnectionSchema = createInsertSchema(storageConnections).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertStorageConnection = z.infer<typeof insertStorageConnectionSchema>;
+export type StorageConnection = typeof storageConnections.$inferSelect;
