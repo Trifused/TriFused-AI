@@ -8,6 +8,7 @@ import { ObjectPermission } from "./objectAcl";
 import { z } from "zod";
 import { format } from "date-fns";
 import OpenAI from "openai";
+import { RecaptchaEnterpriseServiceClient } from "@google-cloud/recaptcha-enterprise";
 
 const SUPERUSER_EMAIL_DOMAIN = "@trifused.com";
 
@@ -154,40 +155,54 @@ export async function registerRoutes(
         });
       }
 
-      const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY;
-      if (recaptchaSecretKey) {
-        const captchaResponse = await fetch(
-          'https://www.google.com/recaptcha/api/siteverify',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              secret: recaptchaSecretKey,
-              response: captchaToken
-            })
+      const recaptchaSiteKey = process.env.RECAPTCHA_SITE_KEY;
+      const gcpProjectId = process.env.GCP_PROJECT_ID || "trifused-gemini--1765086064132";
+      
+      if (recaptchaSiteKey) {
+        try {
+          const client = new RecaptchaEnterpriseServiceClient();
+          const projectPath = client.projectPath(gcpProjectId);
+          
+          const [response] = await client.createAssessment({
+            assessment: {
+              event: {
+                token: captchaToken,
+                siteKey: recaptchaSiteKey,
+              },
+            },
+            parent: projectPath,
+          });
+          
+          if (!response.tokenProperties?.valid) {
+            console.error("reCAPTCHA token invalid:", response.tokenProperties?.invalidReason);
+            return res.status(400).json({ 
+              success: false, 
+              error: "Captcha verification failed" 
+            });
           }
-        );
-        
-        const captchaResult = await captchaResponse.json() as { 
-          success: boolean;
-          score?: number;
-          action?: string;
-          'error-codes'?: string[];
-        };
-        
-        if (!captchaResult.success) {
-          console.error("reCAPTCHA verification failed:", captchaResult['error-codes']);
+          
+          if (response.tokenProperties?.action !== 'subscribe') {
+            console.error("reCAPTCHA action mismatch");
+            return res.status(400).json({ 
+              success: false, 
+              error: "Captcha action mismatch" 
+            });
+          }
+          
+          const score = response.riskAnalysis?.score || 0;
+          if (score < 0.5) {
+            return res.status(400).json({ 
+              success: false, 
+              error: "Verification failed - please try again" 
+            });
+          }
+          
+          await client.close();
+        } catch (recaptchaError: any) {
+          console.error("reCAPTCHA Enterprise error:", recaptchaError);
           return res.status(400).json({ 
             success: false, 
             error: "Captcha verification failed" 
-          });
-        }
-        
-        const score = captchaResult.score || 0;
-        if (score < 0.5) {
-          return res.status(400).json({ 
-            success: false, 
-            error: "Verification failed - please try again" 
           });
         }
       }
