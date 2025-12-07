@@ -71,6 +71,16 @@ export interface IStorage {
   getChatLeadsWithSessionInfo(): Promise<(ChatLead & {
     messageCount: number;
   })[]>;
+  
+  // Admin stats methods
+  getAllEmailSubscribers(): Promise<EmailSubscriber[]>;
+  getEmailSubscribersCount(): Promise<number>;
+  getAllDiagnosticScans(): Promise<DiagnosticScan[]>;
+  getDiagnosticScansCount(): Promise<number>;
+  getAllContactSubmissions(): Promise<ContactSubmission[]>;
+  getContactSubmissionsCount(): Promise<number>;
+  getChatLeadsCount(): Promise<number>;
+  getChatSessionsCount(): Promise<number>;
 }
 
 class Storage implements IStorage {
@@ -258,6 +268,45 @@ class Storage implements IStorage {
     }
 
     return result;
+  }
+
+  async getAllEmailSubscribers(): Promise<EmailSubscriber[]> {
+    return await db.select().from(emailSubscribers).orderBy(desc(emailSubscribers.subscribedAt));
+  }
+
+  async getEmailSubscribersCount(): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(emailSubscribers);
+    return result?.count || 0;
+  }
+
+  async getAllDiagnosticScans(): Promise<DiagnosticScan[]> {
+    return await db.select().from(diagnosticScans).orderBy(desc(diagnosticScans.scannedAt));
+  }
+
+  async getDiagnosticScansCount(): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(diagnosticScans);
+    return result?.count || 0;
+  }
+
+  async getAllContactSubmissions(): Promise<ContactSubmission[]> {
+    return await db.select().from(contactSubmissions).orderBy(desc(contactSubmissions.createdAt));
+  }
+
+  async getContactSubmissionsCount(): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(contactSubmissions);
+    return result?.count || 0;
+  }
+
+  async getChatLeadsCount(): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(chatLeads);
+    return result?.count || 0;
+  }
+
+  async getChatSessionsCount(): Promise<number> {
+    const result = await db
+      .selectDistinct({ sessionId: chatMessages.sessionId })
+      .from(chatMessages);
+    return result.length;
   }
 }
 

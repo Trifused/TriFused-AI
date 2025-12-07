@@ -486,6 +486,69 @@ export async function registerRoutes(
     }
   });
 
+  // Admin stats endpoints
+  app.get("/api/admin/stats", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const [
+        subscribersCount,
+        diagnosticsCount,
+        contactsCount,
+        leadsCount,
+        sessionsCount,
+        usersCount
+      ] = await Promise.all([
+        storage.getEmailSubscribersCount(),
+        storage.getDiagnosticScansCount(),
+        storage.getContactSubmissionsCount(),
+        storage.getChatLeadsCount(),
+        storage.getChatSessionsCount(),
+        storage.getAllUsers().then(users => users.length)
+      ]);
+
+      res.json({
+        subscribers: subscribersCount,
+        diagnostics: diagnosticsCount,
+        contacts: contactsCount,
+        leads: leadsCount,
+        chatSessions: sessionsCount,
+        users: usersCount
+      });
+    } catch (error: any) {
+      console.error("Admin stats error:", error);
+      res.status(500).json({ error: "Failed to fetch admin stats" });
+    }
+  });
+
+  app.get("/api/admin/subscribers", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const subscribers = await storage.getAllEmailSubscribers();
+      res.json(subscribers);
+    } catch (error: any) {
+      console.error("Admin subscribers error:", error);
+      res.status(500).json({ error: "Failed to fetch subscribers" });
+    }
+  });
+
+  app.get("/api/admin/diagnostics", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const scans = await storage.getAllDiagnosticScans();
+      res.json(scans);
+    } catch (error: any) {
+      console.error("Admin diagnostics error:", error);
+      res.status(500).json({ error: "Failed to fetch diagnostic scans" });
+    }
+  });
+
+  app.get("/api/admin/contacts", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const contacts = await storage.getAllContactSubmissions();
+      res.json(contacts);
+    } catch (error: any) {
+      console.error("Admin contacts error:", error);
+      res.status(500).json({ error: "Failed to fetch contact submissions" });
+    }
+  });
+
   app.get("/public-objects/:filePath(*)", async (req, res) => {
     const filePath = req.params.filePath;
     const objectStorageService = new ObjectStorageService();
