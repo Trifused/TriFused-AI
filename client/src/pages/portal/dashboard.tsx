@@ -81,6 +81,14 @@ interface DiagnosticScan {
   scannedAt: string;
 }
 
+interface ChatMessage {
+  id: string;
+  sessionId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
+}
+
 interface ActivityItem {
   icon: React.ComponentType<{ className?: string }>;
   iconColor: string;
@@ -98,6 +106,12 @@ export default function Dashboard() {
   const { toast } = useToast();
   const isSuperuser = user?.role === 'superuser';
   const [showDiagnosticsModal, setShowDiagnosticsModal] = useState(false);
+  const [showLeadsModal, setShowLeadsModal] = useState(false);
+  const [showSubscribersModal, setShowSubscribersModal] = useState(false);
+  const [showContactsModal, setShowContactsModal] = useState(false);
+  const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [loadingLeadId, setLoadingLeadId] = useState<string | null>(null);
 
   const { data: stats } = useQuery<AdminStats>({
     queryKey: ['/api/admin/stats'],
@@ -194,7 +208,7 @@ export default function Dashboard() {
       description: `${stats?.leads || 0} leads captured`, 
       status: (stats?.leads || 0) > 0 ? "green" : "gray",
       count: stats?.leads || 0,
-      onClick: undefined
+      onClick: () => setShowLeadsModal(true)
     },
     { 
       icon: Mail, 
@@ -202,7 +216,7 @@ export default function Dashboard() {
       description: `${stats?.subscribers || 0} subscribers`, 
       status: (stats?.subscribers || 0) > 0 ? "blue" : "gray",
       count: stats?.subscribers || 0,
-      onClick: undefined
+      onClick: () => setShowSubscribersModal(true)
     },
     { 
       icon: BarChart3, 
@@ -218,7 +232,7 @@ export default function Dashboard() {
       description: `${stats?.contacts || 0} messages`, 
       status: (stats?.contacts || 0) > 0 ? "cyan" : "gray",
       count: stats?.contacts || 0,
-      onClick: undefined
+      onClick: () => setShowContactsModal(true)
     },
   ] : [
     { icon: Shield, label: "Security Status", description: "All systems operational", status: "green" },
@@ -557,6 +571,233 @@ export default function Dashboard() {
                 <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No diagnostic scans yet</p>
                 <p className="text-sm">Visitor scans will appear here when they run diagnostics</p>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showLeadsModal} onOpenChange={(open) => {
+        setShowLeadsModal(open);
+        if (!open) {
+          setExpandedLeadId(null);
+          setChatHistory([]);
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[80vh] bg-background border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-green-500" />
+              Chat Leads
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh] pr-4">
+            {recentLeads && recentLeads.length > 0 ? (
+              <div className="space-y-4">
+                {recentLeads.map((lead) => (
+                  <div 
+                    key={lead.id} 
+                    className="glass-panel rounded-lg p-4 border border-white/5"
+                    data-testid={`lead-${lead.id}`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">{lead.name}</span>
+                        <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-500 rounded">
+                          {lead.contactMethod}
+                        </span>
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {format(new Date(lead.createdAt), 'MMM d, yyyy h:mm a')}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-cyan-500" />
+                        <span className="text-sm text-white">{lead.contactValue}</span>
+                      </div>
+                      <div className="pt-2 border-t border-white/5">
+                        <p className="text-xs text-muted-foreground mb-1">Inquiry</p>
+                        <p className="text-sm text-white/80">{lead.inquiry}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 text-xs"
+                        data-testid={`button-view-chat-${lead.id}`}
+                        onClick={async () => {
+                          if (expandedLeadId === lead.id) {
+                            setExpandedLeadId(null);
+                            setChatHistory([]);
+                            setLoadingLeadId(null);
+                          } else {
+                            const currentLeadId = lead.id;
+                            setExpandedLeadId(currentLeadId);
+                            setChatHistory([]);
+                            setLoadingLeadId(currentLeadId);
+                            try {
+                              const res = await fetch(`/api/admin/chat/sessions/${lead.sessionId}/messages`, { credentials: 'include' });
+                              if (res.ok) {
+                                const messages = await res.json();
+                                setExpandedLeadId((current) => {
+                                  if (current === currentLeadId) {
+                                    setChatHistory(messages);
+                                    setLoadingLeadId(null);
+                                  }
+                                  return current;
+                                });
+                              } else {
+                                setExpandedLeadId((current) => {
+                                  if (current === currentLeadId) {
+                                    setLoadingLeadId(null);
+                                  }
+                                  return current;
+                                });
+                              }
+                            } catch (err) {
+                              console.error('Failed to fetch chat history:', err);
+                              setExpandedLeadId((current) => {
+                                if (current === currentLeadId) {
+                                  setLoadingLeadId(null);
+                                }
+                                return current;
+                              });
+                            }
+                          }
+                        }}
+                      >
+                        <MessageSquare className="w-3 h-3 mr-1" />
+                        {expandedLeadId === lead.id ? 'Hide Chat' : 'View Chat History'}
+                      </Button>
+                      {expandedLeadId === lead.id && (
+                        <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
+                          {loadingLeadId === lead.id ? (
+                            <div className="text-center py-4">
+                              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                            </div>
+                          ) : chatHistory.length > 0 ? (
+                            chatHistory.map((msg) => (
+                              <div
+                                key={msg.id}
+                                className={`p-2 rounded text-sm ${
+                                  msg.role === 'user'
+                                    ? 'bg-blue-500/10 text-blue-100 ml-4'
+                                    : 'bg-green-500/10 text-green-100 mr-4'
+                                }`}
+                                data-testid={`chat-message-${msg.id}`}
+                              >
+                                <span className="text-xs text-muted-foreground block mb-1">
+                                  {msg.role === 'user' ? 'Visitor' : 'AI Assistant'}
+                                </span>
+                                {msg.content}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center py-2">No chat messages found</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No chat leads yet</p>
+                <p className="text-sm">Leads from the chat widget will appear here</p>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSubscribersModal} onOpenChange={setShowSubscribersModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] bg-background border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <Mail className="w-5 h-5 text-blue-500" />
+              Email Subscribers
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh] pr-4">
+            {recentSubscribers && recentSubscribers.length > 0 ? (
+              <div className="space-y-2">
+                {recentSubscribers.map((sub) => (
+                  <div 
+                    key={sub.id} 
+                    className="glass-panel rounded-lg p-4 border border-white/5 flex items-center justify-between"
+                    data-testid={`subscriber-${sub.id}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                        <Mail className="w-4 h-4 text-blue-500" />
+                      </div>
+                      <span className="text-white">{sub.email}</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {format(new Date(sub.subscribedAt), 'MMM d, yyyy')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Mail className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No subscribers yet</p>
+                <p className="text-sm">Email signups will appear here</p>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showContactsModal} onOpenChange={setShowContactsModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] bg-background border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <Contact className="w-5 h-5 text-cyan-500" />
+              Contact Submissions
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh] pr-4">
+            {recentContacts && recentContacts.length > 0 ? (
+              <div className="space-y-4">
+                {recentContacts.map((contact) => (
+                  <div 
+                    key={contact.id} 
+                    className="glass-panel rounded-lg p-4 border border-white/5"
+                    data-testid={`contact-${contact.id}`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <span className="text-white font-medium">{contact.name}</span>
+                        {contact.company && (
+                          <span className="text-sm text-muted-foreground ml-2">({contact.company})</span>
+                        )}
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {format(new Date(contact.createdAt), 'MMM d, yyyy h:mm a')}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-cyan-500" />
+                        <span className="text-sm text-white">{contact.email}</span>
+                      </div>
+                      <div className="pt-2 border-t border-white/5">
+                        <p className="text-xs text-muted-foreground mb-1">Message</p>
+                        <p className="text-sm text-white/80">{contact.message}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Contact className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No contact submissions yet</p>
+                <p className="text-sm">Contact form submissions will appear here</p>
               </div>
             )}
           </ScrollArea>
