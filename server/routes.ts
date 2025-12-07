@@ -135,6 +135,14 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/recaptcha-site-key", (req, res) => {
+    const siteKey = process.env.RECAPTCHA_SITE_KEY;
+    if (!siteKey) {
+      return res.status(500).json({ error: "reCAPTCHA not configured" });
+    }
+    res.json({ siteKey });
+  });
+
   app.post("/api/subscribe", async (req, res) => {
     try {
       const { email, captchaToken } = req.body;

@@ -20,16 +20,26 @@ declare global {
   }
 }
 
-const RECAPTCHA_SITE_KEY = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
-
 export default function Signup() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [siteKey, setSiteKey] = useState<string | null>(null);
   const captchaRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    fetch('/api/recaptcha-site-key')
+      .then(res => res.json())
+      .then(data => {
+        if (data.siteKey) {
+          setSiteKey(data.siteKey);
+        }
+      })
+      .catch(err => console.error('Failed to load reCAPTCHA config:', err));
+  }, []);
 
   const subscribeMutation = useMutation({
     mutationFn: async (data: { email: string; captchaToken: string }) => {
@@ -69,11 +79,13 @@ export default function Signup() {
   }, []);
 
   useEffect(() => {
+    if (!siteKey) return;
+
     const renderCaptcha = () => {
       if (captchaRef.current && widgetIdRef.current === null && window.grecaptcha) {
         try {
           widgetIdRef.current = window.grecaptcha.render(captchaRef.current, {
-            sitekey: RECAPTCHA_SITE_KEY,
+            sitekey: siteKey,
             callback: onCaptchaVerify,
             theme: 'dark',
           });
@@ -100,7 +112,7 @@ export default function Signup() {
         window.onRecaptchaLoad = renderCaptcha;
       }
     }
-  }, [onCaptchaVerify]);
+  }, [siteKey, onCaptchaVerify]);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
