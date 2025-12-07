@@ -818,14 +818,20 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  const uploadCompleteSchema = z.object({
+    uploadURL: z.string().min(1),
+    fileName: z.string().min(1),
+    fileSize: z.number().optional(),
+    title: z.string().optional(),
+    description: z.string().optional(),
+    type: z.enum(["video", "audio"]),
+  });
+
   app.post("/api/media/upload-complete", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { uploadURL, fileName, fileSize, title, description, type } = req.body;
-      
-      if (!uploadURL || !fileName || !type) {
-        return res.status(400).json({ error: "uploadURL, fileName, and type are required" });
-      }
+      const validatedData = uploadCompleteSchema.parse(req.body);
+      const { uploadURL, fileName, fileSize, title, description, type } = validatedData;
 
       const objectStorageService = new ObjectStorageService();
       const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
@@ -853,12 +859,16 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  const updateMediaStatusSchema = z.object({
+    status: z.enum(["private", "pending", "public"]),
+  });
+
   app.patch("/api/media/:id/status", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
       const { id } = req.params;
-      const { status } = req.body;
+      const { status } = updateMediaStatusSchema.parse(req.body);
       
       const item = await storage.getMediaItem(id);
       if (!item) {
