@@ -309,7 +309,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                 )}
 
                 {/* Data Grid */}
-                <div className="grid grid-cols-2 gap-2 md:gap-3 pb-4 md:pb-0">
+                <div className="grid grid-cols-2 gap-2 md:gap-3">
                   <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
                     <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
                       <Globe className="w-3 h-3" /> Public IP
@@ -346,6 +346,16 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                     </div>
                   </div>
                 </div>
+
+                {/* Close Button */}
+                <Button
+                  onClick={() => onOpenChange(false)}
+                  className="w-full mt-4 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 font-mono text-sm"
+                  data-testid="button-close-diagnostic"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Close Diagnostic
+                </Button>
              </div>
           </div>
         </div>

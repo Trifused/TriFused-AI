@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSubmissionSchema, insertDiagnosticScanSchema, userRoles, UserRole, InsertBlogPost, insertFileTransferSchema } from "@shared/schema";
+import { insertContactSubmissionSchema, insertDiagnosticScanSchema, insertEmailSubscriberSchema, userRoles, UserRole, InsertBlogPost, insertFileTransferSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
@@ -130,6 +130,51 @@ export async function registerRoutes(
       res.status(400).json({ 
         success: false, 
         error: error.message || "Failed to save diagnostic scan" 
+      });
+    }
+  });
+
+  app.post("/api/subscribe", async (req, res) => {
+    try {
+      const { email, captchaToken } = req.body;
+
+      if (!email || !captchaToken) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Email and captcha are required" 
+        });
+      }
+
+      const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY;
+      if (recaptchaSecretKey) {
+        const captchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `secret=${recaptchaSecretKey}&response=${captchaToken}`
+        });
+        
+        const captchaResult = await captchaResponse.json() as { success: boolean };
+        if (!captchaResult.success) {
+          return res.status(400).json({ 
+            success: false, 
+            error: "Captcha verification failed" 
+          });
+        }
+      }
+
+      const existing = await storage.getEmailSubscriberByEmail(email);
+      if (existing) {
+        return res.json({ success: true, message: "Already subscribed" });
+      }
+
+      const validatedData = insertEmailSubscriberSchema.parse({ email });
+      await storage.createEmailSubscriber(validatedData);
+      res.json({ success: true, message: "Successfully subscribed" });
+    } catch (error: any) {
+      console.error("Subscribe error:", error);
+      res.status(400).json({ 
+        success: false, 
+        error: error.message || "Failed to subscribe" 
       });
     }
   });

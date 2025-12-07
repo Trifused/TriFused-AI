@@ -7,6 +7,7 @@ import {
   blogPosts,
   fileTransfers,
   storageConnections,
+  emailSubscribers,
   InsertContactSubmission, 
   InsertDiagnosticScan, 
   ContactSubmission, 
@@ -19,7 +20,9 @@ import {
   FileTransfer,
   InsertFileTransfer,
   StorageConnection,
-  InsertStorageConnection
+  InsertStorageConnection,
+  EmailSubscriber,
+  InsertEmailSubscriber
 } from "@shared/schema";
 
 export interface IStorage {
@@ -42,6 +45,9 @@ export interface IStorage {
   
   getStorageConnections(): Promise<StorageConnection[]>;
   createStorageConnection(data: InsertStorageConnection): Promise<StorageConnection>;
+  
+  createEmailSubscriber(data: InsertEmailSubscriber): Promise<EmailSubscriber>;
+  getEmailSubscriberByEmail(email: string): Promise<EmailSubscriber | undefined>;
 }
 
 class Storage implements IStorage {
@@ -153,6 +159,16 @@ class Storage implements IStorage {
   async createStorageConnection(data: InsertStorageConnection): Promise<StorageConnection> {
     const [connection] = await db.insert(storageConnections).values(data).returning();
     return connection;
+  }
+
+  async createEmailSubscriber(data: InsertEmailSubscriber): Promise<EmailSubscriber> {
+    const [subscriber] = await db.insert(emailSubscribers).values(data).returning();
+    return subscriber;
+  }
+
+  async getEmailSubscriberByEmail(email: string): Promise<EmailSubscriber | undefined> {
+    const [subscriber] = await db.select().from(emailSubscribers).where(eq(emailSubscribers.email, email));
+    return subscriber;
   }
 }
 

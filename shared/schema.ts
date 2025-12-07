@@ -128,3 +128,18 @@ export const insertStorageConnectionSchema = createInsertSchema(storageConnectio
 
 export type InsertStorageConnection = z.infer<typeof insertStorageConnectionSchema>;
 export type StorageConnection = typeof storageConnections.$inferSelect;
+
+// Email subscribers for newsletter/early access
+export const emailSubscribers = pgTable("email_subscribers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  subscribedAt: timestamp("subscribed_at").defaultNow().notNull(),
+});
+
+export const insertEmailSubscriberSchema = createInsertSchema(emailSubscribers).omit({
+  id: true,
+  subscribedAt: true,
+});
+
+export type InsertEmailSubscriber = z.infer<typeof insertEmailSubscriberSchema>;
+export type EmailSubscriber = typeof emailSubscribers.$inferSelect;

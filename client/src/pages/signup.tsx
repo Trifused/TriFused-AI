@@ -1,19 +1,118 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
-import { Rocket, ArrowRight, Check, LogIn } from "lucide-react";
+import { Rocket, ArrowRight, Check, LogIn, Mail, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (callback: () => void) => void;
+      render: (container: string | HTMLElement, options: { sitekey: string; callback: (token: string) => void; theme?: string; size?: string }) => number;
+      reset: (widgetId?: number) => void;
+      getResponse: (widgetId?: number) => string;
+    };
+    onRecaptchaLoad?: () => void;
+  }
+}
+
+const RECAPTCHA_SITE_KEY = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
 
 export default function Signup() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captchaRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<number | null>(null);
+
+  const subscribeMutation = useMutation({
+    mutationFn: async (data: { email: string; captchaToken: string }) => {
+      const res = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to subscribe');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success!",
+        description: "You're on the list. We'll be in touch soon.",
+      });
+      setEmail("");
+      setCaptchaToken(null);
+      if (window.grecaptcha && widgetIdRef.current !== null) {
+        window.grecaptcha.reset(widgetIdRef.current);
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const onCaptchaVerify = useCallback((token: string) => {
+    setCaptchaToken(token);
+  }, []);
+
+  useEffect(() => {
+    const renderCaptcha = () => {
+      if (captchaRef.current && widgetIdRef.current === null && window.grecaptcha) {
+        try {
+          widgetIdRef.current = window.grecaptcha.render(captchaRef.current, {
+            sitekey: RECAPTCHA_SITE_KEY,
+            callback: onCaptchaVerify,
+            theme: 'dark',
+          });
+        } catch (e) {
+          console.log("reCAPTCHA already rendered");
+        }
+      }
+    };
+
+    if (typeof window.grecaptcha !== 'undefined' && typeof window.grecaptcha.render === 'function') {
+      renderCaptcha();
+    } else {
+      const existingScript = document.querySelector('script[src*="recaptcha/api.js"]');
+      if (!existingScript) {
+        window.onRecaptchaLoad = renderCaptcha;
+        
+        const script = document.createElement('script');
+        script.src = 'https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit';
+        script.async = true;
+        script.defer = true;
+        script.id = 'recaptcha-script';
+        document.head.appendChild(script);
+      } else {
+        window.onRecaptchaLoad = renderCaptcha;
+      }
+    }
+  }, [onCaptchaVerify]);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       setLocation("/portal/dashboard");
     }
   }, [isAuthenticated, isLoading, setLocation]);
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !captchaToken) return;
+    subscribeMutation.mutate({ email, captchaToken });
+  };
 
   const benefits = [
     "Access to AI-powered security dashboards",
@@ -101,6 +200,52 @@ export default function Signup() {
               <LogIn className="mr-2 w-5 h-5" />
               Sign In
             </Button>
+          </motion.div>
+
+          {/* Email Capture Box */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="glass-panel rounded-2xl p-6 mt-6"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Mail className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold text-white">Stay Updated</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Not ready to sign up? Get early access updates and exclusive insights delivered to your inbox.
+            </p>
+            <form onSubmit={handleSubscribe} className="space-y-4">
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-white/5 border-white/20 text-white placeholder:text-muted-foreground"
+                required
+                data-testid="input-subscribe-email"
+              />
+              <div ref={captchaRef} className="flex justify-center" data-testid="recaptcha-container" />
+              <Button
+                type="submit"
+                disabled={!email || !captchaToken || subscribeMutation.isPending}
+                className="w-full bg-primary/80 hover:bg-primary text-black font-semibold"
+                data-testid="button-subscribe"
+              >
+                {subscribeMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Subscribing...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4 mr-2" />
+                    Get Updates
+                  </>
+                )}
+              </Button>
+            </form>
           </motion.div>
 
           <motion.div
