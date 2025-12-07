@@ -155,18 +155,50 @@ export async function registerRoutes(
       }
 
       const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY;
-      if (recaptchaSecretKey) {
-        const captchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `secret=${recaptchaSecretKey}&response=${captchaToken}`
-        });
+      const recaptchaSiteKey = process.env.RECAPTCHA_SITE_KEY;
+      if (recaptchaSecretKey && recaptchaSiteKey) {
+        const projectId = recaptchaSiteKey;
+        const captchaResponse = await fetch(
+          `https://recaptchaenterprise.googleapis.com/v1/projects/${projectId}/assessments?key=${recaptchaSecretKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event: {
+                token: captchaToken,
+                siteKey: recaptchaSiteKey,
+                expectedAction: 'subscribe'
+              }
+            })
+          }
+        );
         
-        const captchaResult = await captchaResponse.json() as { success: boolean };
-        if (!captchaResult.success) {
+        const captchaResult = await captchaResponse.json() as { 
+          tokenProperties?: { valid: boolean; action?: string };
+          riskAnalysis?: { score: number };
+          error?: { message: string };
+        };
+        
+        if (captchaResult.error) {
+          console.error("reCAPTCHA Enterprise error:", captchaResult.error);
           return res.status(400).json({ 
             success: false, 
             error: "Captcha verification failed" 
+          });
+        }
+        
+        if (!captchaResult.tokenProperties?.valid) {
+          return res.status(400).json({ 
+            success: false, 
+            error: "Invalid captcha token" 
+          });
+        }
+        
+        const score = captchaResult.riskAnalysis?.score || 0;
+        if (score < 0.5) {
+          return res.status(400).json({ 
+            success: false, 
+            error: "Verification failed - please try again" 
           });
         }
       }

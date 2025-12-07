@@ -4,19 +4,18 @@ import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { Rocket, ArrowRight, Check, LogIn, Mail, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 declare global {
   interface Window {
     grecaptcha: {
-      ready: (callback: () => void) => void;
-      render: (container: string | HTMLElement, options: { sitekey: string; callback: (token: string) => void; theme?: string; size?: string }) => number;
-      reset: (widgetId?: number) => void;
-      getResponse: (widgetId?: number) => string;
+      enterprise: {
+        ready: (callback: () => void) => void;
+        execute: (siteKey: string, options: { action: string }) => Promise<string>;
+      };
     };
-    onRecaptchaLoad?: () => void;
   }
 }
 
@@ -25,10 +24,8 @@ export default function Signup() {
   const { isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [siteKey, setSiteKey] = useState<string | null>(null);
-  const captchaRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<number | null>(null);
+  const [recaptchaLoaded, setRecaptchaLoaded] = useState(false);
 
   useEffect(() => {
     fetch('/api/recaptcha-site-key')
@@ -40,6 +37,21 @@ export default function Signup() {
       })
       .catch(err => console.error('Failed to load reCAPTCHA config:', err));
   }, []);
+
+  useEffect(() => {
+    if (!siteKey) return;
+    
+    const existingScript = document.querySelector('script[src*="recaptcha/enterprise.js"]');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.src = `https://www.google.com/recaptcha/enterprise.js?render=${siteKey}`;
+      script.async = true;
+      script.onload = () => setRecaptchaLoaded(true);
+      document.head.appendChild(script);
+    } else {
+      setRecaptchaLoaded(true);
+    }
+  }, [siteKey]);
 
   const subscribeMutation = useMutation({
     mutationFn: async (data: { email: string; captchaToken: string }) => {
@@ -60,10 +72,6 @@ export default function Signup() {
         description: "You're on the list. We'll be in touch soon.",
       });
       setEmail("");
-      setCaptchaToken(null);
-      if (window.grecaptcha && widgetIdRef.current !== null) {
-        window.grecaptcha.reset(widgetIdRef.current);
-      }
     },
     onError: (error: Error) => {
       toast({
@@ -74,56 +82,26 @@ export default function Signup() {
     }
   });
 
-  const onCaptchaVerify = useCallback((token: string) => {
-    setCaptchaToken(token);
-  }, []);
-
-  useEffect(() => {
-    if (!siteKey) return;
-
-    const renderCaptcha = () => {
-      if (captchaRef.current && widgetIdRef.current === null && window.grecaptcha) {
-        try {
-          widgetIdRef.current = window.grecaptcha.render(captchaRef.current, {
-            sitekey: siteKey,
-            callback: onCaptchaVerify,
-            theme: 'dark',
-          });
-        } catch (e) {
-          console.log("reCAPTCHA already rendered");
-        }
-      }
-    };
-
-    if (typeof window.grecaptcha !== 'undefined' && typeof window.grecaptcha.render === 'function') {
-      renderCaptcha();
-    } else {
-      const existingScript = document.querySelector('script[src*="recaptcha/api.js"]');
-      if (!existingScript) {
-        window.onRecaptchaLoad = renderCaptcha;
-        
-        const script = document.createElement('script');
-        script.src = 'https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit';
-        script.async = true;
-        script.defer = true;
-        script.id = 'recaptcha-script';
-        document.head.appendChild(script);
-      } else {
-        window.onRecaptchaLoad = renderCaptcha;
-      }
-    }
-  }, [siteKey, onCaptchaVerify]);
-
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       setLocation("/portal/dashboard");
     }
   }, [isAuthenticated, isLoading, setLocation]);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !captchaToken) return;
-    subscribeMutation.mutate({ email, captchaToken });
+    if (!email || !siteKey || !recaptchaLoaded) return;
+    
+    try {
+      const token = await window.grecaptcha.enterprise.execute(siteKey, { action: 'subscribe' });
+      subscribeMutation.mutate({ email, captchaToken: token });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to verify reCAPTCHA. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const benefits = [
@@ -238,10 +216,9 @@ export default function Signup() {
                 required
                 data-testid="input-subscribe-email"
               />
-              <div ref={captchaRef} className="flex justify-center" data-testid="recaptcha-container" />
               <Button
                 type="submit"
-                disabled={!email || !captchaToken || subscribeMutation.isPending}
+                disabled={!email || !recaptchaLoaded || subscribeMutation.isPending}
                 className="w-full bg-primary/80 hover:bg-primary text-black font-semibold"
                 data-testid="button-subscribe"
               >
