@@ -10,6 +10,8 @@ import {
   emailSubscribers,
   chatMessages,
   chatLeads,
+  mediaItems,
+  mediaShares,
   InsertContactSubmission, 
   InsertDiagnosticScan, 
   ContactSubmission, 
@@ -28,7 +30,12 @@ import {
   ChatMessage,
   InsertChatMessage,
   ChatLead,
-  InsertChatLead
+  InsertChatLead,
+  MediaItem,
+  InsertMediaItem,
+  MediaShare,
+  InsertMediaShare,
+  MediaStatus
 } from "@shared/schema";
 
 export interface IStorage {
@@ -81,6 +88,22 @@ export interface IStorage {
   getContactSubmissionsCount(): Promise<number>;
   getChatLeadsCount(): Promise<number>;
   getChatSessionsCount(): Promise<number>;
+  
+  // Media methods
+  createMediaItem(data: InsertMediaItem): Promise<MediaItem>;
+  getMediaItem(id: string): Promise<MediaItem | undefined>;
+  getMediaItemsByUser(userId: string): Promise<MediaItem[]>;
+  getPublicMediaItems(): Promise<MediaItem[]>;
+  getPendingMediaItems(): Promise<MediaItem[]>;
+  updateMediaStatus(id: string, status: MediaStatus): Promise<MediaItem | undefined>;
+  deleteMediaItem(id: string): Promise<void>;
+  
+  // Media sharing methods
+  createMediaShare(data: InsertMediaShare): Promise<MediaShare>;
+  getMediaSharesForMedia(mediaId: string): Promise<MediaShare[]>;
+  getMediaSharedWithUser(userId: string): Promise<MediaItem[]>;
+  getMediaSharedWithEmail(email: string): Promise<MediaItem[]>;
+  deleteMediaShare(id: string): Promise<void>;
 }
 
 class Storage implements IStorage {
@@ -307,6 +330,95 @@ class Storage implements IStorage {
       .selectDistinct({ sessionId: chatMessages.sessionId })
       .from(chatMessages);
     return result.length;
+  }
+
+  // Media methods
+  async createMediaItem(data: InsertMediaItem): Promise<MediaItem> {
+    const [item] = await db.insert(mediaItems).values(data).returning();
+    return item;
+  }
+
+  async getMediaItem(id: string): Promise<MediaItem | undefined> {
+    const [item] = await db.select().from(mediaItems).where(eq(mediaItems.id, id));
+    return item;
+  }
+
+  async getMediaItemsByUser(userId: string): Promise<MediaItem[]> {
+    return await db.select().from(mediaItems)
+      .where(eq(mediaItems.uploadedBy, userId))
+      .orderBy(desc(mediaItems.createdAt));
+  }
+
+  async getPublicMediaItems(): Promise<MediaItem[]> {
+    return await db.select().from(mediaItems)
+      .where(eq(mediaItems.status, "public"))
+      .orderBy(desc(mediaItems.createdAt));
+  }
+
+  async getPendingMediaItems(): Promise<MediaItem[]> {
+    return await db.select().from(mediaItems)
+      .where(eq(mediaItems.status, "pending"))
+      .orderBy(desc(mediaItems.createdAt));
+  }
+
+  async updateMediaStatus(id: string, status: MediaStatus): Promise<MediaItem | undefined> {
+    const [item] = await db
+      .update(mediaItems)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(mediaItems.id, id))
+      .returning();
+    return item;
+  }
+
+  async deleteMediaItem(id: string): Promise<void> {
+    await db.delete(mediaShares).where(eq(mediaShares.mediaId, id));
+    await db.delete(mediaItems).where(eq(mediaItems.id, id));
+  }
+
+  // Media sharing methods
+  async createMediaShare(data: InsertMediaShare): Promise<MediaShare> {
+    const [share] = await db.insert(mediaShares).values(data).returning();
+    return share;
+  }
+
+  async getMediaSharesForMedia(mediaId: string): Promise<MediaShare[]> {
+    return await db.select().from(mediaShares)
+      .where(eq(mediaShares.mediaId, mediaId))
+      .orderBy(desc(mediaShares.createdAt));
+  }
+
+  async getMediaSharedWithUser(userId: string): Promise<MediaItem[]> {
+    const shares = await db.select().from(mediaShares)
+      .where(eq(mediaShares.sharedWithUserId, userId));
+    
+    if (shares.length === 0) return [];
+    
+    const mediaIds = shares.map(s => s.mediaId);
+    const items: MediaItem[] = [];
+    for (const mediaId of mediaIds) {
+      const [item] = await db.select().from(mediaItems).where(eq(mediaItems.id, mediaId));
+      if (item) items.push(item);
+    }
+    return items;
+  }
+
+  async getMediaSharedWithEmail(email: string): Promise<MediaItem[]> {
+    const shares = await db.select().from(mediaShares)
+      .where(eq(mediaShares.sharedWithEmail, email));
+    
+    if (shares.length === 0) return [];
+    
+    const mediaIds = shares.map(s => s.mediaId);
+    const items: MediaItem[] = [];
+    for (const mediaId of mediaIds) {
+      const [item] = await db.select().from(mediaItems).where(eq(mediaItems.id, mediaId));
+      if (item) items.push(item);
+    }
+    return items;
+  }
+
+  async deleteMediaShare(id: string): Promise<void> {
+    await db.delete(mediaShares).where(eq(mediaShares.id, id));
   }
 }
 

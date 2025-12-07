@@ -179,3 +179,54 @@ export const insertChatLeadSchema = createInsertSchema(chatLeads).omit({
 
 export type InsertChatLead = z.infer<typeof insertChatLeadSchema>;
 export type ChatLead = typeof chatLeads.$inferSelect;
+
+// Media status enum
+export const mediaStatuses = ["private", "pending", "public"] as const;
+export type MediaStatus = typeof mediaStatuses[number];
+
+// Media types enum
+export const mediaTypes = ["video", "audio"] as const;
+export type MediaType = typeof mediaTypes[number];
+
+// Media items (videos and audio)
+export const mediaItems = pgTable("media_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  type: varchar("type").notNull(), // "video" or "audio"
+  url: text("url").notNull(), // Storage URL
+  thumbnailUrl: text("thumbnail_url"),
+  duration: integer("duration"), // Duration in seconds
+  fileSize: integer("file_size"), // Size in bytes
+  status: varchar("status").default("private").notNull(), // "private", "pending", "public"
+  uploadedBy: varchar("uploaded_by").notNull(), // User ID
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertMediaItemSchema = createInsertSchema(mediaItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertMediaItem = z.infer<typeof insertMediaItemSchema>;
+export type MediaItem = typeof mediaItems.$inferSelect;
+
+// Media shares - tracks who media is shared with
+export const mediaShares = pgTable("media_shares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  mediaId: varchar("media_id").notNull(),
+  sharedWithUserId: varchar("shared_with_user_id"), // Null if shared via invite email
+  sharedWithEmail: text("shared_with_email"), // For inviting new users
+  sharedByUserId: varchar("shared_by_user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertMediaShareSchema = createInsertSchema(mediaShares).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertMediaShare = z.infer<typeof insertMediaShareSchema>;
+export type MediaShare = typeof mediaShares.$inferSelect;
