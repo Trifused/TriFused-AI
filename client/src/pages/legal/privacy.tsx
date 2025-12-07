@@ -39,6 +39,24 @@ export default function Privacy() {
             <p>
               We utilize select partners (Neon, Replit, Lovable) for infrastructure scalability. Data shared with these entities is strictly governed by zero-trust architecture protocols.
             </p>
+
+            <h3 className="text-primary">4. reCAPTCHA & Bot Protection</h3>
+            <p>
+              This site is protected by Google reCAPTCHA to prevent spam and abuse. When you interact with forms on our site, reCAPTCHA may collect hardware and software information, such as device and application data, and send it to Google for analysis.
+            </p>
+            <p>
+              Your use of reCAPTCHA is subject to Google's{" "}
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                Privacy Policy
+              </a>{" "}
+              and{" "}
+              <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                Terms of Service
+              </a>.
+            </p>
+            <p>
+              Data collected by reCAPTCHA includes: IP address, browser type and settings, date and time of your request, referring URL, and information about how you interact with our forms. This data is used solely for security purposes and is not used for personalized advertising.
+            </p>
           </div>
         </motion.div>
       </main>
