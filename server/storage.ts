@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql, count } from "drizzle-orm";
 import { 
   contactSubmissions, 
   diagnosticScans, 
@@ -60,6 +60,17 @@ export interface IStorage {
   
   createChatLead(data: InsertChatLead): Promise<ChatLead>;
   getChatLeads(): Promise<ChatLead[]>;
+  
+  getChatSessions(): Promise<{
+    sessionId: string;
+    messageCount: number;
+    firstMessageAt: Date | null;
+    lastMessageAt: Date | null;
+    hasLead: boolean;
+  }[]>;
+  getChatLeadsWithSessionInfo(): Promise<(ChatLead & {
+    messageCount: number;
+  })[]>;
 }
 
 class Storage implements IStorage {
@@ -201,6 +212,52 @@ class Storage implements IStorage {
 
   async getChatLeads(): Promise<ChatLead[]> {
     return await db.select().from(chatLeads).orderBy(desc(chatLeads.createdAt));
+  }
+
+  async getChatSessions(): Promise<{
+    sessionId: string;
+    messageCount: number;
+    firstMessageAt: Date | null;
+    lastMessageAt: Date | null;
+    hasLead: boolean;
+  }[]> {
+    const sessions = await db
+      .select({
+        sessionId: chatMessages.sessionId,
+        messageCount: count(chatMessages.id),
+        firstMessageAt: sql<Date>`MIN(${chatMessages.createdAt})`,
+        lastMessageAt: sql<Date>`MAX(${chatMessages.createdAt})`,
+      })
+      .from(chatMessages)
+      .groupBy(chatMessages.sessionId)
+      .orderBy(desc(sql`MAX(${chatMessages.createdAt})`));
+
+    const leads = await db.select({ sessionId: chatLeads.sessionId }).from(chatLeads);
+    const leadSessionIds = new Set(leads.map(l => l.sessionId));
+
+    return sessions.map(s => ({
+      ...s,
+      hasLead: leadSessionIds.has(s.sessionId),
+    }));
+  }
+
+  async getChatLeadsWithSessionInfo(): Promise<(ChatLead & { messageCount: number })[]> {
+    const leads = await this.getChatLeads();
+    const result: (ChatLead & { messageCount: number })[] = [];
+
+    for (const lead of leads) {
+      const messages = await db
+        .select({ count: count() })
+        .from(chatMessages)
+        .where(eq(chatMessages.sessionId, lead.sessionId));
+      
+      result.push({
+        ...lead,
+        messageCount: messages[0]?.count || 0,
+      });
+    }
+
+    return result;
   }
 }
 

@@ -373,6 +373,79 @@ export async function registerRoutes(
     }
   });
 
+  function detectSpam(messageCount: number, messages?: { role: string; content: string; createdAt: Date }[]): { isSpam: boolean; reasons: string[] } {
+    const reasons: string[] = [];
+    
+    if (messageCount <= 1) {
+      reasons.push("Single message session");
+    }
+    
+    if (messages && messages.length > 0) {
+      const userMessages = messages.filter(m => m.role === "user");
+      if (userMessages.length === 0) {
+        reasons.push("No user messages");
+      }
+      
+      if (userMessages.length >= 3) {
+        for (let i = 1; i < userMessages.length; i++) {
+          const timeDiff = new Date(userMessages[i].createdAt).getTime() - new Date(userMessages[i-1].createdAt).getTime();
+          if (timeDiff < 3000 && userMessages[i].content === userMessages[i-1].content) {
+            reasons.push("Rapid duplicate messages");
+            break;
+          }
+        }
+      }
+      
+      const shortMessages = userMessages.filter(m => m.content.length < 5);
+      if (shortMessages.length > 2) {
+        reasons.push("Multiple very short messages");
+      }
+    }
+    
+    return { isSpam: reasons.length > 0, reasons };
+  }
+
+  app.get("/api/admin/chat/leads", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const leads = await storage.getChatLeadsWithSessionInfo();
+      const leadsWithSpam = await Promise.all(leads.map(async (lead) => {
+        const messages = await storage.getChatMessages(lead.sessionId);
+        const spam = detectSpam(lead.messageCount, messages);
+        return { ...lead, ...spam };
+      }));
+      res.json(leadsWithSpam);
+    } catch (error: any) {
+      console.error("Admin chat leads error:", error);
+      res.status(500).json({ error: "Failed to fetch chat leads" });
+    }
+  });
+
+  app.get("/api/admin/chat/sessions", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const sessions = await storage.getChatSessions();
+      const sessionsWithSpam = await Promise.all(sessions.map(async (session) => {
+        const messages = await storage.getChatMessages(session.sessionId);
+        const spam = detectSpam(session.messageCount, messages);
+        return { ...session, ...spam };
+      }));
+      res.json(sessionsWithSpam);
+    } catch (error: any) {
+      console.error("Admin chat sessions error:", error);
+      res.status(500).json({ error: "Failed to fetch chat sessions" });
+    }
+  });
+
+  app.get("/api/admin/chat/sessions/:sessionId/messages", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { sessionId } = req.params;
+      const messages = await storage.getChatMessages(sessionId);
+      res.json(messages);
+    } catch (error: any) {
+      console.error("Admin chat messages error:", error);
+      res.status(500).json({ error: "Failed to fetch chat messages" });
+    }
+  });
+
   app.get("/public-objects/:filePath(*)", async (req, res) => {
     const filePath = req.params.filePath;
     const objectStorageService = new ObjectStorageService();
