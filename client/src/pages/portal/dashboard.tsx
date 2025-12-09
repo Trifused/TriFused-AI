@@ -23,7 +23,8 @@ import {
   Cpu,
   Lock,
   Unlock,
-  Video
+  Video,
+  Plug
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -347,6 +348,16 @@ export default function Dashboard() {
                 >
                   <Video className="w-4 h-4 mr-2" />
                   Media
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setLocation("/portal/integrations")}
+                  className="border-green-500/30 text-green-500 hover:bg-green-500/10"
+                  data-testid="button-integrations"
+                >
+                  <Plug className="w-4 h-4 mr-2" />
+                  Integrations
                 </Button>
                 {user?.role === 'superuser' && (
                   <Button 

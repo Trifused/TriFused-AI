@@ -9,6 +9,8 @@ import { z } from "zod";
 import { format } from "date-fns";
 import OpenAI from "openai";
 import { RecaptchaEnterpriseServiceClient } from "@google-cloud/recaptcha-enterprise";
+import { getCalendarEvents, isCalendarConnected } from "./lib/google-calendar";
+import { getInboxMessages, isGmailConnected } from "./lib/gmail";
 
 const SUPERUSER_EMAIL_DOMAIN = "@trifused.com";
 
@@ -1051,6 +1053,51 @@ Your primary goal is to help users AND capture their contact information natural
     } catch (error: any) {
       console.error("Get media URL error:", error);
       res.status(500).json({ error: "Failed to get media URL" });
+    }
+  });
+
+  // Google Calendar integration endpoints
+  app.get("/api/integrations/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const [calendarConnected, gmailConnected] = await Promise.all([
+        isCalendarConnected(),
+        isGmailConnected()
+      ]);
+      res.json({ 
+        calendar: calendarConnected, 
+        gmail: gmailConnected 
+      });
+    } catch (error: any) {
+      console.error("Integration status error:", error);
+      res.json({ calendar: false, gmail: false });
+    }
+  });
+
+  app.get("/api/calendar/events", isAuthenticated, async (req: any, res) => {
+    try {
+      const maxResults = parseInt(req.query.maxResults as string) || 10;
+      const events = await getCalendarEvents(maxResults);
+      res.json(events);
+    } catch (error: any) {
+      console.error("Calendar events error:", error);
+      if (error.message === 'Google Calendar not connected') {
+        return res.status(401).json({ error: "Google Calendar not connected" });
+      }
+      res.status(500).json({ error: "Failed to fetch calendar events" });
+    }
+  });
+
+  app.get("/api/gmail/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const maxResults = parseInt(req.query.maxResults as string) || 10;
+      const messages = await getInboxMessages(maxResults);
+      res.json(messages);
+    } catch (error: any) {
+      console.error("Gmail messages error:", error);
+      if (error.message === 'Gmail not connected') {
+        return res.status(401).json({ error: "Gmail not connected" });
+      }
+      res.status(500).json({ error: "Failed to fetch Gmail messages" });
     }
   });
 
