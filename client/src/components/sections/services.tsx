@@ -1,8 +1,16 @@
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import securityImg from "@assets/generated_images/cybersecurity_data_shield.png";
-import infraImg from "@assets/generated_images/futuristic_server_infrastructure.png";
-import marketingImg from "@assets/generated_images/ai_marketing_network.png";
+import secureWorkstationImg from "@assets/generated_images/secure_workstation_with_shield.png";
+import dataServerImg from "@assets/generated_images/data_server_room_analytics.png";
+import passwordSecurityImg from "@assets/generated_images/password_security_vault_keys.png";
+import cloudInfraImg from "@assets/generated_images/cloud_computing_infrastructure.png";
+import siemSecurityImg from "@assets/generated_images/siem_security_monitoring_dashboard.png";
+import pentestingImg from "@assets/generated_images/penetration_testing_hacking_visual.png";
+import mdrThreatImg from "@assets/generated_images/mdr_threat_hunting_radar.png";
+import mdmImg from "@assets/generated_images/mobile_device_management_dashboard.png";
+import cloudDbImg from "@assets/generated_images/cloud_database_architecture_nodes.png";
+import aiCodingImg from "@assets/generated_images/ai_native_development_coding.png";
+import aiMarketingImg from "@assets/generated_images/ai_marketing_growth_engine.png";
 import { ArrowUpRight, Shield, Server, BrainCircuit, Code, Database, Cloud, Smartphone, Lock, Monitor, HardDrive, KeyRound, Activity } from "lucide-react";
 
 const services = [
@@ -11,7 +19,7 @@ const services = [
     title: "Secure Workstations",
     description: "Simple secure workstations with the latest software and security updates. Keep your endpoints protected and compliant.",
     icon: Monitor,
-    image: securityImg,
+    image: secureWorkstationImg,
     color: "text-blue-400"
   },
   {
@@ -19,7 +27,7 @@ const services = [
     title: "Your Data Your Services",
     description: "Deep insights into your servers and data with advanced monitoring tools. Recover any system in 30 minutes.",
     icon: HardDrive,
-    image: infraImg,
+    image: dataServerImg,
     color: "text-green-400"
   },
   {
@@ -27,7 +35,7 @@ const services = [
     title: "Accounts, Passwords & Security",
     description: "Protect your passwords and accounts, keep them secure and use Multi-Factor Authentication for maximum protection.",
     icon: KeyRound,
-    image: securityImg,
+    image: passwordSecurityImg,
     color: "text-yellow-400"
   },
   {
@@ -35,7 +43,7 @@ const services = [
     title: "Cloud Systems",
     description: "From Office 365 to Microsoft Azure and Amazon hosted servers - built and managed for you with enterprise-grade reliability.",
     icon: Cloud,
-    image: infraImg,
+    image: cloudInfraImg,
     color: "text-purple-400"
   },
   {
@@ -43,7 +51,7 @@ const services = [
     title: "Advanced Security",
     description: "Security monitoring using SIEM and EDR tools leveraging emerging AI for real-time threat detection and response.",
     icon: Activity,
-    image: securityImg,
+    image: siemSecurityImg,
     color: "text-red-400"
   },
   {
@@ -51,7 +59,7 @@ const services = [
     title: "Advanced Pen-Testing",
     description: "Offensive security protocols simulating sophisticated cyber-attacks to identify and patch vulnerabilities before exploitation.",
     icon: Lock,
-    image: securityImg,
+    image: pentestingImg,
     color: "text-orange-400"
   },
   {
@@ -59,7 +67,7 @@ const services = [
     title: "MDR & Threat Hunting",
     description: "Managed Detection and Response systems that actively hunt for threats across your endpoints, networks, and cloud environments.",
     icon: Shield,
-    image: securityImg,
+    image: mdrThreatImg,
     color: "text-cyan-400"
   },
   {
@@ -67,7 +75,7 @@ const services = [
     title: "Mobile Device Management",
     description: "Secure, remote administration of mobile endpoints. Enforce encryption, wipe lost devices, and manage app deployment at scale.",
     icon: Smartphone,
-    image: infraImg,
+    image: mdmImg,
     color: "text-pink-400"
   },
   {
@@ -75,7 +83,7 @@ const services = [
     title: "Cloud & Database Architecture",
     description: "Scalable, resilient cloud infrastructure design. Optimized database clusters for high-availability and zero-latency performance.",
     icon: Database,
-    image: infraImg,
+    image: cloudDbImg,
     color: "text-indigo-400"
   },
   {
@@ -83,7 +91,7 @@ const services = [
     title: "AI-Native Development",
     description: "Building next-gen applications with LLM integration. From chatbots to autonomous agents, we code the future.",
     icon: Code,
-    image: marketingImg,
+    image: aiCodingImg,
     color: "text-emerald-400"
   },
   {
@@ -91,7 +99,7 @@ const services = [
     title: "Generative Growth Engines",
     description: "Marketing strategies supercharged by AI. Hyper-personalized customer journeys created in real-time.",
     icon: BrainCircuit,
-    image: marketingImg,
+    image: aiMarketingImg,
     color: "text-rose-400"
   }
 ];
