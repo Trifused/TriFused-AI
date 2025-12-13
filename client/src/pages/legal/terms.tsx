@@ -7,7 +7,7 @@ export default function Terms() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
       <Navbar />
-      <main className="pt-32 pb-20 container mx-auto px-6 max-w-4xl">
+      <main id="main-content" className="pt-32 pb-20 container mx-auto px-6 max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

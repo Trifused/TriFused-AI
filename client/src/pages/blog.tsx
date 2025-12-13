@@ -106,7 +106,7 @@ export default function Blog() {
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
       <Navbar />
       
-      <main className="pt-24 pb-20">
+      <main id="main-content" className="pt-24 pb-20">
         <section className="relative py-20 overflow-hidden">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none" />
           <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />

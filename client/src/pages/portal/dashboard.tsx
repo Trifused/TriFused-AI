@@ -341,14 +341,14 @@ export default function Dashboard() {
             </div>
             
             <div className="flex items-center gap-2 md:gap-4">
-              <Button variant="ghost" size="icon" className="relative hidden md:flex">
-                <Bell className="w-5 h-5" />
+              <Button variant="ghost" size="icon" className="relative hidden md:flex" aria-label="Notifications">
+                <Bell className="w-5 h-5" aria-hidden="true" />
                 {isSuperuser && (stats?.leads || 0) > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" aria-label="New notifications available" />
                 )}
               </Button>
-              <Button variant="ghost" size="icon" className="hidden md:flex">
-                <Settings className="w-5 h-5" />
+              <Button variant="ghost" size="icon" className="hidden md:flex" aria-label="Settings">
+                <Settings className="w-5 h-5" aria-hidden="true" />
               </Button>
               <div className="flex items-center gap-2 md:gap-3 md:pl-4 md:border-l border-white/10 overflow-x-auto scrollbar-hide">
                 {(user?.ftpAccess === 1 || user?.role === 'superuser') && (
@@ -419,8 +419,9 @@ export default function Dashboard() {
                   onClick={() => window.location.href = "/api/logout"}
                   data-testid="button-logout"
                   className="shrink-0"
+                  aria-label="Sign out"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-4 h-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -428,7 +429,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-12">
+      <main id="main-content" className="container mx-auto px-6 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

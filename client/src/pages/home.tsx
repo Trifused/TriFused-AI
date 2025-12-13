@@ -16,7 +16,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
       <Navbar />
-      <main>
+      <main id="main-content">
         <Hero />
         <Services />
         <Ventures />

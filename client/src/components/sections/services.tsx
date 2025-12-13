@@ -140,11 +140,11 @@ export function Services() {
                 <div className="relative h-48 rounded-xl overflow-hidden mb-6 bg-black/50">
                   <img 
                     src={service.image} 
-                    alt={service.title}
+                    alt={`${service.title} - ${service.description.slice(0, 50)}`}
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-100"
                   />
                   <div className="absolute top-4 left-4 p-2 bg-black/50 backdrop-blur-md rounded-lg border border-white/10">
-                    <service.icon className={`w-6 h-6 ${service.color}`} />
+                    <service.icon className={`w-6 h-6 ${service.color}`} aria-hidden="true" />
                   </div>
                 </div>
 

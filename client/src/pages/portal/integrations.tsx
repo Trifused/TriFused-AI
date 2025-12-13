@@ -172,11 +172,11 @@ export default function Integrations() {
             </div>
             
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon">
-                <Bell className="w-5 h-5" />
+              <Button variant="ghost" size="icon" aria-label="Notifications">
+                <Bell className="w-5 h-5" aria-hidden="true" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={handleRefresh}>
-                <RefreshCw className="w-5 h-5" />
+              <Button variant="ghost" size="icon" onClick={handleRefresh} aria-label="Refresh integrations">
+                <RefreshCw className="w-5 h-5" aria-hidden="true" />
               </Button>
               <div className="flex items-center gap-3 pl-4 border-l border-white/10">
                 {user?.profileImageUrl && (
@@ -202,8 +202,9 @@ export default function Integrations() {
                   size="icon"
                   onClick={() => window.location.href = "/api/logout"}
                   data-testid="button-logout"
+                  aria-label="Sign out"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-4 h-4" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -211,7 +212,7 @@ export default function Integrations() {
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-12">
+      <main id="main-content" className="container mx-auto px-6 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

@@ -271,7 +271,7 @@ export default function MFTPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8">
+      <main id="main-content" className="container mx-auto px-6 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
