@@ -203,6 +203,30 @@ export default function Dashboard() {
     return "Other";
   };
 
+  const internalStats = diagnosticScans ? {
+    totalVisitors: diagnosticScans.length,
+    byPlatform: diagnosticScans.reduce((acc, d) => {
+      const platform = (d.platform || '').includes('Win') ? 'Windows' : 
+                       (d.platform || '').includes('iPhone') ? 'iOS' :
+                       (d.platform || '').includes('Mac') ? 'macOS' :
+                       (d.platform || '').includes('Android') ? 'Android' :
+                       (d.platform || '').includes('Linux') ? 'Linux' : 'Other';
+      acc[platform] = (acc[platform] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    byResolution: diagnosticScans.reduce((acc, d) => {
+      const res = d.screenResolution || 'Unknown';
+      acc[res] = (acc[res] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    byBrowser: diagnosticScans.reduce((acc, d) => {
+      const browser = parseBrowser(d.userAgent);
+      acc[browser] = (acc[browser] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    secureConnections: diagnosticScans.filter(d => d.isSecure === 1).length,
+  } : null;
+
   const quickActions = isSuperuser ? [
     { 
       icon: MessageSquare, 
@@ -448,6 +472,113 @@ export default function Dashboard() {
             </motion.div>
           ))}
         </div>
+
+        {isSuperuser && internalStats && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mb-12"
+          >
+            <h2 className="text-xl font-bold font-heading text-white mb-6 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-purple-500" />
+              Visitor Analytics
+            </h2>
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="glass-panel rounded-xl p-4" data-testid="stat-total-scans">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                    <BarChart3 className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <span className="text-2xl font-bold text-white">{internalStats.totalVisitors}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">Total Scans</p>
+              </div>
+              <div className="glass-panel rounded-xl p-4" data-testid="stat-secure-connections">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <Lock className="w-4 h-4 text-green-500" />
+                  </div>
+                  <span className="text-2xl font-bold text-white">{internalStats.secureConnections}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">Secure Connections</p>
+              </div>
+              <div className="glass-panel rounded-xl p-4" data-testid="stat-platforms">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <Monitor className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <span className="text-2xl font-bold text-white">{Object.keys(internalStats.byPlatform).length}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">Platforms</p>
+              </div>
+              <div className="glass-panel rounded-xl p-4" data-testid="stat-resolutions">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-cyan-500" />
+                  </div>
+                  <span className="text-2xl font-bold text-white">{Object.keys(internalStats.byResolution).length}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">Screen Sizes</p>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="glass-panel rounded-xl p-4" data-testid="table-platforms">
+                <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Monitor className="w-4 h-4 text-blue-500" />
+                  By Platform
+                </h3>
+                <div className="space-y-2">
+                  {Object.entries(internalStats.byPlatform)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 5)
+                    .map(([platform, count]) => (
+                      <div key={platform} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{platform}</span>
+                        <span className="text-white font-medium">{count}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+              <div className="glass-panel rounded-xl p-4" data-testid="table-browsers">
+                <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-cyan-500" />
+                  By Browser
+                </h3>
+                <div className="space-y-2">
+                  {Object.entries(internalStats.byBrowser)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 5)
+                    .map(([browser, count]) => (
+                      <div key={browser} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{browser}</span>
+                        <span className="text-white font-medium">{count}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+              <div className="glass-panel rounded-xl p-4" data-testid="table-resolutions">
+                <h3 className="text-white font-medium mb-3 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-purple-500" />
+                  By Screen Size
+                </h3>
+                <div className="space-y-2">
+                  {Object.entries(internalStats.byResolution)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 5)
+                    .map(([resolution, count]) => (
+                      <div key={resolution} className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{resolution}</span>
+                        <span className="text-white font-medium">{count}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
