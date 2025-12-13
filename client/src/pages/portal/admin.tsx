@@ -205,6 +205,55 @@ export default function Admin() {
 
   const analyticsData = analyticsResponse?.data;
 
+  interface DiagnosticScan {
+    id: string;
+    platform: string;
+    userAgent: string;
+    screenResolution: string;
+    isSecure: number;
+    browserCores: number;
+    scannedAt: string;
+  }
+
+  const { data: diagnostics = [], isLoading: diagnosticsLoading } = useQuery<DiagnosticScan[]>({
+    queryKey: ['/api/admin/diagnostics'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/diagnostics', {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch diagnostics');
+      return res.json();
+    },
+    enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'analytics',
+  });
+
+  const internalStats = {
+    totalVisitors: diagnostics.length,
+    byPlatform: diagnostics.reduce((acc, d) => {
+      const platform = d.platform.includes('Win') ? 'Windows' : 
+                       d.platform.includes('iPhone') ? 'iOS' :
+                       d.platform.includes('Mac') ? 'macOS' :
+                       d.platform.includes('Android') ? 'Android' :
+                       d.platform.includes('Linux') ? 'Linux' : 'Other';
+      acc[platform] = (acc[platform] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    byResolution: diagnostics.reduce((acc, d) => {
+      acc[d.screenResolution] = (acc[d.screenResolution] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    byBrowser: diagnostics.reduce((acc, d) => {
+      const ua = d.userAgent.toLowerCase();
+      const browser = ua.includes('chrome') && !ua.includes('edg') ? 'Chrome' :
+                      ua.includes('safari') && !ua.includes('chrome') ? 'Safari' :
+                      ua.includes('firefox') ? 'Firefox' :
+                      ua.includes('edg') ? 'Edge' : 'Other';
+      acc[browser] = (acc[browser] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    secureConnections: diagnostics.filter(d => d.isSecure === 1).length,
+  };
+
   const approveMediaMutation = useMutation({
     mutationFn: async (mediaId: string) => {
       const res = await fetch(`/api/media/${mediaId}/status`, {
@@ -953,179 +1002,190 @@ export default function Admin() {
 
           <TabsContent value="analytics">
             <div className="space-y-6">
-              {analyticsLoading ? (
+              {(analyticsLoading || diagnosticsLoading) ? (
                 <div className="p-12 text-center glass-panel rounded-2xl">
                   <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                   <p className="text-muted-foreground">Loading analytics data...</p>
-                </div>
-              ) : !analyticsResponse?.connected ? (
-                <div className="p-12 text-center glass-panel rounded-2xl">
-                  <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-white mb-2">Analytics Not Connected</h3>
-                  <p className="text-muted-foreground">Google Analytics integration is not configured. Please set up GA4_PROPERTY_ID and GOOGLE_APPLICATION_CREDENTIALS_JSON.</p>
-                </div>
-              ) : !analyticsData || !analyticsData.overview ? (
-                <div className="p-12 text-center glass-panel rounded-2xl">
-                  <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-white mb-2">No Analytics Data</h3>
-                  <p className="text-muted-foreground">Google Analytics is connected but no data is available yet. This could be due to a credentials issue or no traffic data.</p>
                 </div>
               ) : (
                 <>
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="grid grid-cols-2 md:grid-cols-5 gap-4"
                   >
-                    <div className="glass-panel rounded-xl p-4">
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-                        <Users className="w-4 h-4" />
-                        Active Users
+                    <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-primary" />
+                      Internal Site Stats
+                    </h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      <div className="glass-panel rounded-xl p-4">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                          <Users className="w-4 h-4" />
+                          Total Scans
+                        </div>
+                        <div className="text-2xl font-bold text-white">{internalStats.totalVisitors}</div>
                       </div>
-                      <div className="text-2xl font-bold text-white">{analyticsData.overview.activeUsers.toLocaleString()}</div>
+                      <div className="glass-panel rounded-xl p-4">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                          <Shield className="w-4 h-4" />
+                          Secure Connections
+                        </div>
+                        <div className="text-2xl font-bold text-green-400">{internalStats.secureConnections}</div>
+                      </div>
+                      <div className="glass-panel rounded-xl p-4">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                          <Monitor className="w-4 h-4" />
+                          Platforms
+                        </div>
+                        <div className="text-2xl font-bold text-white">{Object.keys(internalStats.byPlatform).length}</div>
+                      </div>
+                      <div className="glass-panel rounded-xl p-4">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                          <Globe className="w-4 h-4" />
+                          Screen Sizes
+                        </div>
+                        <div className="text-2xl font-bold text-white">{Object.keys(internalStats.byResolution).length}</div>
+                      </div>
                     </div>
-                    <div className="glass-panel rounded-xl p-4">
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-                        <Eye className="w-4 h-4" />
-                        Sessions
+
+                    <div className="grid md:grid-cols-3 gap-6">
+                      <div className="glass-panel rounded-2xl overflow-hidden">
+                        <div className="p-4 border-b border-white/5 bg-white/5">
+                          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                            <Monitor className="w-5 h-5 text-primary" />
+                            By Platform
+                          </h3>
+                        </div>
+                        <div className="divide-y divide-white/5">
+                          {Object.entries(internalStats.byPlatform).length === 0 ? (
+                            <div className="p-8 text-center text-muted-foreground">No data yet</div>
+                          ) : (
+                            Object.entries(internalStats.byPlatform)
+                              .sort((a, b) => b[1] - a[1])
+                              .map(([platform, count]) => (
+                                <div key={platform} className="p-3 flex items-center justify-between hover:bg-white/5">
+                                  <span className="text-white flex items-center gap-2">
+                                    {platform === 'Windows' && <Monitor className="w-4 h-4" />}
+                                    {platform === 'iOS' && <Smartphone className="w-4 h-4" />}
+                                    {platform === 'macOS' && <Monitor className="w-4 h-4" />}
+                                    {platform === 'Android' && <Smartphone className="w-4 h-4" />}
+                                    {platform === 'Linux' && <Monitor className="w-4 h-4" />}
+                                    {platform}
+                                  </span>
+                                  <span className="text-muted-foreground">{count}</span>
+                                </div>
+                              ))
+                          )}
+                        </div>
                       </div>
-                      <div className="text-2xl font-bold text-white">{analyticsData.overview.sessions.toLocaleString()}</div>
-                    </div>
-                    <div className="glass-panel rounded-xl p-4">
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-                        <BarChart3 className="w-4 h-4" />
-                        Page Views
+
+                      <div className="glass-panel rounded-2xl overflow-hidden">
+                        <div className="p-4 border-b border-white/5 bg-white/5">
+                          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                            <Globe className="w-5 h-5 text-primary" />
+                            By Browser
+                          </h3>
+                        </div>
+                        <div className="divide-y divide-white/5">
+                          {Object.entries(internalStats.byBrowser).length === 0 ? (
+                            <div className="p-8 text-center text-muted-foreground">No data yet</div>
+                          ) : (
+                            Object.entries(internalStats.byBrowser)
+                              .sort((a, b) => b[1] - a[1])
+                              .map(([browser, count]) => (
+                                <div key={browser} className="p-3 flex items-center justify-between hover:bg-white/5">
+                                  <span className="text-white">{browser}</span>
+                                  <span className="text-muted-foreground">{count}</span>
+                                </div>
+                              ))
+                          )}
+                        </div>
                       </div>
-                      <div className="text-2xl font-bold text-white">{analyticsData.overview.pageViews.toLocaleString()}</div>
-                    </div>
-                    <div className="glass-panel rounded-xl p-4">
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-                        <Clock className="w-4 h-4" />
-                        Avg Duration
+
+                      <div className="glass-panel rounded-2xl overflow-hidden">
+                        <div className="p-4 border-b border-white/5 bg-white/5">
+                          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                            <Tablet className="w-5 h-5 text-primary" />
+                            By Screen Size
+                          </h3>
+                        </div>
+                        <div className="divide-y divide-white/5 max-h-48 overflow-y-auto">
+                          {Object.entries(internalStats.byResolution).length === 0 ? (
+                            <div className="p-8 text-center text-muted-foreground">No data yet</div>
+                          ) : (
+                            Object.entries(internalStats.byResolution)
+                              .sort((a, b) => b[1] - a[1])
+                              .map(([resolution, count]) => (
+                                <div key={resolution} className="p-3 flex items-center justify-between hover:bg-white/5">
+                                  <span className="text-white font-mono text-sm">{resolution}</span>
+                                  <span className="text-muted-foreground">{count}</span>
+                                </div>
+                              ))
+                          )}
+                        </div>
                       </div>
-                      <div className="text-2xl font-bold text-white">
-                        {Math.floor(analyticsData.overview.avgSessionDuration / 60)}m {Math.floor(analyticsData.overview.avgSessionDuration % 60)}s
-                      </div>
-                    </div>
-                    <div className="glass-panel rounded-xl p-4">
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
-                        <ExternalLink className="w-4 h-4" />
-                        Bounce Rate
-                      </div>
-                      <div className="text-2xl font-bold text-white">{(analyticsData.overview.bounceRate * 100).toFixed(1)}%</div>
                     </div>
                   </motion.div>
 
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="glass-panel rounded-2xl overflow-hidden"
-                    >
-                      <div className="p-4 border-b border-white/5 bg-white/5">
-                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                          <Globe className="w-5 h-5 text-primary" />
-                          By Country
-                        </h3>
-                      </div>
-                      <div className="divide-y divide-white/5">
-                        {analyticsData.byCountry.length === 0 ? (
-                          <div className="p-8 text-center text-muted-foreground">No country data available</div>
-                        ) : (
-                          analyticsData.byCountry.map((item, idx) => (
-                            <div key={idx} className="p-3 flex items-center justify-between hover:bg-white/5">
-                              <span className="text-white">{item.country}</span>
-                              <span className="text-muted-foreground">{item.users.toLocaleString()} users</span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.15 }}
-                      className="glass-panel rounded-2xl overflow-hidden"
-                    >
-                      <div className="p-4 border-b border-white/5 bg-white/5">
-                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                          <Monitor className="w-5 h-5 text-primary" />
-                          By Device
-                        </h3>
-                      </div>
-                      <div className="divide-y divide-white/5">
-                        {analyticsData.byDevice.length === 0 ? (
-                          <div className="p-8 text-center text-muted-foreground">No device data available</div>
-                        ) : (
-                          analyticsData.byDevice.map((item, idx) => (
-                            <div key={idx} className="p-3 flex items-center justify-between hover:bg-white/5">
-                              <span className="text-white flex items-center gap-2">
-                                {item.device === 'desktop' && <Monitor className="w-4 h-4" />}
-                                {item.device === 'mobile' && <Smartphone className="w-4 h-4" />}
-                                {item.device === 'tablet' && <Tablet className="w-4 h-4" />}
-                                {item.device.charAt(0).toUpperCase() + item.device.slice(1)}
-                              </span>
-                              <span className="text-muted-foreground">{item.users.toLocaleString()} users</span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </motion.div>
-
+                  {analyticsData && analyticsData.overview && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
-                      className="glass-panel rounded-2xl overflow-hidden"
                     >
-                      <div className="p-4 border-b border-white/5 bg-white/5">
-                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                          <BarChart3 className="w-5 h-5 text-primary" />
-                          Top Pages
-                        </h3>
-                      </div>
-                      <div className="divide-y divide-white/5">
-                        {analyticsData.byPage.length === 0 ? (
-                          <div className="p-8 text-center text-muted-foreground">No page data available</div>
-                        ) : (
-                          analyticsData.byPage.map((item, idx) => (
-                            <div key={idx} className="p-3 flex items-center justify-between hover:bg-white/5">
-                              <span className="text-white font-mono text-sm truncate max-w-[200px]">{item.page}</span>
-                              <span className="text-muted-foreground">{item.views.toLocaleString()} views</span>
-                            </div>
-                          ))
-                        )}
+                      <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2 mt-8">
+                        <BarChart3 className="w-5 h-5 text-green-400" />
+                        Google Analytics (Last 30 Days)
+                      </h2>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                        <div className="glass-panel rounded-xl p-4">
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                            <Users className="w-4 h-4" />
+                            Active Users
+                          </div>
+                          <div className="text-2xl font-bold text-white">{analyticsData.overview.activeUsers.toLocaleString()}</div>
+                        </div>
+                        <div className="glass-panel rounded-xl p-4">
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                            <Eye className="w-4 h-4" />
+                            Sessions
+                          </div>
+                          <div className="text-2xl font-bold text-white">{analyticsData.overview.sessions.toLocaleString()}</div>
+                        </div>
+                        <div className="glass-panel rounded-xl p-4">
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                            <BarChart3 className="w-4 h-4" />
+                            Page Views
+                          </div>
+                          <div className="text-2xl font-bold text-white">{analyticsData.overview.pageViews.toLocaleString()}</div>
+                        </div>
+                        <div className="glass-panel rounded-xl p-4">
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                            <Clock className="w-4 h-4" />
+                            Avg Duration
+                          </div>
+                          <div className="text-2xl font-bold text-white">
+                            {Math.floor(analyticsData.overview.avgSessionDuration / 60)}m {Math.floor(analyticsData.overview.avgSessionDuration % 60)}s
+                          </div>
+                        </div>
+                        <div className="glass-panel rounded-xl p-4">
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                            <ExternalLink className="w-4 h-4" />
+                            Bounce Rate
+                          </div>
+                          <div className="text-2xl font-bold text-white">{(analyticsData.overview.bounceRate * 100).toFixed(1)}%</div>
+                        </div>
                       </div>
                     </motion.div>
+                  )}
 
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.25 }}
-                      className="glass-panel rounded-2xl overflow-hidden"
-                    >
-                      <div className="p-4 border-b border-white/5 bg-white/5">
-                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                          <ExternalLink className="w-5 h-5 text-primary" />
-                          Traffic Sources
-                        </h3>
-                      </div>
-                      <div className="divide-y divide-white/5">
-                        {analyticsData.bySource.length === 0 ? (
-                          <div className="p-8 text-center text-muted-foreground">No source data available</div>
-                        ) : (
-                          analyticsData.bySource.map((item, idx) => (
-                            <div key={idx} className="p-3 flex items-center justify-between hover:bg-white/5">
-                              <span className="text-white">{item.source}</span>
-                              <span className="text-muted-foreground">{item.users.toLocaleString()} users</span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </motion.div>
-                  </div>
+                  {(!analyticsResponse?.connected || !analyticsData) && (
+                    <div className="p-6 text-center glass-panel rounded-2xl border border-white/10 mt-4">
+                      <p className="text-muted-foreground text-sm">
+                        Google Analytics is not configured. Set up GA4_PROPERTY_ID and credentials to see additional metrics.
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
             </div>
