@@ -106,18 +106,25 @@ interface PendingMedia {
   updatedAt: string;
 }
 
+interface AnalyticsOverview {
+  activeUsers: number;
+  sessions: number;
+  pageViews: number;
+  avgSessionDuration: number;
+  bounceRate: number;
+}
+
 interface AnalyticsData {
-  overview: {
-    activeUsers: number;
-    sessions: number;
-    pageViews: number;
-    avgSessionDuration: number;
-    bounceRate: number;
-  };
+  overview: AnalyticsOverview;
   byCountry: Array<{ country: string; users: number }>;
   byDevice: Array<{ device: string; users: number }>;
   byPage: Array<{ page: string; views: number }>;
   bySource: Array<{ source: string; users: number }>;
+}
+
+interface AnalyticsResponse {
+  connected: boolean;
+  data: AnalyticsData | null;
 }
 
 export default function Admin() {
@@ -184,7 +191,7 @@ export default function Admin() {
     enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'media',
   });
 
-  const { data: analyticsData, isLoading: analyticsLoading } = useQuery<AnalyticsData>({
+  const { data: analyticsResponse, isLoading: analyticsLoading } = useQuery<AnalyticsResponse>({
     queryKey: ['/api/admin/analytics'],
     queryFn: async () => {
       const res = await fetch('/api/admin/analytics', {
@@ -195,6 +202,8 @@ export default function Admin() {
     },
     enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'analytics',
   });
+
+  const analyticsData = analyticsResponse?.data;
 
   const approveMediaMutation = useMutation({
     mutationFn: async (mediaId: string) => {
@@ -949,11 +958,17 @@ export default function Admin() {
                   <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                   <p className="text-muted-foreground">Loading analytics data...</p>
                 </div>
-              ) : !analyticsData ? (
+              ) : !analyticsResponse?.connected ? (
                 <div className="p-12 text-center glass-panel rounded-2xl">
                   <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-white mb-2">Analytics Not Available</h3>
-                  <p className="text-muted-foreground">Google Analytics integration is not configured or no data is available.</p>
+                  <h3 className="text-lg font-medium text-white mb-2">Analytics Not Connected</h3>
+                  <p className="text-muted-foreground">Google Analytics integration is not configured. Please set up GA4_PROPERTY_ID and GOOGLE_APPLICATION_CREDENTIALS_JSON.</p>
+                </div>
+              ) : !analyticsData || !analyticsData.overview ? (
+                <div className="p-12 text-center glass-panel rounded-2xl">
+                  <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-white mb-2">No Analytics Data</h3>
+                  <p className="text-muted-foreground">Google Analytics is connected but no data is available yet. This could be due to a credentials issue or no traffic data.</p>
                 </div>
               ) : (
                 <>
