@@ -12,6 +12,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@google-analytics/data": "^5.2.1",
     "@google-cloud/recaptcha-enterprise": "^6.3.1",
     "@google-cloud/storage": "^7.18.0",
     "@hookform/resolvers": "^3.10.0",

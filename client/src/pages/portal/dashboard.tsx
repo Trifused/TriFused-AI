@@ -316,70 +316,70 @@ export default function Dashboard() {
               </span>
             </div>
             
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" className="relative">
+            <div className="flex items-center gap-2 md:gap-4">
+              <Button variant="ghost" size="icon" className="relative hidden md:flex">
                 <Bell className="w-5 h-5" />
                 {isSuperuser && (stats?.leads || 0) > 0 && (
                   <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
                 )}
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="hidden md:flex">
                 <Settings className="w-5 h-5" />
               </Button>
-              <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+              <div className="flex items-center gap-2 md:gap-3 md:pl-4 md:border-l border-white/10 overflow-x-auto scrollbar-hide">
                 {(user?.ftpAccess === 1 || user?.role === 'superuser') && (
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => setLocation("/portal/mft")}
-                    className="border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/10"
+                    className="border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/10 shrink-0"
                     data-testid="button-mft"
                   >
-                    <HardDrive className="w-4 h-4 mr-2" />
-                    MFT
+                    <HardDrive className="w-4 h-4 md:mr-2" />
+                    <span className="hidden md:inline">MFT</span>
                   </Button>
                 )}
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setLocation("/portal/media")}
-                  className="border-purple-500/30 text-purple-500 hover:bg-purple-500/10"
+                  className="border-purple-500/30 text-purple-500 hover:bg-purple-500/10 shrink-0"
                   data-testid="button-media"
                 >
-                  <Video className="w-4 h-4 mr-2" />
-                  Media
+                  <Video className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">Media</span>
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => setLocation("/portal/integrations")}
-                  className="border-green-500/30 text-green-500 hover:bg-green-500/10"
+                  className="border-green-500/30 text-green-500 hover:bg-green-500/10 shrink-0"
                   data-testid="button-integrations"
                 >
-                  <Plug className="w-4 h-4 mr-2" />
-                  Integrations
+                  <Plug className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">Integrations</span>
                 </Button>
                 {user?.role === 'superuser' && (
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => setLocation("/portal/admin")}
-                    className="border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/10"
+                    className="border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/10 shrink-0"
                     data-testid="button-admin"
                   >
-                    <Users className="w-4 h-4 mr-2" />
-                    Admin
+                    <Users className="w-4 h-4 md:mr-2" />
+                    <span className="hidden md:inline">Admin</span>
                   </Button>
                 )}
                 {user?.profileImageUrl && (
                   <img 
                     src={user.profileImageUrl} 
                     alt="Profile" 
-                    className={`w-8 h-8 rounded-full object-cover border ${user?.role === 'superuser' ? 'border-yellow-500/30' : 'border-white/10'}`}
+                    className={`w-8 h-8 rounded-full object-cover border shrink-0 ${user?.role === 'superuser' ? 'border-yellow-500/30' : 'border-white/10'}`}
                     data-testid="img-user-avatar"
                   />
                 )}
-                <div className="text-sm">
+                <div className="text-sm hidden md:block">
                   <div className="text-white font-medium flex items-center gap-2" data-testid="text-user-name">
                     {user?.firstName || user?.email?.split('@')[0] || 'User'}
                     {user?.role === 'superuser' && <Crown className="w-3 h-3 text-yellow-500" />}
@@ -394,6 +394,7 @@ export default function Dashboard() {
                   size="icon"
                   onClick={() => window.location.href = "/api/logout"}
                   data-testid="button-logout"
+                  className="shrink-0"
                 >
                   <LogOut className="w-4 h-4" />
                 </Button>

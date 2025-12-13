@@ -15,6 +15,14 @@ export function Navbar() {
           className="text-2xl font-bold font-heading tracking-tighter flex items-center gap-2"
         >
           <span className="text-primary">Tri</span>Fused
+          <div 
+            className="w-6 h-6 cursor-default" 
+            onClick={(e) => {
+              e.stopPropagation();
+              setLocation("/portal");
+            }}
+            data-testid="hidden-portal-link"
+          />
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
         </button>
 

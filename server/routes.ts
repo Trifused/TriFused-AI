@@ -11,6 +11,7 @@ import OpenAI from "openai";
 import { RecaptchaEnterpriseServiceClient } from "@google-cloud/recaptcha-enterprise";
 import { getCalendarEvents, isCalendarConnected } from "./lib/google-calendar";
 import { getInboxMessages, isGmailConnected } from "./lib/gmail";
+import { getAnalyticsData, isGoogleAnalyticsConnected } from "./lib/google-analytics";
 
 const SUPERUSER_EMAIL_DOMAIN = "@trifused.com";
 
@@ -682,6 +683,23 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Admin contacts error:", error);
       res.status(500).json({ error: "Failed to fetch contact submissions" });
+    }
+  });
+
+  app.get("/api/admin/analytics", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const dateRange = (req.query.range as string) || "30daysAgo";
+      const isConnected = isGoogleAnalyticsConnected();
+      
+      if (!isConnected) {
+        return res.json({ connected: false, data: null });
+      }
+      
+      const data = await getAnalyticsData(dateRange, "today");
+      res.json({ connected: true, data });
+    } catch (error: any) {
+      console.error("Analytics error:", error);
+      res.status(500).json({ error: "Failed to fetch analytics" });
     }
   });
 
