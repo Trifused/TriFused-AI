@@ -286,6 +286,34 @@ export async function registerRoutes(
       const userAgent = req.headers['user-agent'] || null;
       const referrer = req.headers['referer'] || req.headers['referrer'] || null;
 
+      // Perform IP geolocation lookup
+      let geoCity: string | null = null;
+      let geoRegion: string | null = null;
+      let geoCountry: string | null = null;
+      let geoTimezone: string | null = null;
+      
+      if (ipAddress && !ipAddress.startsWith('127.') && !ipAddress.startsWith('::1') && ipAddress !== 'localhost') {
+        try {
+          const geoResponse = await fetch(`http://ip-api.com/json/${ipAddress}?fields=status,country,regionName,city,timezone`);
+          const geoData = await geoResponse.json() as {
+            status: string;
+            country?: string;
+            regionName?: string;
+            city?: string;
+            timezone?: string;
+          };
+          
+          if (geoData.status === 'success') {
+            geoCity = geoData.city || null;
+            geoRegion = geoData.regionName || null;
+            geoCountry = geoData.country || null;
+            geoTimezone = geoData.timezone || null;
+          }
+        } catch (geoError) {
+          console.error("IP geolocation lookup failed:", geoError);
+        }
+      }
+
       const validatedData = insertServiceLeadSchema.parse({
         email,
         serviceInterests: Array.isArray(leadData.serviceInterests) ? leadData.serviceInterests : null,
@@ -294,6 +322,10 @@ export async function registerRoutes(
         message: leadData.message || null,
         needHelpAsap: leadData.needHelpAsap ? 1 : 0,
         ipAddress,
+        geoCity,
+        geoRegion,
+        geoCountry,
+        geoTimezone,
         userAgent,
         referrer,
         clickPath: Array.isArray(leadData.clickPath) ? leadData.clickPath : null,
