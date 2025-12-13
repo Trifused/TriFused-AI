@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSubmissionSchema, insertDiagnosticScanSchema, insertEmailSubscriberSchema, userRoles, UserRole, InsertBlogPost, insertFileTransferSchema, insertChatLeadSchema } from "@shared/schema";
+import { insertContactSubmissionSchema, insertDiagnosticScanSchema, insertEmailSubscriberSchema, insertServiceLeadSchema, userRoles, UserRole, InsertBlogPost, insertFileTransferSchema, insertChatLeadSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
@@ -218,6 +218,109 @@ export async function registerRoutes(
         success: false, 
         error: error.message || "Failed to subscribe" 
       });
+    }
+  });
+
+  // Service lead capture with session data
+  app.post("/api/service-leads", async (req: Request, res: Response) => {
+    try {
+      const { email, captchaToken, ...leadData } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Email is required" 
+        });
+      }
+
+      // Verify reCAPTCHA if configured
+      const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY;
+      
+      if (recaptchaSecretKey && captchaToken) {
+        try {
+          const captchaResponse = await fetch(
+            'https://www.google.com/recaptcha/api/siteverify',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                secret: recaptchaSecretKey,
+                response: captchaToken
+              })
+            }
+          );
+          
+          const captchaResult = await captchaResponse.json() as { 
+            success: boolean;
+            score?: number;
+            'error-codes'?: string[];
+          };
+          
+          if (!captchaResult.success) {
+            console.error("reCAPTCHA verification failed:", captchaResult['error-codes']);
+            return res.status(400).json({ 
+              success: false, 
+              error: "Captcha verification failed" 
+            });
+          }
+          
+          const score = captchaResult.score || 0;
+          if (score < 0.5) {
+            return res.status(400).json({ 
+              success: false, 
+              error: "Verification failed - please try again" 
+            });
+          }
+        } catch (recaptchaError: any) {
+          console.error("reCAPTCHA error:", recaptchaError);
+          return res.status(400).json({ 
+            success: false, 
+            error: "Captcha verification failed" 
+          });
+        }
+      }
+
+      // Capture IP address and headers from request
+      const forwardedFor = req.headers['x-forwarded-for'];
+      const ipAddress = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor || req.socket.remoteAddress || null;
+      const userAgent = req.headers['user-agent'] || null;
+      const referrer = req.headers['referer'] || req.headers['referrer'] || null;
+
+      const validatedData = insertServiceLeadSchema.parse({
+        email,
+        serviceInterests: Array.isArray(leadData.serviceInterests) ? leadData.serviceInterests : null,
+        businessName: leadData.businessName || null,
+        phoneNumber: leadData.phoneNumber || null,
+        message: leadData.message || null,
+        needHelpAsap: leadData.needHelpAsap ? 1 : 0,
+        ipAddress,
+        userAgent,
+        referrer,
+        clickPath: Array.isArray(leadData.clickPath) ? leadData.clickPath : null,
+        pageViews: Array.isArray(leadData.pageViews) ? leadData.pageViews : null,
+        sessionDuration: typeof leadData.sessionDuration === 'number' ? leadData.sessionDuration : null,
+        utmParams: leadData.utmParams && typeof leadData.utmParams === 'object' ? leadData.utmParams : null,
+      });
+
+      const lead = await storage.createServiceLead(validatedData);
+      res.json({ success: true, id: lead.id });
+    } catch (error: any) {
+      console.error("Service lead error:", error);
+      res.status(400).json({ 
+        success: false, 
+        error: error.message || "Failed to submit" 
+      });
+    }
+  });
+
+  // Admin endpoint to view service leads
+  app.get("/api/admin/service-leads", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const leads = await storage.getAllServiceLeads();
+      res.json(leads);
+    } catch (error: any) {
+      console.error("Admin service leads error:", error);
+      res.status(500).json({ error: "Failed to fetch service leads" });
     }
   });
 

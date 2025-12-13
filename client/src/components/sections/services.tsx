@@ -150,7 +150,7 @@ export function Services() {
                   
                   <button 
                     className="flex items-center text-sm font-medium text-white/70 group-hover:text-primary transition-colors uppercase tracking-wider"
-                    onClick={() => setLocation("/signup")}
+                    onClick={() => setLocation(`/signup?service=${service.id}`)}
                     data-testid={`button-learn-protocol-${service.id}`}
                   >
                     Learn Protocol <ArrowUpRight className="ml-2 w-4 h-4" />

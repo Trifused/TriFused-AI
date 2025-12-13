@@ -144,6 +144,33 @@ export const insertEmailSubscriberSchema = createInsertSchema(emailSubscribers).
 export type InsertEmailSubscriber = z.infer<typeof insertEmailSubscriberSchema>;
 export type EmailSubscriber = typeof emailSubscribers.$inferSelect;
 
+// Service leads - enriched lead capture from signup page
+export const serviceLeads = pgTable("service_leads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  serviceInterests: text("service_interests").array(),
+  businessName: text("business_name"),
+  phoneNumber: text("phone_number"),
+  message: text("message"),
+  needHelpAsap: integer("need_help_asap").default(0),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  referrer: text("referrer"),
+  clickPath: jsonb("click_path"),
+  pageViews: text("page_views").array(),
+  sessionDuration: integer("session_duration"),
+  utmParams: jsonb("utm_params"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertServiceLeadSchema = createInsertSchema(serviceLeads).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertServiceLead = z.infer<typeof insertServiceLeadSchema>;
+export type ServiceLead = typeof serviceLeads.$inferSelect;
+
 // Chat conversations for AI assistant
 export const chatMessages = pgTable("chat_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

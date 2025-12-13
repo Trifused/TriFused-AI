@@ -8,6 +8,7 @@ import {
   fileTransfers,
   storageConnections,
   emailSubscribers,
+  serviceLeads,
   chatMessages,
   chatLeads,
   mediaItems,
@@ -27,6 +28,8 @@ import {
   InsertStorageConnection,
   EmailSubscriber,
   InsertEmailSubscriber,
+  ServiceLead,
+  InsertServiceLead,
   ChatMessage,
   InsertChatMessage,
   ChatLead,
@@ -61,6 +64,10 @@ export interface IStorage {
   
   createEmailSubscriber(data: InsertEmailSubscriber): Promise<EmailSubscriber>;
   getEmailSubscriberByEmail(email: string): Promise<EmailSubscriber | undefined>;
+  
+  createServiceLead(data: InsertServiceLead): Promise<ServiceLead>;
+  getAllServiceLeads(): Promise<ServiceLead[]>;
+  getServiceLeadsCount(): Promise<number>;
   
   getChatMessages(sessionId: string): Promise<ChatMessage[]>;
   createChatMessage(data: InsertChatMessage): Promise<ChatMessage>;
@@ -225,6 +232,20 @@ class Storage implements IStorage {
   async getEmailSubscriberByEmail(email: string): Promise<EmailSubscriber | undefined> {
     const [subscriber] = await db.select().from(emailSubscribers).where(eq(emailSubscribers.email, email));
     return subscriber;
+  }
+
+  async createServiceLead(data: InsertServiceLead): Promise<ServiceLead> {
+    const [lead] = await db.insert(serviceLeads).values(data).returning();
+    return lead;
+  }
+
+  async getAllServiceLeads(): Promise<ServiceLead[]> {
+    return await db.select().from(serviceLeads).orderBy(desc(serviceLeads.createdAt));
+  }
+
+  async getServiceLeadsCount(): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(serviceLeads);
+    return result?.count || 0;
   }
 
   async getChatMessages(sessionId: string): Promise<ChatMessage[]> {
