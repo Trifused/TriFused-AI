@@ -141,6 +141,9 @@ export function Services() {
                   <img 
                     src={service.image} 
                     alt={`${service.title} - ${service.description.slice(0, 50)}`}
+                    width={1408}
+                    height={768}
+                    loading="lazy"
                     className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 opacity-60 group-hover:opacity-100"
                   />
                   <div className="absolute top-4 left-4 p-2 bg-black/50 backdrop-blur-md rounded-lg border border-white/10">

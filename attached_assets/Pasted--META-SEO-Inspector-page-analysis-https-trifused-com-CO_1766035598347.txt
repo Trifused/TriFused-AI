@@ -1,0 +1,242 @@
+ META SEO Inspector page analysis
+https://trifused.com/
+COMMON
+doctype
+<!DOCTYPE html>
+html lang
+en
+content type
+text/html
+canonical
+WARNING not defined
+SOCIAL
+
+WARNING og:url og:image missing
+property
+og:title
+TriFused | AI-Native Technology Services
+property
+og:description
+Empowering businesses with Cognitive Cybersecurity, Autonomous Infrastructure, and Generative Growth Engines.
+property
+og:type
+website
+twitter:card
+summary_large_image
+twitter:title
+TriFused | AI-Native Technology Services
+twitter:description
+Empowering businesses with Cognitive Cybersecurity, Autonomous Infrastructure, and Generative Growth Engines.
+MOBILE
+WARNING maximum-scale in viewport should not be set
+viewport
+width=device-width, initial-scale=1.0, maximum-scale=1
+MARKUP
+
+<html>
+(1)
+
+<img>
+(12)
+
+h1 We Build Intelligent Futures. (29 characters) INFOContent seems to be hidden
+h2 Services / Operational Capabilities (35 characters) INFOContent seems to be hidden
+h3 Secure Workstations (19 characters)
+h3 Your Data Your Services (23 characters)
+h3 Accounts, Passwords & Security (30 characters)
+h3 Cloud Systems (13 characters)
+h3 Advanced Security (17 characters)
+h3 Advanced Pen-Testing (20 characters)
+h3 MDR & Threat Hunting (20 characters)
+h3 Mobile Device Management (24 characters)
+h3 Cloud & Database Architecture (29 characters)
+h3 AI-Native Development (21 characters)
+h3 Generative Growth Engines (25 characters)
+h2 TriFused Ventures (17 characters)
+h3 Spacevana (9 characters)
+h3 Logeyeball (10 characters)
+h3 LeadKik (7 characters)
+h3 CloneWarden (11 characters)
+h3 TechizUp (8 characters)
+h3 NACHA File Report (17 characters)
+h2 Strategic Technology Alliance (29 characters)
+h2 Latest Intelligence (19 characters)
+h3 DIY Email Security Upgrade (26 characters)
+h3 Windows God Mode Protocol (25 characters)
+h3 PowerShell Vulnerability Scan (29 characters)
+h2 Ready to Upgrade? (17 characters)
+h3 Sitemap (7 characters)
+h3 Legal Protocols (15 characters)
+internal
+ 
+(5)
+-
+external
+ 
+(9)
+-
+other
+ 
+(0)
+internal
+URL	REL	TEXT	TITLE	IMG
+https://trifused.com/#main-content		Skip to main content		
+https://trifused.com/#services		Services		
+https://trifused.com/#ventures		Ventures		
+https://trifused.com/#about		About		
+https://trifused.com/#services		Services		
+external
+URL	REL	TEXT	TITLE	IMG
+https://github.com/Trifused	noopener noreferrer	View Our GitHub		yes
+https://spacevana.com/	noopener noreferrer	Visit Site		yes
+https://logeyeball.com/	noopener noreferrer	Visit Site		yes
+https://leadkik.com/	noopener noreferrer	Visit Site		yes
+https://clonewarden.com/	noopener noreferrer	Visit Site		yes
+https://techizup.com/	noopener noreferrer	Visit Site		yes
+https://github.com/Trifused/nacha-report	noopener noreferrer	GitHub		yes
+https://github.com/Trifused	noopener noreferrer	GitHubGitHub		yes
+https://www.youtube.com/@TriFused	noopener noreferrer	YouTubeYouTube		yes
+INFO 12 images (out of 12) with missing TITLE attribute
+INFO 12 images (out of 12) with missing LOADING attribute
+WARNING 12 images (out of 12) with missing WIDTH or HEIGHT attribute
+SRC	SIZE	LOADING	FETCH PR.	ALT	TITLE
+
+https://trifused.com/assets/hero_background_with_neural_network_fusion-fRumMpIZ.png
+REAL	1408x768 (1.1MP)
+HTML	- x -
+auto	Neural Network Background	
+
+https://trifused.com/assets/secure_workstation_with_shield-CYNlyWbL.png
+REAL	1408x768 (1.1MP)
+HTML	- x -
+auto	Secure Workstations - Simple secure workstations with the latest softwar	
+
+https://trifused.com/assets/data_server_room_analytics-ChR36nAH.png
+REAL	1408x768 (1.1MP)
+HTML	- x -
+auto	Your Data Your Services - Deep insights into your servers and data with adva	
+
+https://trifused.com/assets/password_security_vault_keys-BMnD9LNI.png
+REAL	1408x768 (1.1MP)
+HTML	- x -
+auto	Accounts, Passwords & Security - Protect your passwords and accounts, keep them sec	
+
+https://trifused.com/assets/cloud_computing_infrastructure-D4PIvpVd.png
+REAL	1408x768 (1.1MP)
+HTML	- x -
+auto	Cloud Systems - From Office 365 to Microsoft Azure and Amazon host	
+
+https://trifused.com/assets/siem_security_monitoring_dashboard-Cip8cHOE.png
+REAL	1408x768 (1.1MP)
+HTML	- x -
+auto	Advanced Security - Security monitoring using SIEM and EDR tools lever	
+
+https://trifused.com/assets/penetration_testing_hacking_visual-CWoJF8gv.png
+REAL	1408x768 (1.1MP)
+HTML	- x -
+auto	Advanced Pen-Testing - Offensive security protocols simulating sophistica	
+
+https://trifused.com/assets/mdr_threat_hunting_radar-iHcOdbdK.png
+REAL	1408x768 (1.1MP)
+HTML	- x -
+auto	MDR & Threat Hunting - Managed Detection and Response systems that active	
+
+https://trifused.com/assets/mobile_device_management_dashboard-B6P9rWhq.png
+REAL	1408x768 (1.1MP)
+HTML	- x -
+auto	Mobile Device Management - Secure, remote administration of mobile endpoints.	
+
+https://trifused.com/assets/cloud_database_architecture_nodes-CKIZzn_g.png
+REAL	1408x768 (1.1MP)
+HTML	- x -
+auto	Cloud & Database Architecture - Scalable, resilient cloud infrastructure design. O	
+
+https://trifused.com/assets/ai_native_development_coding-sljpVC9_.png
+REAL	1408x768 (1.1MP)
+HTML	- x -
+auto	AI-Native Development - Building next-gen applications with LLM integratio	
+
+https://trifused.com/assets/ai_marketing_growth_engine-Cdv6V-xV.png
+REAL	1408x768 (1.1MP)
+HTML	- x -
+auto	Generative Growth Engines - Marketing strategies supercharged by AI. Hyper-per	
+Doctype is HTML5, there are HTML5 tags and no obsolete HTML tags were found.
+★
+★
+★
+★
+★
+EXTERNAL RESOURCES
+
+1 item
+www.googletagmanager.com			ANALYTICS
+RESOURCE HINTS
+preconnect
+(fetchpriority=auto)
+https://fonts.googleapis.com/
+preconnect
+(fetchpriority=auto)
+https://fonts.gstatic.com/
+INLINE SVG
+
+total bytes
+19502
+
+ID	CLIENT SIZE	VIEWBOX	1ST LEVEL NODES	BYTES	PREVIEW	
+-	16x16	0 0 24 24	path (3)	628		
+-	16x16	0 0 24 24	path (2)	319		
+-	16x16	0 0 24 24	path (2)	316		
+-	24x24	0 0 24 24		411		
+-	16x16	0 0 24 24	path (2)	321		
+-	24x24	0 0 24 24	path (1)	533		
+-	16x16	0 0 24 24	path (2)	321		
+-	24x24	0 0 24 24	path (1)	522		
+-	16x16	0 0 24 24	path (2)	321		
+-	24x24	0 0 24 24	path (1)	336		
+-	16x16	0 0 24 24	path (2)	321		
+-	24x24	0 0 24 24	path (1)	407		
+-	16x16	0 0 24 24	path (2)	321		
+-	24x24	0 0 24 24	path (1)	371		
+-	16x16	0 0 24 24	path (2)	321		
+-	24x24	0 0 24 24	path (1)	446		
+-	16x16	0 0 24 24	path (2)	321		
+-	24x24	0 0 24 24	path (1)	360		
+-	16x16	0 0 24 24	path (2)	321		
+-	24x24	0 0 24 24	path (2)	400		
+-	16x16	0 0 24 24	path (2)	321		
+-	24x24	0 0 24 24	path (2)	329		
+-	16x16	0 0 24 24	path (2)	321		
+-	24x24	0 0 24 24	path (9)	851		
+-	16x16	0 0 24 24	path (2)	321		
+-	12x12	0 0 24 24	path (4)	585		
+-	12x12	0 0 24 24	path (2)	361		
+-	20x20	0 0 24 24	path (4)	596		
+-	16x16	0 0 24 24	path (2)	314		
+-	20x20	0 0 24 24	path (1)	418		
+-	16x16	0 0 24 24	path (2)	314		
+-	20x20	0 0 24 24	path (3)	447		
+-	16x16	0 0 24 24	path (2)	314		
+-	20x20	0 0 24 24	path (1)	443		
+-	16x16	0 0 24 24	path (2)	314		
+-	20x20	0 0 24 24	path (12)	670		
+-	16x16	0 0 24 24	path (2)	314		
+-	20x20	0 0 24 24	path (5)	462		
+-	12x12	0 0 24 24	path (1)	355		
+-	16x16	0 0 24 24	path (2)	557		
+-	12x12	0 0 24 24	path (2)	311		
+-	16x16	0 0 24 24	path (2)	361		
+-	12x12	0 0 24 24	path (1)	355		
+-	12x12	0 0 24 24	path (5)	449		
+-	12x12	0 0 24 24	path (1)	432		
+-	16x16	0 0 24 24	path (1)	470		
+-	16x16	0 0 24 24	path (1)	507		
+-	24x24	0 0 24 24	path (1)	393		
+Url
+COMMON
+SOCIAL
+MOBILE
+MARKUP
+EXTERNAL RESOURCES
+RESOURCE HINTS
+OTHER META DATA
+print
