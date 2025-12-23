@@ -24,12 +24,16 @@ import {
   Mail,
   Server,
   MapPin,
-  Send
+  Send,
+  Building,
+  Scale,
+  CreditCard,
+  Cookie
 } from "lucide-react";
 import { trackPageView } from "@/lib/analytics";
 
 interface Finding {
-  category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email";
+  category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr";
   issue: string;
   impact: string;
   priority: "critical" | "important" | "optional";
@@ -57,6 +61,12 @@ interface GradeResult {
   blacklistStatus: string | null;
   createdAt: string;
   qrCodeData: string | null;
+  fdicScore: number | null;
+  secScore: number | null;
+  adaScore: number | null;
+  pciScore: number | null;
+  fcaScore: number | null;
+  gdprScore: number | null;
 }
 
 function getGradeLetter(score: number): string {
@@ -246,7 +256,7 @@ export default function Report() {
     activeCategory === "all" || f.category === activeCategory
   ) || [];
 
-  const categories = [
+  const baseCategories = [
     { id: "all", label: "All", icon: Globe },
     { id: "seo", label: "SEO", icon: FileText },
     { id: "security", label: "Security", icon: Shield },
@@ -255,6 +265,17 @@ export default function Report() {
     { id: "accessibility", label: "Accessibility", icon: Accessibility },
     { id: "email", label: "Email Security", icon: Mail },
   ];
+  
+  const complianceCategories = [
+    { id: "fdic", label: "FDIC", icon: Building, score: result?.fdicScore },
+    { id: "sec", label: "SEC", icon: Scale, score: result?.secScore },
+    { id: "ada", label: "ADA", icon: Accessibility, score: result?.adaScore },
+    { id: "pci", label: "PCI", icon: CreditCard, score: result?.pciScore },
+    { id: "fca", label: "FCA", icon: Scale, score: result?.fcaScore },
+    { id: "gdpr", label: "GDPR", icon: Cookie, score: result?.gdprScore },
+  ].filter(c => c.score !== null && c.score !== undefined);
+  
+  const categories = [...baseCategories, ...complianceCategories];
 
   if (isLoading) {
     return (
