@@ -205,6 +205,7 @@ interface ScanHistoryItem {
   overallScore: number;
   createdAt: string;
   shareToken: string | null;
+  historyKey: string; // Unique key for each scan (id + timestamp)
 }
 
 const HISTORY_KEY = 'trifused_scan_history';
@@ -213,7 +214,13 @@ const MAX_HISTORY_ITEMS = 10;
 function loadHistory(): ScanHistoryItem[] {
   try {
     const stored = localStorage.getItem(HISTORY_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    const items = JSON.parse(stored);
+    // Add historyKey to old items that don't have it
+    return items.map((item: ScanHistoryItem) => ({
+      ...item,
+      historyKey: item.historyKey || `${item.id}-${new Date(item.createdAt).getTime()}`,
+    }));
   } catch {
     return [];
   }
@@ -276,15 +283,17 @@ export default function Grader() {
       setResult(data);
       trackEvent('grader_complete', 'website_grader', data.url, data.overallScore);
       
-      // Save to history
+      // Save to history with unique key (allows multiple scans of same URL)
+      const historyKey = `${data.id}-${Date.now()}`;
       const historyItem: ScanHistoryItem = {
         id: data.id,
         url: data.url,
         overallScore: data.overallScore,
         createdAt: data.createdAt,
         shareToken: data.shareToken,
+        historyKey,
       };
-      const newHistory = [historyItem, ...scanHistory.filter(h => h.id !== data.id)];
+      const newHistory = [historyItem, ...scanHistory.filter(h => h.historyKey !== historyKey)];
       setScanHistory(newHistory);
       saveHistory(newHistory);
     },
