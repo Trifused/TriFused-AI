@@ -1294,9 +1294,128 @@ Your primary goal is to help users AND capture their contact information natural
       .slice(0, 10);
   }
 
+  function isPrivateIPv4(ip: string): boolean {
+    const parts = ip.split('.').map(Number);
+    if (parts.length !== 4 || parts.some(p => isNaN(p) || p < 0 || p > 255)) {
+      return false;
+    }
+    if (parts[0] === 10) return true;
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    if (parts[0] === 192 && parts[1] === 168) return true;
+    if (parts[0] === 127) return true;
+    if (parts[0] === 0) return true;
+    if (parts[0] === 169 && parts[1] === 254) return true;
+    return false;
+  }
+
+  function isPrivateIPv6(ip: string): boolean {
+    const normalized = ip.toLowerCase().replace(/^\[|\]$/g, '');
+    if (normalized === '::1') return true;
+    if (normalized === '::') return true;
+    if (normalized.startsWith('fe80:')) return true; // Link-local
+    if (normalized.startsWith('fc00:') || normalized.startsWith('fd')) return true; // Unique local
+    if (normalized.startsWith('::ffff:')) {
+      // IPv4-mapped IPv6 address
+      const ipv4Part = normalized.slice(7);
+      if (/^(\d{1,3}\.){3}\d{1,3}$/.test(ipv4Part)) {
+        return isPrivateIPv4(ipv4Part);
+      }
+    }
+    return false;
+  }
+
+  function isPrivateIP(ip: string): boolean {
+    if (ip.includes(':')) {
+      return isPrivateIPv6(ip);
+    }
+    return isPrivateIPv4(ip);
+  }
+
+  async function validateUrl(urlStr: string): Promise<{ valid: boolean; error?: string }> {
+    try {
+      const parsedUrl = new URL(urlStr);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return { valid: false, error: "Only HTTP and HTTPS URLs are allowed" };
+      }
+      
+      // Normalize hostname (remove brackets for IPv6)
+      let hostname = parsedUrl.hostname.toLowerCase();
+      
+      // Block known dangerous hosts
+      const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]', 'metadata.google.internal', '169.254.169.254'];
+      if (blockedHosts.includes(hostname)) {
+        return { valid: false, error: "This URL cannot be analyzed" };
+      }
+      
+      // Check if hostname is an IPv6 literal (brackets in URL)
+      if (hostname.startsWith('[') && hostname.endsWith(']')) {
+        const ipv6 = hostname.slice(1, -1);
+        if (isPrivateIPv6(ipv6)) {
+          return { valid: false, error: "Private IP addresses cannot be analyzed" };
+        }
+      }
+      
+      // Check if hostname is a literal IPv4
+      if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname)) {
+        if (isPrivateIPv4(hostname)) {
+          return { valid: false, error: "Private IP addresses cannot be analyzed" };
+        }
+      }
+      
+      // Check if it looks like a bare IPv6 (shouldn't happen with URL parsing but be safe)
+      if (hostname.includes(':') && !hostname.includes('.')) {
+        if (isPrivateIPv6(hostname)) {
+          return { valid: false, error: "Private IP addresses cannot be analyzed" };
+        }
+      }
+      
+      // DNS resolution check for both A and AAAA records
+      const dns = await import('dns').then(m => m.promises);
+      try {
+        // Check IPv4 addresses
+        try {
+          const ipv4Addresses = await dns.resolve4(hostname);
+          for (const addr of ipv4Addresses) {
+            if (isPrivateIPv4(addr)) {
+              console.warn(`SSRF attempt blocked: ${urlStr} resolves to private IPv4 ${addr}`);
+              return { valid: false, error: "This URL cannot be analyzed" };
+            }
+          }
+        } catch {
+          // No A records, that's okay
+        }
+        
+        // Check IPv6 addresses
+        try {
+          const ipv6Addresses = await dns.resolve6(hostname);
+          for (const addr of ipv6Addresses) {
+            if (isPrivateIPv6(addr)) {
+              console.warn(`SSRF attempt blocked: ${urlStr} resolves to private IPv6 ${addr}`);
+              return { valid: false, error: "This URL cannot be analyzed" };
+            }
+          }
+        } catch {
+          // No AAAA records, that's okay
+        }
+      } catch {
+        // DNS resolution completely failed, allow the request to proceed (fetch will fail naturally)
+      }
+      
+      return { valid: true };
+    } catch {
+      return { valid: false, error: "Invalid URL format" };
+    }
+  }
+
   app.post("/api/grade", async (req: Request, res: Response) => {
     try {
       const { url, email } = gradeUrlSchema.parse(req.body);
+      
+      // SSRF protection: validate URL before fetching
+      const urlValidation = await validateUrl(url);
+      if (!urlValidation.valid) {
+        return res.status(400).json({ error: urlValidation.error });
+      }
       
       // Check for cached result
       const cached = await storage.getRecentGradeForUrl(url);
@@ -1319,12 +1438,38 @@ Your primary goal is to help users AND capture their contact information natural
       let isHttps = url.startsWith("https://");
       
       try {
-        const response = await fetch(url, {
+        let finalUrl = url;
+        let response = await fetch(url, {
           signal: controller.signal,
           headers: {
             'User-Agent': 'TriFused Website Grader Bot/1.0',
           },
+          redirect: 'manual',
         });
+        
+        // Handle redirects safely (up to 5 redirects)
+        let redirectCount = 0;
+        while (response.status >= 300 && response.status < 400 && redirectCount < 5) {
+          const redirectUrl = response.headers.get('location');
+          if (!redirectUrl) break;
+          
+          finalUrl = new URL(redirectUrl, finalUrl).href;
+          const redirectValidation = await validateUrl(finalUrl);
+          if (!redirectValidation.valid) {
+            clearTimeout(timeout);
+            return res.status(400).json({ error: "Redirect leads to an invalid destination" });
+          }
+          
+          response = await fetch(finalUrl, {
+            signal: controller.signal,
+            headers: {
+              'User-Agent': 'TriFused Website Grader Bot/1.0',
+            },
+            redirect: 'manual',
+          });
+          redirectCount++;
+        }
+        
         clearTimeout(timeout);
         
         html = await response.text();
