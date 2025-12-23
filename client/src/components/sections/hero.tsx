@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Terminal } from "lucide-react";
+import { ArrowRight, Terminal, Search } from "lucide-react";
 import heroBg from "@assets/generated_images/hero_background_with_neural_network_fusion.png";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { DiagnosticsOverlay } from "@/components/features/diagnostics-overlay";
 
 const Typewriter = ({ sequences, speed = 50, pause = 2000 }: { sequences: string[], speed?: number, pause?: number }) => {
@@ -44,6 +45,7 @@ const Typewriter = ({ sequences, speed = 50, pause = 2000 }: { sequences: string
 
 export function Hero() {
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [, setLocation] = useLocation();
 
   return (
     <div className="relative min-h-screen flex items-center pt-20 overflow-hidden">
@@ -94,13 +96,22 @@ export function Hero() {
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-4 pt-4">
             <Button 
               size="lg" 
               className="h-14 px-8 text-base bg-white text-black hover:bg-white/90 font-bold rounded-full transition-all hover:scale-105"
               onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Start Transformation <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+            <Button 
+              size="lg" 
+              className="h-14 px-8 text-base bg-primary text-black hover:bg-primary/90 font-bold rounded-full transition-all hover:scale-105"
+              onClick={() => setLocation('/grader')}
+              data-testid="button-hero-grader"
+            >
+              <Search className="mr-2 w-5 h-5" />
+              Website Grader
             </Button>
             <Button 
               size="lg" 
