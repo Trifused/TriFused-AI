@@ -14,6 +14,9 @@ import { getInboxMessages, isGmailConnected } from "./lib/gmail";
 import { getAnalyticsData, isGoogleAnalyticsConnected } from "./lib/google-analytics";
 import * as cheerio from "cheerio";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import * as dns from "dns/promises";
+import * as crypto from "crypto";
+import QRCode from "qrcode";
 
 const SUPERUSER_EMAIL_DOMAIN = "@trifused.com";
 
@@ -35,6 +38,245 @@ const isSuperuser = async (req: any, res: Response, next: NextFunction) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+// Helper: Get hosting geo IP info using free ip-api.com
+async function getHostingGeoInfo(hostname: string): Promise<{
+  hostIp: string | null;
+  hostCountry: string | null;
+  hostCity: string | null;
+  hostRegion: string | null;
+  hostAsn: string | null;
+  hostProvider: string | null;
+}> {
+  try {
+    const addresses = await dns.resolve4(hostname);
+    if (!addresses.length) return { hostIp: null, hostCountry: null, hostCity: null, hostRegion: null, hostAsn: null, hostProvider: null };
+    
+    const ip = addresses[0];
+    const response = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city,isp,as`);
+    if (!response.ok) return { hostIp: ip, hostCountry: null, hostCity: null, hostRegion: null, hostAsn: null, hostProvider: null };
+    
+    const data = await response.json() as any;
+    if (data.status !== 'success') return { hostIp: ip, hostCountry: null, hostCity: null, hostRegion: null, hostAsn: null, hostProvider: null };
+    
+    return {
+      hostIp: ip,
+      hostCountry: data.country || null,
+      hostCity: data.city || null,
+      hostRegion: data.regionName || null,
+      hostAsn: data.as || null,
+      hostProvider: data.isp || null,
+    };
+  } catch {
+    return { hostIp: null, hostCountry: null, hostCity: null, hostRegion: null, hostAsn: null, hostProvider: null };
+  }
+}
+
+// Helper: Get email security records (MX, SPF, DKIM, DMARC)
+async function getEmailSecurityRecords(domain: string): Promise<{
+  mxRecords: any[];
+  spfRecord: string | null;
+  dkimSelector: string | null;
+  dmarcRecord: string | null;
+  emailSecurityScore: number;
+  findings: any[];
+}> {
+  let emailSecurityScore = 100;
+  const findings: any[] = [];
+  let mxRecords: any[] = [];
+  let spfRecord: string | null = null;
+  let dkimSelector: string | null = null;
+  let dmarcRecord: string | null = null;
+
+  // MX Records
+  try {
+    const mx = await dns.resolveMx(domain);
+    mxRecords = mx.map(r => ({ exchange: r.exchange, priority: r.priority }));
+    if (mxRecords.length > 0) {
+      findings.push({
+        category: "email",
+        issue: `${mxRecords.length} MX record(s) configured`,
+        impact: "Email delivery is properly configured",
+        priority: "optional",
+        howToFix: "",
+        passed: true,
+      });
+    } else {
+      findings.push({
+        category: "email",
+        issue: "No MX records found",
+        impact: "Email cannot be received at this domain",
+        priority: "important",
+        howToFix: "Add MX records to your DNS configuration to receive emails",
+        passed: false,
+      });
+      emailSecurityScore -= 20;
+    }
+  } catch {
+    findings.push({
+      category: "email",
+      issue: "No MX records found",
+      impact: "Email cannot be received at this domain",
+      priority: "important",
+      howToFix: "Add MX records to your DNS configuration to receive emails",
+      passed: false,
+    });
+    emailSecurityScore -= 20;
+  }
+
+  // SPF Record
+  try {
+    const txtRecords = await dns.resolveTxt(domain);
+    const spf = txtRecords.flat().find(r => r.startsWith('v=spf1'));
+    if (spf) {
+      spfRecord = spf;
+      findings.push({
+        category: "email",
+        issue: "SPF record configured",
+        impact: "Helps prevent email spoofing",
+        priority: "optional",
+        howToFix: "",
+        passed: true,
+      });
+    } else {
+      findings.push({
+        category: "email",
+        issue: "Missing SPF record",
+        impact: "Emails may be marked as spam or spoofed",
+        priority: "critical",
+        howToFix: "Add an SPF TXT record like: v=spf1 include:_spf.google.com ~all",
+        passed: false,
+      });
+      emailSecurityScore -= 25;
+    }
+  } catch {
+    findings.push({
+      category: "email",
+      issue: "Missing SPF record",
+      impact: "Emails may be marked as spam or spoofed",
+      priority: "critical",
+      howToFix: "Add an SPF TXT record like: v=spf1 include:_spf.google.com ~all",
+      passed: false,
+    });
+    emailSecurityScore -= 25;
+  }
+
+  // DMARC Record
+  try {
+    const dmarcRecords = await dns.resolveTxt(`_dmarc.${domain}`);
+    const dmarc = dmarcRecords.flat().find(r => r.startsWith('v=DMARC1'));
+    if (dmarc) {
+      dmarcRecord = dmarc;
+      findings.push({
+        category: "email",
+        issue: "DMARC policy configured",
+        impact: "Strong protection against email spoofing",
+        priority: "optional",
+        howToFix: "",
+        passed: true,
+      });
+    } else {
+      findings.push({
+        category: "email",
+        issue: "Missing DMARC policy",
+        impact: "No policy for handling failed email authentication",
+        priority: "critical",
+        howToFix: "Add a DMARC TXT record at _dmarc.yourdomain.com like: v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com",
+        passed: false,
+      });
+      emailSecurityScore -= 25;
+    }
+  } catch {
+    findings.push({
+      category: "email",
+      issue: "Missing DMARC policy",
+      impact: "No policy for handling failed email authentication",
+      priority: "critical",
+      howToFix: "Add a DMARC TXT record at _dmarc.yourdomain.com like: v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com",
+      passed: false,
+    });
+    emailSecurityScore -= 25;
+  }
+
+  // DKIM - check common selectors
+  const dkimSelectors = ['default', 'google', 'selector1', 'selector2', 'k1', 's1'];
+  for (const selector of dkimSelectors) {
+    try {
+      const dkimRecords = await dns.resolveTxt(`${selector}._domainkey.${domain}`);
+      if (dkimRecords.length > 0) {
+        dkimSelector = selector;
+        break;
+      }
+    } catch {
+      // Continue checking other selectors
+    }
+  }
+
+  if (dkimSelector) {
+    findings.push({
+      category: "email",
+      issue: "DKIM signature found",
+      impact: "Emails are cryptographically signed",
+      priority: "optional",
+      howToFix: "",
+      passed: true,
+    });
+  } else {
+    findings.push({
+      category: "email",
+      issue: "No DKIM signature detected",
+      impact: "Emails cannot be verified as authentic",
+      priority: "important",
+      howToFix: "Configure DKIM with your email provider and add the public key to DNS",
+      passed: false,
+    });
+    emailSecurityScore -= 20;
+  }
+
+  return { mxRecords, spfRecord, dkimSelector, dmarcRecord, emailSecurityScore: Math.max(0, emailSecurityScore), findings };
+}
+
+// Helper: Check DNS blacklists
+async function checkBlacklists(ip: string | null): Promise<{
+  blacklistStatus: string;
+  blacklistDetails: any[];
+}> {
+  if (!ip) return { blacklistStatus: 'unknown', blacklistDetails: [] };
+  
+  const blacklists = [
+    'zen.spamhaus.org',
+    'bl.spamcop.net',
+    'b.barracudacentral.org',
+  ];
+  
+  const reversedIp = ip.split('.').reverse().join('.');
+  const listedOn: string[] = [];
+  
+  for (const bl of blacklists) {
+    try {
+      await dns.resolve4(`${reversedIp}.${bl}`);
+      listedOn.push(bl);
+    } catch {
+      // Not listed on this blacklist
+    }
+  }
+  
+  return {
+    blacklistStatus: listedOn.length > 0 ? 'listed' : 'clean',
+    blacklistDetails: listedOn.map(bl => ({ blacklist: bl, listed: true })),
+  };
+}
+
+// Helper: Generate share token and QR code
+async function generateShareAssets(gradeId: string, baseUrl: string): Promise<{
+  shareToken: string;
+  qrCodeData: string;
+}> {
+  const shareToken = crypto.randomUUID();
+  const reportUrl = `${baseUrl}/report/${shareToken}`;
+  const qrCodeData = await QRCode.toDataURL(reportUrl, { width: 200, margin: 1 });
+  return { shareToken, qrCodeData };
+}
 
 const hasFtpAccess = async (req: any, res: Response, next: NextFunction) => {
   try {
@@ -2069,20 +2311,84 @@ Your primary goal is to help users AND capture their contact information natural
       const visitorIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor || req.socket.remoteAddress || null;
       const visitorUserAgent = req.headers['user-agent'] || null;
 
+      // Get hosting geo info, email security, and blacklist status in parallel
+      const [geoInfo, emailSecurity, blacklistInfo] = await Promise.all([
+        getHostingGeoInfo(parsedDomain),
+        getEmailSecurityRecords(parsedDomain),
+        getHostingGeoInfo(parsedDomain).then(geo => checkBlacklists(geo.hostIp)),
+      ]);
+
+      // Add email security findings to main findings
+      findings.push(...emailSecurity.findings);
+
+      // Add blacklist finding if listed
+      if (blacklistInfo.blacklistStatus === 'listed') {
+        findings.push({
+          category: "security",
+          issue: `Domain IP listed on ${blacklistInfo.blacklistDetails.length} blacklist(s)`,
+          impact: "Emails may be blocked and website may be flagged as suspicious",
+          priority: "critical",
+          howToFix: "Contact your hosting provider to investigate and request delisting from the blacklists",
+          passed: false,
+        });
+        securityScore = Math.max(0, securityScore - 20);
+      } else if (blacklistInfo.blacklistStatus === 'clean') {
+        findings.push({
+          category: "security",
+          issue: "Domain IP not on any checked blacklists",
+          impact: "Good reputation helps with email delivery and trust",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      // Extract content age from Last-Modified header
+      const contentLastModified = responseHeaders['last-modified'] || null;
+
+      // Generate share token and QR code
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      
+      // Recalculate overall score with email security
+      const updatedOverallScore = Math.round((seoScore + Math.max(0, securityScore) + performanceScore + keywordsScore + accessibilityScore + emailSecurity.emailSecurityScore) / 6);
+
       // Store the grade with lead data
       const grade = await storage.createWebsiteGrade({
         url,
         email: email || null,
-        ...finalScores,
+        overallScore: Math.max(0, Math.min(100, updatedOverallScore)),
+        seoScore: finalScores.seoScore,
+        securityScore: Math.max(0, Math.min(100, securityScore)),
+        performanceScore: finalScores.performanceScore,
+        keywordsScore: finalScores.keywordsScore,
+        accessibilityScore: finalScores.accessibilityScore,
+        emailSecurityScore: emailSecurity.emailSecurityScore,
         findings: findings as any,
         companyName: companyName || null,
         companyDescription: companyDescription || null,
         domain: parsedDomain,
         ipAddress: visitorIp,
         userAgent: visitorUserAgent,
+        hostIp: geoInfo.hostIp,
+        hostCountry: geoInfo.hostCountry,
+        hostCity: geoInfo.hostCity,
+        hostRegion: geoInfo.hostRegion,
+        hostAsn: geoInfo.hostAsn,
+        hostProvider: geoInfo.hostProvider,
+        mxRecords: emailSecurity.mxRecords as any,
+        spfRecord: emailSecurity.spfRecord,
+        dkimSelector: emailSecurity.dkimSelector,
+        dmarcRecord: emailSecurity.dmarcRecord,
+        blacklistStatus: blacklistInfo.blacklistStatus,
+        blacklistDetails: blacklistInfo.blacklistDetails as any,
+        contentLastModified,
       });
 
-      res.json(grade);
+      // Generate and update share token and QR code
+      const shareAssets = await generateShareAssets(grade.id, baseUrl);
+      await storage.updateWebsiteGradeShareInfo(grade.id, shareAssets.shareToken, shareAssets.qrCodeData);
+
+      res.json({ ...grade, shareToken: shareAssets.shareToken, qrCodeData: shareAssets.qrCodeData });
     } catch (error: any) {
       console.error("Website grader error:", error);
       if (error instanceof z.ZodError) {
@@ -2114,6 +2420,20 @@ Your primary goal is to help users AND capture their contact information natural
     } catch (error) {
       console.error("Admin grades error:", error);
       res.status(500).json({ error: "Failed to fetch grades" });
+    }
+  });
+
+  // Public report endpoint by share token
+  app.get("/api/report/:shareToken", async (req: Request, res: Response) => {
+    try {
+      const grade = await storage.getWebsiteGradeByShareToken(req.params.shareToken);
+      if (!grade) {
+        return res.status(404).json({ error: "Report not found" });
+      }
+      res.json(grade);
+    } catch (error) {
+      console.error("Get report error:", error);
+      res.status(500).json({ error: "Failed to fetch report" });
     }
   });
 
