@@ -12,6 +12,7 @@ import { RecaptchaEnterpriseServiceClient } from "@google-cloud/recaptcha-enterp
 import { getCalendarEvents, isCalendarConnected } from "./lib/google-calendar";
 import { getInboxMessages, isGmailConnected } from "./lib/gmail";
 import { getAnalyticsData, isGoogleAnalyticsConnected } from "./lib/google-analytics";
+import * as cheerio from "cheerio";
 
 const SUPERUSER_EMAIL_DOMAIN = "@trifused.com";
 
@@ -1251,6 +1252,531 @@ Your primary goal is to help users AND capture their contact information natural
         return res.status(401).json({ error: "Gmail not connected" });
       }
       res.status(500).json({ error: "Failed to fetch Gmail messages" });
+    }
+  });
+
+  // Website Grader API
+  const gradeUrlSchema = z.object({
+    url: z.string().url(),
+    email: z.string().email().optional(),
+  });
+
+  interface Finding {
+    category: "seo" | "security" | "performance" | "keywords";
+    issue: string;
+    impact: string;
+    priority: "critical" | "important" | "optional";
+    howToFix: string;
+    passed: boolean;
+  }
+
+  function extractKeywords(text: string): { word: string; count: number; density: number }[] {
+    const stopWords = new Set([
+      'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
+      'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been', 'be', 'have', 'has', 'had',
+      'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must',
+      'shall', 'can', 'need', 'dare', 'ought', 'used', 'it', 'its', 'this', 'that', 'these',
+      'those', 'i', 'you', 'he', 'she', 'we', 'they', 'what', 'which', 'who', 'whom',
+      'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most',
+      'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than',
+      'too', 'very', 'just', 'also', 'now', 'here', 'there', 'then', 'once', 'if', 'else'
+    ]);
+
+    const words = text.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
+    const wordCounts: Record<string, number> = {};
+    words.forEach(w => { wordCounts[w] = (wordCounts[w] || 0) + 1; });
+    
+    const totalWords = words.length || 1;
+    return Object.entries(wordCounts)
+      .map(([word, count]) => ({ word, count, density: (count / totalWords) * 100 }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }
+
+  app.post("/api/grade", async (req: Request, res: Response) => {
+    try {
+      const { url, email } = gradeUrlSchema.parse(req.body);
+      
+      // Check for cached result
+      const cached = await storage.getRecentGradeForUrl(url);
+      if (cached) {
+        return res.json(cached);
+      }
+
+      const findings: Finding[] = [];
+      let seoScore = 100;
+      let securityScore = 100;
+      let performanceScore = 70;
+      let keywordsScore = 100;
+
+      // Fetch the website
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      
+      let html = "";
+      let responseHeaders: Record<string, string> = {};
+      let isHttps = url.startsWith("https://");
+      
+      try {
+        const response = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'TriFused Website Grader Bot/1.0',
+          },
+        });
+        clearTimeout(timeout);
+        
+        html = await response.text();
+        response.headers.forEach((value, key) => {
+          responseHeaders[key.toLowerCase()] = value;
+        });
+      } catch (fetchError: any) {
+        clearTimeout(timeout);
+        return res.status(400).json({ 
+          error: fetchError.name === 'AbortError' 
+            ? "Website took too long to respond (>15 seconds)" 
+            : "Could not fetch the website. Please check the URL."
+        });
+      }
+
+      const $ = cheerio.load(html);
+
+      // SEO Checks
+      const title = $('title').text().trim();
+      if (!title) {
+        findings.push({
+          category: "seo",
+          issue: "Missing page title",
+          impact: "Page titles are crucial for SEO and user experience",
+          priority: "critical",
+          howToFix: "Add a <title> tag inside your <head> section with a descriptive title (50-60 characters recommended)",
+          passed: false,
+        });
+        seoScore -= 15;
+      } else if (title.length < 30 || title.length > 70) {
+        findings.push({
+          category: "seo",
+          issue: `Title length is ${title.length} characters (recommended: 50-60)`,
+          impact: "Titles that are too short or too long may be truncated in search results",
+          priority: "important",
+          howToFix: "Adjust your title to be between 50-60 characters for optimal display",
+          passed: false,
+        });
+        seoScore -= 5;
+      } else {
+        findings.push({
+          category: "seo",
+          issue: "Page title is present and well-optimized",
+          impact: "Good title length helps with click-through rates",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      const metaDescription = $('meta[name="description"]').attr('content') || '';
+      if (!metaDescription) {
+        findings.push({
+          category: "seo",
+          issue: "Missing meta description",
+          impact: "Meta descriptions help search engines understand your page and improve click-through rates",
+          priority: "critical",
+          howToFix: 'Add <meta name="description" content="Your description here"> to your <head> section (150-160 characters recommended)',
+          passed: false,
+        });
+        seoScore -= 15;
+      } else if (metaDescription.length < 120 || metaDescription.length > 160) {
+        findings.push({
+          category: "seo",
+          issue: `Meta description length is ${metaDescription.length} characters (recommended: 150-160)`,
+          impact: "Descriptions that are too short or long may not display optimally in search results",
+          priority: "important",
+          howToFix: "Adjust your meta description to be between 150-160 characters",
+          passed: false,
+        });
+        seoScore -= 5;
+      } else {
+        findings.push({
+          category: "seo",
+          issue: "Meta description is present and well-optimized",
+          impact: "Good descriptions improve search result appearance",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      const h1Tags = $('h1');
+      if (h1Tags.length === 0) {
+        findings.push({
+          category: "seo",
+          issue: "Missing H1 heading",
+          impact: "H1 tags help search engines understand your page's main topic",
+          priority: "critical",
+          howToFix: "Add an <h1> tag with your main page heading. Each page should have exactly one H1",
+          passed: false,
+        });
+        seoScore -= 10;
+      } else if (h1Tags.length > 1) {
+        findings.push({
+          category: "seo",
+          issue: `Multiple H1 tags found (${h1Tags.length})`,
+          impact: "Having multiple H1s can confuse search engines about your page's main topic",
+          priority: "important",
+          howToFix: "Use only one H1 tag per page. Use H2-H6 for subheadings",
+          passed: false,
+        });
+        seoScore -= 5;
+      } else {
+        findings.push({
+          category: "seo",
+          issue: "Single H1 heading present",
+          impact: "Proper heading structure helps SEO",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      const imagesWithoutAlt = $('img:not([alt]), img[alt=""]').length;
+      const totalImages = $('img').length;
+      if (imagesWithoutAlt > 0) {
+        findings.push({
+          category: "seo",
+          issue: `${imagesWithoutAlt} of ${totalImages} images missing alt text`,
+          impact: "Alt text improves accessibility and helps search engines understand images",
+          priority: imagesWithoutAlt > 5 ? "critical" : "important",
+          howToFix: "Add descriptive alt attributes to all <img> tags describing the image content",
+          passed: false,
+        });
+        seoScore -= Math.min(15, imagesWithoutAlt * 2);
+      } else if (totalImages > 0) {
+        findings.push({
+          category: "seo",
+          issue: `All ${totalImages} images have alt text`,
+          impact: "Good for accessibility and SEO",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      const ogTitle = $('meta[property="og:title"]').attr('content');
+      const ogDescription = $('meta[property="og:description"]').attr('content');
+      const ogImage = $('meta[property="og:image"]').attr('content');
+      if (!ogTitle || !ogDescription || !ogImage) {
+        findings.push({
+          category: "seo",
+          issue: "Missing Open Graph meta tags",
+          impact: "Open Graph tags improve how your page appears when shared on social media",
+          priority: "important",
+          howToFix: "Add og:title, og:description, and og:image meta tags for better social sharing",
+          passed: false,
+        });
+        seoScore -= 10;
+      } else {
+        findings.push({
+          category: "seo",
+          issue: "Open Graph meta tags present",
+          impact: "Your page will display nicely when shared on social media",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      // Security Checks
+      if (!isHttps) {
+        findings.push({
+          category: "security",
+          issue: "Site not using HTTPS",
+          impact: "HTTPS encrypts data and is required for modern SEO",
+          priority: "critical",
+          howToFix: "Install an SSL certificate and redirect all HTTP traffic to HTTPS",
+          passed: false,
+        });
+        securityScore -= 30;
+      } else {
+        findings.push({
+          category: "security",
+          issue: "Site uses HTTPS",
+          impact: "Data is encrypted in transit",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      const csp = responseHeaders['content-security-policy'];
+      if (!csp) {
+        findings.push({
+          category: "security",
+          issue: "Missing Content-Security-Policy header",
+          impact: "CSP helps prevent XSS attacks and data injection",
+          priority: "important",
+          howToFix: "Add a Content-Security-Policy header to your server configuration. Start with: Content-Security-Policy: default-src 'self'",
+          passed: false,
+        });
+        securityScore -= 15;
+      } else {
+        findings.push({
+          category: "security",
+          issue: "Content-Security-Policy header present",
+          impact: "Protection against XSS attacks",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      const xFrameOptions = responseHeaders['x-frame-options'];
+      if (!xFrameOptions) {
+        findings.push({
+          category: "security",
+          issue: "Missing X-Frame-Options header",
+          impact: "Your site could be embedded in iframes, enabling clickjacking attacks",
+          priority: "important",
+          howToFix: "Add header: X-Frame-Options: DENY (or SAMEORIGIN if you need iframes from your own domain)",
+          passed: false,
+        });
+        securityScore -= 10;
+      } else {
+        findings.push({
+          category: "security",
+          issue: "X-Frame-Options header present",
+          impact: "Protection against clickjacking",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      const xContentType = responseHeaders['x-content-type-options'];
+      if (xContentType !== 'nosniff') {
+        findings.push({
+          category: "security",
+          issue: "Missing X-Content-Type-Options header",
+          impact: "Browsers might MIME-sniff content, leading to security issues",
+          priority: "important",
+          howToFix: "Add header: X-Content-Type-Options: nosniff",
+          passed: false,
+        });
+        securityScore -= 10;
+      } else {
+        findings.push({
+          category: "security",
+          issue: "X-Content-Type-Options header present",
+          impact: "MIME-sniffing attacks prevented",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      const hsts = responseHeaders['strict-transport-security'];
+      if (!hsts && isHttps) {
+        findings.push({
+          category: "security",
+          issue: "Missing Strict-Transport-Security header",
+          impact: "Users could be downgraded to HTTP connections",
+          priority: "important",
+          howToFix: "Add header: Strict-Transport-Security: max-age=31536000; includeSubDomains",
+          passed: false,
+        });
+        securityScore -= 10;
+      } else if (hsts) {
+        findings.push({
+          category: "security",
+          issue: "HSTS header present",
+          impact: "Forces HTTPS connections",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      // Keywords Analysis
+      const bodyText = $('body').text().replace(/\s+/g, ' ').trim();
+      const keywords = extractKeywords(bodyText);
+      
+      if (keywords.length === 0) {
+        findings.push({
+          category: "keywords",
+          issue: "No significant keywords found",
+          impact: "Your page may lack focused content",
+          priority: "important",
+          howToFix: "Add more meaningful content with keywords relevant to your topic",
+          passed: false,
+        });
+        keywordsScore -= 20;
+      } else {
+        const topKeyword = keywords[0];
+        const inTitle = title.toLowerCase().includes(topKeyword.word);
+        const inH1 = h1Tags.text().toLowerCase().includes(topKeyword.word);
+        const inMeta = metaDescription.toLowerCase().includes(topKeyword.word);
+
+        if (!inTitle && !inH1) {
+          findings.push({
+            category: "keywords",
+            issue: `Top keyword "${topKeyword.word}" not in title or H1`,
+            impact: "Main keywords should appear in title and H1 for better SEO",
+            priority: "important",
+            howToFix: `Include "${topKeyword.word}" naturally in your page title and H1 heading`,
+            passed: false,
+          });
+          keywordsScore -= 15;
+        } else {
+          findings.push({
+            category: "keywords",
+            issue: `Top keyword "${topKeyword.word}" found in title/H1`,
+            impact: "Good keyword placement for SEO",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+
+        if (topKeyword.density > 3) {
+          findings.push({
+            category: "keywords",
+            issue: `Keyword "${topKeyword.word}" density is ${topKeyword.density.toFixed(1)}% (may be too high)`,
+            impact: "Keyword stuffing can hurt SEO rankings",
+            priority: "important",
+            howToFix: "Reduce repetition of this keyword. Aim for 1-2% density",
+            passed: false,
+          });
+          keywordsScore -= 10;
+        }
+      }
+
+      // Performance - try PageSpeed Insights API (optional, might fail without API key)
+      try {
+        const pageSpeedUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=mobile&category=performance&category=accessibility`;
+        const psController = new AbortController();
+        const psTimeout = setTimeout(() => psController.abort(), 25000);
+        
+        const psResponse = await fetch(pageSpeedUrl, { signal: psController.signal });
+        clearTimeout(psTimeout);
+        
+        if (psResponse.ok) {
+          const psData = await psResponse.json() as any;
+          const perfScore = Math.round((psData.lighthouseResult?.categories?.performance?.score || 0.7) * 100);
+          const accessScore = Math.round((psData.lighthouseResult?.categories?.accessibility?.score || 0.7) * 100);
+          
+          performanceScore = perfScore;
+          
+          if (perfScore < 50) {
+            findings.push({
+              category: "performance",
+              issue: `Performance score is ${perfScore}/100 (poor)`,
+              impact: "Slow sites lose visitors and rank lower in search results",
+              priority: "critical",
+              howToFix: "Optimize images, enable compression, minimize JavaScript, and use a CDN",
+              passed: false,
+            });
+          } else if (perfScore < 80) {
+            findings.push({
+              category: "performance",
+              issue: `Performance score is ${perfScore}/100 (needs improvement)`,
+              impact: "Page speed affects user experience and SEO",
+              priority: "important",
+              howToFix: "Consider image optimization, code splitting, and caching strategies",
+              passed: false,
+            });
+          } else {
+            findings.push({
+              category: "performance",
+              issue: `Performance score is ${perfScore}/100 (good)`,
+              impact: "Fast loading improves user experience and SEO",
+              priority: "optional",
+              howToFix: "",
+              passed: true,
+            });
+          }
+
+          if (accessScore < 80) {
+            findings.push({
+              category: "performance",
+              issue: `Accessibility score is ${accessScore}/100`,
+              impact: "Accessibility issues prevent some users from using your site",
+              priority: accessScore < 50 ? "critical" : "important",
+              howToFix: "Add proper ARIA labels, ensure color contrast, and make all interactive elements keyboard accessible",
+              passed: false,
+            });
+          } else {
+            findings.push({
+              category: "performance",
+              issue: `Accessibility score is ${accessScore}/100 (good)`,
+              impact: "Your site is accessible to most users",
+              priority: "optional",
+              howToFix: "",
+              passed: true,
+            });
+          }
+        }
+      } catch (psError) {
+        findings.push({
+          category: "performance",
+          issue: "Could not analyze performance (PageSpeed API unavailable)",
+          impact: "Performance analysis helps identify speed issues",
+          priority: "optional",
+          howToFix: "Try Google PageSpeed Insights directly: https://pagespeed.web.dev/",
+          passed: true,
+        });
+      }
+
+      // Calculate overall score
+      const overallScore = Math.round((seoScore + securityScore + performanceScore + keywordsScore) / 4);
+
+      // Ensure scores are within 0-100
+      const finalScores = {
+        overallScore: Math.max(0, Math.min(100, overallScore)),
+        seoScore: Math.max(0, Math.min(100, seoScore)),
+        securityScore: Math.max(0, Math.min(100, securityScore)),
+        performanceScore: Math.max(0, Math.min(100, performanceScore)),
+        keywordsScore: Math.max(0, Math.min(100, keywordsScore)),
+      };
+
+      // Store the grade
+      const grade = await storage.createWebsiteGrade({
+        url,
+        email: email || null,
+        ...finalScores,
+        findings: findings as any,
+      });
+
+      res.json(grade);
+    } catch (error: any) {
+      console.error("Website grader error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid URL provided" });
+      }
+      res.status(500).json({ error: "Failed to analyze website" });
+    }
+  });
+
+  // Get a specific grade by ID
+  app.get("/api/grade/:id", async (req: Request, res: Response) => {
+    try {
+      const grade = await storage.getWebsiteGrade(req.params.id);
+      if (!grade) {
+        return res.status(404).json({ error: "Grade not found" });
+      }
+      res.json(grade);
+    } catch (error) {
+      console.error("Get grade error:", error);
+      res.status(500).json({ error: "Failed to fetch grade" });
+    }
+  });
+
+  // Admin endpoint to view all grades
+  app.get("/api/admin/grades", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const grades = await storage.getAllWebsiteGrades();
+      res.json(grades);
+    } catch (error) {
+      console.error("Admin grades error:", error);
+      res.status(500).json({ error: "Failed to fetch grades" });
     }
   });
 
