@@ -291,8 +291,13 @@ export default function Report() {
   
   const handleCopyForAI = () => {
     if (!result) return;
+    const failures = result.findings.filter(f => !f.passed);
+    const passes = result.findings.filter(f => f.passed);
+    
     const text = `Website Grade Report for ${result.url}
-Overall Score: ${result.overallScore}/100 (${getGradeLetter(result.overallScore)})
+(Free Tool - For informational purposes only)
+
+Overall Score: ${result.overallScore}/100 (Grade: ${getGradeLetter(result.overallScore)})
 
 Category Scores:
 - SEO: ${result.seoScore}/100
@@ -302,8 +307,12 @@ Category Scores:
 - Accessibility: ${result.accessibilityScore}/100
 - Email Security: ${result.emailSecurityScore || 0}/100
 
-Findings:
-${result.findings.map(f => `[${f.passed ? 'PASS' : 'FAIL'}] ${f.issue} (${f.priority}): ${f.impact}\nHow to fix: ${f.howToFix}`).join('\n\n')}`;
+${failures.length > 0 ? `Issues Found (${failures.length}):
+${failures.map(f => `- [${f.priority.toUpperCase()}] ${f.issue}: ${f.impact}
+  Fix: ${f.howToFix}`).join('\n\n')}` : 'No issues found!'}
+
+${passes.length > 0 ? `Passing Checks (${passes.length}):
+${passes.map(f => `- ${f.issue}`).join('\n')}` : ''}`;
     
     navigator.clipboard.writeText(text);
     setCopied(true);
