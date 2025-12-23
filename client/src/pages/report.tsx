@@ -367,6 +367,24 @@ export default function Report() {
               <ScoreCircle score={result.keywordsScore} label="Keywords" icon={Key} />
               <ScoreCircle score={result.accessibilityScore} label="A11y" icon={Accessibility} />
               <ScoreCircle score={result.emailSecurityScore || 0} label="Email" icon={Mail} />
+              {result.fdicScore !== null && result.fdicScore !== undefined && (
+                <ScoreCircle score={result.fdicScore} label="FDIC" icon={Building} />
+              )}
+              {result.secScore !== null && result.secScore !== undefined && (
+                <ScoreCircle score={result.secScore} label="SEC" icon={Scale} />
+              )}
+              {result.adaScore !== null && result.adaScore !== undefined && (
+                <ScoreCircle score={result.adaScore} label="ADA" icon={Accessibility} />
+              )}
+              {result.pciScore !== null && result.pciScore !== undefined && (
+                <ScoreCircle score={result.pciScore} label="PCI" icon={CreditCard} />
+              )}
+              {result.fcaScore !== null && result.fcaScore !== undefined && (
+                <ScoreCircle score={result.fcaScore} label="FCA" icon={Scale} />
+              )}
+              {result.gdprScore !== null && result.gdprScore !== undefined && (
+                <ScoreCircle score={result.gdprScore} label="GDPR" icon={Cookie} />
+              )}
             </div>
           </div>
 
