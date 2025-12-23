@@ -14,6 +14,7 @@ import {
   mediaItems,
   mediaShares,
   websiteGrades,
+  reportEvents,
   InsertContactSubmission, 
   InsertDiagnosticScan, 
   ContactSubmission, 
@@ -41,7 +42,10 @@ import {
   InsertMediaShare,
   MediaStatus,
   WebsiteGrade,
-  InsertWebsiteGrade
+  InsertWebsiteGrade,
+  ReportEvent,
+  InsertReportEvent,
+  ReportEventType
 } from "@shared/schema";
 
 export interface IStorage {
@@ -123,6 +127,12 @@ export interface IStorage {
   getAllWebsiteGrades(): Promise<WebsiteGrade[]>;
   getWebsiteGradesCount(): Promise<number>;
   updateWebsiteGradeShareInfo(id: string, shareToken: string, qrCodeData: string): Promise<WebsiteGrade | undefined>;
+  
+  // Report event tracking methods
+  logReportEvent(data: InsertReportEvent): Promise<ReportEvent>;
+  incrementReportViewCount(shareToken: string): Promise<void>;
+  incrementReportDownloadCount(shareToken: string): Promise<void>;
+  getReportEvents(shareToken: string): Promise<ReportEvent[]>;
 }
 
 class Storage implements IStorage {
@@ -501,6 +511,37 @@ class Storage implements IStorage {
       .where(eq(websiteGrades.id, id))
       .returning();
     return grade;
+  }
+
+  // Report event tracking methods
+  async logReportEvent(data: InsertReportEvent): Promise<ReportEvent> {
+    const [event] = await db.insert(reportEvents).values(data).returning();
+    return event;
+  }
+
+  async incrementReportViewCount(shareToken: string): Promise<void> {
+    await db
+      .update(websiteGrades)
+      .set({ 
+        viewCount: sql`COALESCE(${websiteGrades.viewCount}, 0) + 1`,
+        lastViewedAt: new Date()
+      })
+      .where(eq(websiteGrades.shareToken, shareToken));
+  }
+
+  async incrementReportDownloadCount(shareToken: string): Promise<void> {
+    await db
+      .update(websiteGrades)
+      .set({ 
+        downloadCount: sql`COALESCE(${websiteGrades.downloadCount}, 0) + 1`
+      })
+      .where(eq(websiteGrades.shareToken, shareToken));
+  }
+
+  async getReportEvents(shareToken: string): Promise<ReportEvent[]> {
+    return await db.select().from(reportEvents)
+      .where(eq(reportEvents.shareToken, shareToken))
+      .orderBy(desc(reportEvents.triggeredAt));
   }
 }
 

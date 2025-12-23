@@ -297,6 +297,9 @@ export const websiteGrades = pgTable("website_grades", {
   shareToken: varchar("share_token").unique(),
   objectStorageKey: text("object_storage_key"),
   qrCodeData: text("qr_code_data"),
+  viewCount: integer("view_count").default(0),
+  downloadCount: integer("download_count").default(0),
+  lastViewedAt: timestamp("last_viewed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -307,3 +310,28 @@ export const insertWebsiteGradeSchema = createInsertSchema(websiteGrades).omit({
 
 export type InsertWebsiteGrade = z.infer<typeof insertWebsiteGradeSchema>;
 export type WebsiteGrade = typeof websiteGrades.$inferSelect;
+
+// Report event types
+export const reportEventTypes = ["view", "pdf_download"] as const;
+export type ReportEventType = typeof reportEventTypes[number];
+
+// Report events for tracking views and downloads
+export const reportEvents = pgTable("report_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  websiteGradeId: varchar("website_grade_id").notNull(),
+  shareToken: varchar("share_token").notNull(),
+  eventType: varchar("event_type").notNull(), // "view" or "pdf_download"
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  referrer: text("referrer"),
+  metadata: jsonb("metadata"),
+  triggeredAt: timestamp("triggered_at").defaultNow().notNull(),
+});
+
+export const insertReportEventSchema = createInsertSchema(reportEvents).omit({
+  id: true,
+  triggeredAt: true,
+});
+
+export type InsertReportEvent = z.infer<typeof insertReportEventSchema>;
+export type ReportEvent = typeof reportEvents.$inferSelect;
