@@ -1523,7 +1523,11 @@ Your primary goal is to help users AND capture their contact information natural
       'those', 'i', 'you', 'he', 'she', 'we', 'they', 'what', 'which', 'who', 'whom',
       'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most',
       'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than',
-      'too', 'very', 'just', 'also', 'now', 'here', 'there', 'then', 'once', 'if', 'else'
+      'too', 'very', 'just', 'also', 'now', 'here', 'there', 'then', 'once', 'if', 'else',
+      // Accessibility and navigation words to exclude
+      'skip', 'main', 'content', 'navigation', 'menu', 'close', 'open', 'toggle', 'click',
+      'read', 'learn', 'view', 'see', 'show', 'hide', 'back', 'next', 'previous',
+      'home', 'page', 'link', 'button', 'submit', 'cancel', 'yes', 'get', 'started'
     ]);
 
     const words = text.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w));
