@@ -33,7 +33,9 @@ import {
   Search,
   History,
   ExternalLink,
-  Trash2
+  Trash2,
+  Copy,
+  Check
 } from "lucide-react";
 import { trackPageView } from "@/lib/analytics";
 
@@ -198,6 +200,15 @@ function loadHistory(): ScanHistoryItem[] {
   }
 }
 
+const complianceOptions = [
+  { id: "fdic", label: "FDIC", description: "Bank deposit insurance signage" },
+  { id: "sec", label: "SEC", description: "Securities disclosures" },
+  { id: "ada", label: "ADA", description: "Accessibility (WCAG)" },
+  { id: "pci", label: "PCI", description: "Payment card security" },
+  { id: "fca", label: "FCA", description: "UK financial promotions" },
+  { id: "gdpr", label: "GDPR", description: "EU privacy compliance" },
+];
+
 export default function Report() {
   const params = useParams<{ shareToken: string }>();
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -205,7 +216,8 @@ export default function Report() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scanUrl, setScanUrl] = useState("");
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(true);
+  const [selectedCompliance, setSelectedCompliance] = useState<string[]>([]);
   const viewTrackedRef = useRef(false);
   const { toast } = useToast();
 
@@ -214,6 +226,12 @@ export default function Report() {
     setScanHistory(loadHistory());
   }, []);
   
+  const toggleCompliance = (id: string) => {
+    setSelectedCompliance(prev => 
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    );
+  };
+  
   const handleScanSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     let processedUrl = scanUrl.trim();
@@ -221,7 +239,11 @@ export default function Report() {
     if (!processedUrl.startsWith("http://") && !processedUrl.startsWith("https://")) {
       processedUrl = "https://" + processedUrl;
     }
-    window.location.href = `/grader?rescan=${encodeURIComponent(processedUrl)}`;
+    let graderUrl = `/grader?rescan=${encodeURIComponent(processedUrl)}`;
+    if (selectedCompliance.length > 0) {
+      graderUrl += `&compliance=${selectedCompliance.join(',')}`;
+    }
+    window.location.href = graderUrl;
   };
   
   const handleHistoryClick = (item: ScanHistoryItem) => {
@@ -258,6 +280,36 @@ export default function Report() {
       return response.json();
     },
   });
+  
+  const [copied, setCopied] = useState(false);
+  
+  useEffect(() => {
+    if (result?.url) {
+      setScanUrl(result.url);
+    }
+  }, [result?.url]);
+  
+  const handleCopyForAI = () => {
+    if (!result) return;
+    const text = `Website Grade Report for ${result.url}
+Overall Score: ${result.overallScore}/100 (${getGradeLetter(result.overallScore)})
+
+Category Scores:
+- SEO: ${result.seoScore}/100
+- Security: ${result.securityScore}/100
+- Performance: ${result.performanceScore}/100
+- Keywords: ${result.keywordsScore}/100
+- Accessibility: ${result.accessibilityScore}/100
+- Email Security: ${result.emailSecurityScore || 0}/100
+
+Findings:
+${result.findings.map(f => `[${f.passed ? 'PASS' : 'FAIL'}] ${f.issue} (${f.priority}): ${f.impact}\nHow to fix: ${f.howToFix}`).join('\n\n')}`;
+    
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: "Copied!", description: "Report copied to clipboard for AI analysis" });
+  };
 
   const handleDownloadPDF = async () => {
     if (!result || !params.shareToken) return;
@@ -499,10 +551,19 @@ export default function Report() {
             ))}
           </div>
 
-          <div className="flex justify-center gap-4 mb-12">
+          <div className="flex flex-wrap justify-center gap-3 mb-12">
             <Button onClick={handleDownloadPDF} className="gap-2" data-testid="button-download-pdf">
               <Download className="w-4 h-4" />
-              Download PDF Report
+              Download PDF
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={handleCopyForAI}
+              className="gap-2"
+              data-testid="button-copy-ai"
+            >
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {copied ? "Copied!" : "Copy for AI"}
             </Button>
             <Button 
               variant="outline" 
@@ -514,90 +575,115 @@ export default function Report() {
               data-testid="button-rescan"
             >
               <RefreshCw className="w-4 h-4" />
-              Rescan Website
-            </Button>
-            <Button variant="outline" onClick={() => window.location.href = "/grader"} data-testid="button-analyze-own">
-              Analyze Your Website
+              Rescan
             </Button>
           </div>
 
           <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Search className="w-5 h-5 text-cyan-400" />
-              Analyze Another Website
+              Rescan Website
             </h3>
-            <form onSubmit={handleScanSubmit} className="flex gap-2 mb-4">
-              <div className="flex-1 relative">
-                <Input
-                  value={scanUrl}
-                  onChange={(e) => setScanUrl(e.target.value)}
-                  placeholder="Enter website URL..."
-                  className="bg-white/5 border-white/10"
-                  data-testid="input-rescan-url-bottom"
-                />
-              </div>
-              <Button type="submit" className="bg-cyan-500 hover:bg-cyan-600" data-testid="button-rescan-bottom">
-                Scan
-              </Button>
-            </form>
-            
-            {scanHistory.length > 0 && (
-              <div className="border-t border-white/10 pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <button 
-                    onClick={() => setShowHistory(!showHistory)}
-                    className="text-sm font-medium text-white flex items-center gap-2 hover:text-cyan-400 transition-colors"
-                    data-testid="button-toggle-history-bottom"
-                  >
-                    <History className="w-4 h-4" />
-                    Recent Scans ({scanHistory.length})
-                    <span className={`transition-transform ${showHistory ? 'rotate-180' : ''}`}>▼</span>
-                  </button>
-                  {showHistory && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearHistory}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-7 px-2"
-                      data-testid="button-clear-history-bottom"
-                    >
-                      <Trash2 className="w-3 h-3 mr-1" />
-                      Clear
-                    </Button>
-                  )}
+            <form onSubmit={handleScanSubmit} className="space-y-4">
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Input
+                    value={scanUrl}
+                    onChange={(e) => setScanUrl(e.target.value)}
+                    placeholder="Enter website URL..."
+                    className="bg-white/5 border-white/10"
+                    data-testid="input-rescan-url-bottom"
+                  />
                 </div>
-                
-                {showHistory && (
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                <Button type="submit" className="bg-cyan-500 hover:bg-cyan-600" data-testid="button-rescan-bottom">
+                  <Search className="w-4 h-4 mr-2" />
+                  Scan
+                </Button>
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                {complianceOptions.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => toggleCompliance(opt.id)}
+                    className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                      selectedCompliance.includes(opt.id)
+                        ? "bg-cyan-500 text-black font-medium"
+                        : "bg-white/5 text-white/70 hover:bg-white/10"
+                    }`}
+                    data-testid={`button-compliance-${opt.id}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </form>
+          </div>
+          
+          {scanHistory.length > 0 && (
+            <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <History className="w-5 h-5 text-cyan-400" />
+                  Scan History
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearHistory}
+                  className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                  data-testid="button-clear-history"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Clear
+                </Button>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="text-left text-sm font-medium text-muted-foreground py-2">Website</th>
+                      <th className="text-center text-sm font-medium text-muted-foreground py-2">Grade</th>
+                      <th className="text-right text-sm font-medium text-muted-foreground py-2">Date</th>
+                      <th className="text-right text-sm font-medium text-muted-foreground py-2"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {scanHistory.map((item, index) => (
-                      <button
+                      <tr 
                         key={item.id}
+                        className="border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors"
                         onClick={() => handleHistoryClick(item)}
-                        className="w-full flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-left"
-                        data-testid={`button-history-item-bottom-${index}`}
+                        data-testid={`row-history-${index}`}
                       >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-cyan-400 font-mono truncate">{item.url}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(item.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 ml-3">
+                        <td className="py-3">
+                          <span className="text-sm text-cyan-400 font-mono">{item.url}</span>
+                        </td>
+                        <td className="py-3 text-center">
                           <span className={`text-lg font-bold ${
                             item.overallScore >= 80 ? "text-green-400" :
                             item.overallScore >= 60 ? "text-yellow-400" : "text-red-400"
                           }`}>
                             {getGradeLetter(item.overallScore)}
                           </span>
-                          <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                        </div>
-                      </button>
+                        </td>
+                        <td className="py-3 text-right">
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(item.createdAt).toLocaleDateString()}
+                          </span>
+                        </td>
+                        <td className="py-3 text-right">
+                          <ExternalLink className="w-4 h-4 text-muted-foreground inline" />
+                        </td>
+                      </tr>
                     ))}
-                  </div>
-                )}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="bg-white/5 rounded-2xl p-8 border border-white/10 mb-8">
             <h3 className="text-xl font-bold text-white mb-2 text-center">Need Help Improving Your Score?</h3>
