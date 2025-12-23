@@ -26,7 +26,10 @@ import {
   Video,
   Plug,
   Globe,
-  ExternalLink
+  ExternalLink,
+  Copy,
+  Check,
+  QrCode
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -99,6 +102,8 @@ interface WebsiteGrade {
   domain: string | null;
   ipAddress: string | null;
   createdAt: string;
+  shareToken: string | null;
+  qrCodeData: string | null;
 }
 
 interface ChatMessage {
@@ -1061,10 +1066,43 @@ export default function Dashboard() {
                             A11y: {grade.accessibilityScore}
                           </span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-muted-foreground mb-2">
                           <span>{format(new Date(grade.createdAt), 'MMM d, yyyy h:mm a')}</span>
                           {grade.ipAddress && <span className="hidden sm:inline">IP: {grade.ipAddress}</span>}
                         </div>
+                        {grade.shareToken && (
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1"
+                              onClick={() => {
+                                const shareUrl = `${window.location.origin}/report/${grade.shareToken}`;
+                                navigator.clipboard.writeText(shareUrl);
+                                toast({ title: "Link copied!", description: "Share link copied to clipboard" });
+                              }}
+                              data-testid={`copy-link-${grade.id}`}
+                            >
+                              <Copy className="w-3 h-3" />
+                              Copy Link
+                            </Button>
+                            {grade.qrCodeData && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(grade.qrCodeData!);
+                                  toast({ title: "QR copied!", description: "QR code data copied to clipboard" });
+                                }}
+                                data-testid={`copy-qr-${grade.id}`}
+                              >
+                                <QrCode className="w-3 h-3" />
+                                Copy QR
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0">
                         <div className={`text-3xl font-bold ${
