@@ -1655,6 +1655,21 @@ Your primary goal is to help users AND capture their contact information natural
     }
   }
 
+  // Normalize URL for consistent caching (www vs non-www treated as same)
+  function normalizeUrlForCache(urlStr: string): string {
+    try {
+      const parsed = new URL(urlStr);
+      // Remove www. prefix for normalization
+      parsed.hostname = parsed.hostname.replace(/^www\./i, '');
+      // Remove trailing slash
+      let normalized = parsed.origin + parsed.pathname.replace(/\/$/, '');
+      if (parsed.search) normalized += parsed.search;
+      return normalized.toLowerCase();
+    } catch {
+      return urlStr.toLowerCase();
+    }
+  }
+
   app.post("/api/grade", async (req: Request, res: Response) => {
     try {
       const { url, email, complianceChecks, forceRefresh } = gradeUrlSchema.parse(req.body);
@@ -1665,11 +1680,16 @@ Your primary goal is to help users AND capture their contact information natural
         return res.status(400).json({ error: urlValidation.error });
       }
       
+      // Normalize URL for cache lookup (www and non-www treated as same)
+      const normalizedUrl = normalizeUrlForCache(url);
+      
       // Check for cached result
       // Only use cache if no compliance checks are requested and not forcing refresh
       const hasComplianceChecks = complianceChecks && Object.values(complianceChecks).some(v => v);
       if (!hasComplianceChecks && !forceRefresh) {
-        const cached = await storage.getRecentGradeForUrl(url);
+        // Try both normalized and original URL for cache
+        const cached = await storage.getRecentGradeForUrl(normalizedUrl) || 
+                       await storage.getRecentGradeForUrl(url);
         if (cached) {
           return res.json(cached);
         }
