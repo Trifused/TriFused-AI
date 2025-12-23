@@ -13,6 +13,7 @@ import {
   chatLeads,
   mediaItems,
   mediaShares,
+  websiteGrades,
   InsertContactSubmission, 
   InsertDiagnosticScan, 
   ContactSubmission, 
@@ -38,7 +39,9 @@ import {
   InsertMediaItem,
   MediaShare,
   InsertMediaShare,
-  MediaStatus
+  MediaStatus,
+  WebsiteGrade,
+  InsertWebsiteGrade
 } from "@shared/schema";
 
 export interface IStorage {
@@ -111,6 +114,13 @@ export interface IStorage {
   getMediaSharedWithUser(userId: string): Promise<MediaItem[]>;
   getMediaSharedWithEmail(email: string): Promise<MediaItem[]>;
   deleteMediaShare(id: string): Promise<void>;
+  
+  // Website grader methods
+  createWebsiteGrade(data: InsertWebsiteGrade): Promise<WebsiteGrade>;
+  getWebsiteGrade(id: string): Promise<WebsiteGrade | undefined>;
+  getRecentGradeForUrl(url: string): Promise<WebsiteGrade | undefined>;
+  getAllWebsiteGrades(): Promise<WebsiteGrade[]>;
+  getWebsiteGradesCount(): Promise<number>;
 }
 
 class Storage implements IStorage {
@@ -440,6 +450,41 @@ class Storage implements IStorage {
 
   async deleteMediaShare(id: string): Promise<void> {
     await db.delete(mediaShares).where(eq(mediaShares.id, id));
+  }
+
+  // Website grader methods
+  async createWebsiteGrade(data: InsertWebsiteGrade): Promise<WebsiteGrade> {
+    const [grade] = await db.insert(websiteGrades).values(data).returning();
+    return grade;
+  }
+
+  async getWebsiteGrade(id: string): Promise<WebsiteGrade | undefined> {
+    const [grade] = await db.select().from(websiteGrades).where(eq(websiteGrades.id, id));
+    return grade;
+  }
+
+  async getRecentGradeForUrl(url: string): Promise<WebsiteGrade | undefined> {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [grade] = await db
+      .select()
+      .from(websiteGrades)
+      .where(eq(websiteGrades.url, url))
+      .orderBy(desc(websiteGrades.createdAt))
+      .limit(1);
+    
+    if (grade && new Date(grade.createdAt) > oneDayAgo) {
+      return grade;
+    }
+    return undefined;
+  }
+
+  async getAllWebsiteGrades(): Promise<WebsiteGrade[]> {
+    return await db.select().from(websiteGrades).orderBy(desc(websiteGrades.createdAt));
+  }
+
+  async getWebsiteGradesCount(): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(websiteGrades);
+    return result?.count || 0;
   }
 }
 

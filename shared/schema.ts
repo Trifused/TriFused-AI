@@ -261,3 +261,25 @@ export const insertMediaShareSchema = createInsertSchema(mediaShares).omit({
 
 export type InsertMediaShare = z.infer<typeof insertMediaShareSchema>;
 export type MediaShare = typeof mediaShares.$inferSelect;
+
+// Website grades from the Website Grader tool
+export const websiteGrades = pgTable("website_grades", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  url: text("url").notNull(),
+  email: text("email"),
+  overallScore: integer("overall_score").notNull(),
+  seoScore: integer("seo_score").notNull(),
+  securityScore: integer("security_score").notNull(),
+  performanceScore: integer("performance_score").notNull(),
+  keywordsScore: integer("keywords_score").notNull(),
+  findings: jsonb("findings").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertWebsiteGradeSchema = createInsertSchema(websiteGrades).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertWebsiteGrade = z.infer<typeof insertWebsiteGradeSchema>;
+export type WebsiteGrade = typeof websiteGrades.$inferSelect;
