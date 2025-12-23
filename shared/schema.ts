@@ -262,7 +262,7 @@ export const insertMediaShareSchema = createInsertSchema(mediaShares).omit({
 export type InsertMediaShare = z.infer<typeof insertMediaShareSchema>;
 export type MediaShare = typeof mediaShares.$inferSelect;
 
-// Website grades from the Website Grader tool
+// Website grades from the Website Grader tool (also serves as lead data)
 export const websiteGrades = pgTable("website_grades", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   url: text("url").notNull(),
@@ -274,6 +274,11 @@ export const websiteGrades = pgTable("website_grades", {
   keywordsScore: integer("keywords_score").notNull(),
   accessibilityScore: integer("accessibility_score").notNull().default(100),
   findings: jsonb("findings").notNull(),
+  companyName: text("company_name"),
+  companyDescription: text("company_description"),
+  domain: text("domain"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -7,11 +7,25 @@ import { ChatWidget } from "@/components/ui/chat-widget";
 import { CookieConsent } from "@/components/ui/cookie-consent";
 import { ContactFormDialog } from "@/components/features/contact-form-dialog";
 import { motion } from "framer-motion";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { ArrowRight, Terminal } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const searchString = useSearch();
+  const [contactOpen, setContactOpen] = useState(false);
+  const [contactMessage, setContactMessage] = useState("");
+  
+  useEffect(() => {
+    const params = new URLSearchParams(searchString);
+    if (params.get('contact') === 'true') {
+      const message = params.get('message') || '';
+      setContactMessage(message);
+      setContactOpen(true);
+      window.history.replaceState({}, '', '/');
+    }
+  }, [searchString]);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
@@ -127,7 +141,11 @@ export default function Home() {
             <p className="text-xl mb-10 max-w-2xl mx-auto font-medium">
               Join the new era of autonomous business operations.
             </p>
-            <ContactFormDialog />
+            <ContactFormDialog 
+              defaultOpen={contactOpen}
+              defaultMessage={contactMessage}
+              onOpenChange={setContactOpen}
+            />
           </div>
         </section>
       </main>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,17 +9,37 @@ import { Loader2 } from "lucide-react";
 interface ContactFormDialogProps {
   trigger?: React.ReactNode;
   className?: string;
+  defaultOpen?: boolean;
+  defaultMessage?: string;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function ContactFormDialog({ trigger, className }: ContactFormDialogProps) {
-  const [open, setOpen] = useState(false);
+export function ContactFormDialog({ trigger, className, defaultOpen = false, defaultMessage = "", onOpenChange }: ContactFormDialogProps) {
+  const [open, setOpen] = useState(defaultOpen);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     company: "",
-    message: ""
+    message: defaultMessage
   });
+  
+  useEffect(() => {
+    if (defaultOpen) {
+      setOpen(true);
+    }
+  }, [defaultOpen]);
+  
+  useEffect(() => {
+    if (defaultMessage) {
+      setFormData(prev => ({ ...prev, message: defaultMessage }));
+    }
+  }, [defaultMessage]);
+  
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    onOpenChange?.(newOpen);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +59,7 @@ export function ContactFormDialog({ trigger, className }: ContactFormDialogProps
       if (result.success) {
         toast.success("Message sent successfully! We'll be in touch soon.");
         setFormData({ name: "", email: "", company: "", message: "" });
-        setOpen(false);
+        handleOpenChange(false);
       } else {
         toast.error(result.error || "Failed to send message. Please try again.");
       }
@@ -58,7 +78,7 @@ export function ContactFormDialog({ trigger, className }: ContactFormDialogProps
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger || (
           <button 

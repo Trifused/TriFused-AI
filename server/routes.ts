@@ -2058,12 +2058,28 @@ Your primary goal is to help users AND capture their contact information natural
         accessibilityScore: Math.max(0, Math.min(100, accessibilityScore)),
       };
 
-      // Store the grade
+      // Extract company/lead information from website
+      const ogSiteName = $('meta[property="og:site_name"]').attr('content');
+      const companyName = ogSiteName || ogTitle || title?.split('|')[0]?.trim() || title?.split('-')[0]?.trim() || null;
+      const companyDescription = ogDescription || metaDescription || null;
+      const parsedDomain = new URL(url).hostname.replace(/^www\./, '');
+      
+      // Capture visitor info for lead tracking
+      const forwardedFor = req.headers['x-forwarded-for'];
+      const visitorIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor || req.socket.remoteAddress || null;
+      const visitorUserAgent = req.headers['user-agent'] || null;
+
+      // Store the grade with lead data
       const grade = await storage.createWebsiteGrade({
         url,
         email: email || null,
         ...finalScores,
         findings: findings as any,
+        companyName: companyName || null,
+        companyDescription: companyDescription || null,
+        domain: parsedDomain,
+        ipAddress: visitorIp,
+        userAgent: visitorUserAgent,
       });
 
       res.json(grade);
