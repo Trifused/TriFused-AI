@@ -1,10 +1,14 @@
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Shield, 
   Zap, 
@@ -19,7 +23,8 @@ import {
   Accessibility,
   Mail,
   Server,
-  MapPin
+  MapPin,
+  Send
 } from "lucide-react";
 import { trackPageView } from "@/lib/analytics";
 
@@ -162,10 +167,26 @@ function FindingCard({ finding }: { finding: Finding }) {
 export default function Report() {
   const params = useParams<{ shareToken: string }>();
   const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [contactForm, setContactForm] = useState({ name: "", email: "", company: "", message: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const viewTrackedRef = useRef(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     trackPageView('/report');
   }, []);
+
+  // Track view on mount (only once)
+  useEffect(() => {
+    if (params.shareToken && !viewTrackedRef.current) {
+      viewTrackedRef.current = true;
+      fetch(`/api/report/${params.shareToken}/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventType: 'view' }),
+      }).catch(() => {});
+    }
+  }, [params.shareToken]);
 
   const { data: result, isLoading, error } = useQuery<GradeResult>({
     queryKey: ['report', params.shareToken],
@@ -179,9 +200,9 @@ export default function Report() {
   });
 
   const handleDownloadPDF = async () => {
-    if (!result) return;
+    if (!result || !params.shareToken) return;
     try {
-      const response = await fetch(`/api/grade/${result.id}/pdf`);
+      const response = await fetch(`/api/report/${params.shareToken}/pdf`);
       if (!response.ok) throw new Error("Failed to download PDF");
       const blob = await response.blob();
       const downloadUrl = URL.createObjectURL(blob);
@@ -194,6 +215,30 @@ export default function Report() {
       URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error("Failed to download PDF:", error);
+      toast({ title: "Error", description: "Failed to download PDF", variant: "destructive" });
+    }
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.name || !contactForm.email || !contactForm.message) {
+      toast({ title: "Missing fields", description: "Please fill in all required fields", variant: "destructive" });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactForm),
+      });
+      if (!response.ok) throw new Error("Failed to submit");
+      setContactForm({ name: "", email: "", company: "", message: "" });
+      toast({ title: "Message sent!", description: "We'll be in touch soon." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to send message", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -365,7 +410,7 @@ export default function Report() {
             ))}
           </div>
 
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-4 mb-12">
             <Button onClick={handleDownloadPDF} className="gap-2" data-testid="button-download-pdf">
               <Download className="w-4 h-4" />
               Download PDF Report
@@ -375,8 +420,69 @@ export default function Report() {
             </Button>
           </div>
 
+          <div className="bg-white/5 rounded-2xl p-8 border border-white/10 mb-8">
+            <h3 className="text-xl font-bold text-white mb-2 text-center">Need Help Improving Your Score?</h3>
+            <p className="text-muted-foreground text-center mb-6">
+              Our team can help you fix these issues and improve your website performance.
+            </p>
+            <form onSubmit={handleContactSubmit} className="max-w-md mx-auto space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="contact-name" className="text-white">Name *</Label>
+                  <Input
+                    id="contact-name"
+                    value={contactForm.name}
+                    onChange={(e) => setContactForm(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Your name"
+                    className="mt-1"
+                    data-testid="input-contact-name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="contact-email" className="text-white">Email *</Label>
+                  <Input
+                    id="contact-email"
+                    type="email"
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="you@example.com"
+                    className="mt-1"
+                    data-testid="input-contact-email"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="contact-company" className="text-white">Company</Label>
+                <Input
+                  id="contact-company"
+                  value={contactForm.company}
+                  onChange={(e) => setContactForm(prev => ({ ...prev, company: e.target.value }))}
+                  placeholder="Your company (optional)"
+                  className="mt-1"
+                  data-testid="input-contact-company"
+                />
+              </div>
+              <div>
+                <Label htmlFor="contact-message" className="text-white">Message *</Label>
+                <Textarea
+                  id="contact-message"
+                  value={contactForm.message}
+                  onChange={(e) => setContactForm(prev => ({ ...prev, message: e.target.value }))}
+                  placeholder="How can we help you?"
+                  className="mt-1"
+                  rows={3}
+                  data-testid="input-contact-message"
+                />
+              </div>
+              <Button type="submit" className="w-full gap-2" disabled={isSubmitting} data-testid="button-submit-contact">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {isSubmitting ? "Sending..." : "Send Message"}
+              </Button>
+            </form>
+          </div>
+
           {result.qrCodeData && (
-            <div className="mt-8 text-center">
+            <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">Scan to view this report:</p>
               <img src={result.qrCodeData} alt="QR Code" className="inline-block rounded-lg" />
             </div>
