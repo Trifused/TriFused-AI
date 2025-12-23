@@ -997,34 +997,46 @@ export default function Dashboard() {
       </Dialog>
 
       <Dialog open={showGraderModal} onOpenChange={setShowGraderModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] bg-background border-white/10">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] bg-background border-white/10">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+            <DialogTitle className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
               <Globe className="w-5 h-5 text-orange-500" />
               Website Grader Leads
             </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="h-[60vh] pr-4">
+          <ScrollArea className="h-[65vh] pr-2 sm:pr-4">
             {graderLeads && graderLeads.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {graderLeads.map((grade) => (
                   <div 
                     key={grade.id} 
-                    className="glass-panel rounded-lg p-4 border border-white/5"
+                    className="glass-panel rounded-lg p-3 sm:p-4 border border-white/5"
                     data-testid={`grader-${grade.id}`}
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center justify-between gap-2 mb-1">
                           <a 
                             href={grade.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-white font-medium hover:text-primary transition-colors truncate"
+                            className="text-white font-medium hover:text-primary transition-colors truncate text-sm sm:text-base"
                           >
                             {grade.domain || grade.url}
                           </a>
-                          <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                          <div className="flex items-center gap-2 sm:hidden">
+                            <div className={`text-xl font-bold ${
+                              grade.overallScore >= 90 ? 'text-green-400' :
+                              grade.overallScore >= 80 ? 'text-cyan-400' :
+                              grade.overallScore >= 70 ? 'text-yellow-400' :
+                              grade.overallScore >= 60 ? 'text-orange-400' :
+                              'text-red-400'
+                            }`}>
+                              {grade.overallScore}
+                            </div>
+                            <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                          </div>
+                          <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0 hidden sm:block" />
                         </div>
                         {grade.companyName && (
                           <p className="text-sm text-orange-400 mb-1">{grade.companyName}</p>
@@ -1032,29 +1044,29 @@ export default function Dashboard() {
                         {grade.companyDescription && (
                           <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{grade.companyDescription}</p>
                         )}
-                        <div className="flex flex-wrap gap-2 text-xs mb-2">
-                          <span className="px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs mb-2">
+                          <span className="px-1.5 sm:px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
                             SEO: {grade.seoScore}
                           </span>
-                          <span className="px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
+                          <span className="px-1.5 sm:px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
                             Security: {grade.securityScore}
                           </span>
-                          <span className="px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
-                            Performance: {grade.performanceScore}
+                          <span className="px-1.5 sm:px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
+                            Perf: {grade.performanceScore}
                           </span>
-                          <span className="px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
+                          <span className="px-1.5 sm:px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
                             Keywords: {grade.keywordsScore}
                           </span>
-                          <span className="px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
+                          <span className="px-1.5 sm:px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
                             A11y: {grade.accessibilityScore}
                           </span>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
                           <span>{format(new Date(grade.createdAt), 'MMM d, yyyy h:mm a')}</span>
-                          {grade.ipAddress && <span>IP: {grade.ipAddress}</span>}
+                          {grade.ipAddress && <span className="hidden sm:inline">IP: {grade.ipAddress}</span>}
                         </div>
                       </div>
-                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                      <div className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0">
                         <div className={`text-3xl font-bold ${
                           grade.overallScore >= 90 ? 'text-green-400' :
                           grade.overallScore >= 80 ? 'text-cyan-400' :
