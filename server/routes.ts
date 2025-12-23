@@ -2437,6 +2437,53 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Track report events (views, downloads)
+  app.post("/api/report/:shareToken/events", async (req: Request, res: Response) => {
+    try {
+      const { shareToken } = req.params;
+      const grade = await storage.getWebsiteGradeByShareToken(shareToken);
+      if (!grade) {
+        return res.status(404).json({ error: "Report not found" });
+      }
+
+      const eventSchema = z.object({
+        eventType: z.enum(["view", "pdf_download"]),
+        metadata: z.record(z.any()).optional(),
+      });
+
+      const parsed = eventSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid event data" });
+      }
+
+      const { eventType, metadata } = parsed.data;
+      const ipAddress = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || null;
+      const userAgent = req.headers['user-agent'] || null;
+      const referrer = req.headers['referer'] || null;
+
+      await storage.logReportEvent({
+        websiteGradeId: grade.id,
+        shareToken,
+        eventType,
+        ipAddress,
+        userAgent,
+        referrer,
+        metadata: metadata || {},
+      });
+
+      if (eventType === "view") {
+        await storage.incrementReportViewCount(shareToken);
+      } else if (eventType === "pdf_download") {
+        await storage.incrementReportDownloadCount(shareToken);
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Track event error:", error);
+      res.status(500).json({ error: "Failed to track event" });
+    }
+  });
+
   // PDF Report Generation
   app.get("/api/grade/:id/pdf", async (req: Request, res: Response) => {
     try {
@@ -2688,6 +2735,39 @@ Your primary goal is to help users AND capture their contact information natural
     } catch (error) {
       console.error("PDF generation error:", error);
       res.status(500).json({ error: "Failed to generate PDF" });
+    }
+  });
+
+  // Public PDF download via share token (tracks download automatically)
+  app.get("/api/report/:shareToken/pdf", async (req: Request, res: Response) => {
+    try {
+      const { shareToken } = req.params;
+      const grade = await storage.getWebsiteGradeByShareToken(shareToken);
+      if (!grade) {
+        return res.status(404).json({ error: "Report not found" });
+      }
+
+      // Track the download
+      const ipAddress = req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || null;
+      const userAgent = req.headers['user-agent'] || null;
+      const referrer = req.headers['referer'] || null;
+      
+      await storage.logReportEvent({
+        websiteGradeId: grade.id,
+        shareToken,
+        eventType: "pdf_download",
+        ipAddress,
+        userAgent,
+        referrer,
+        metadata: {},
+      });
+      await storage.incrementReportDownloadCount(shareToken);
+
+      // Redirect to the actual PDF endpoint
+      res.redirect(`/api/grade/${grade.id}/pdf`);
+    } catch (error) {
+      console.error("Public PDF download error:", error);
+      res.status(500).json({ error: "Failed to download PDF" });
     }
   });
 
