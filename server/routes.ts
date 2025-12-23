@@ -2496,10 +2496,11 @@ Your primary goal is to help users AND capture their contact information natural
         return lines;
       }
 
-      // Header
-      page.drawText("TriFused", { x: margin, y: yPos, size: 28, font: helveticaBold, color: cyan });
-      page.drawText(" Website Grade Report", { x: margin + 100, y: yPos, size: 28, font: helvetica, color: darkGray });
-      yPos -= 40;
+      // Header - calculate proper width to avoid overlap
+      const trifusedWidth = helveticaBold.widthOfTextAtSize("TriFused", 24);
+      page.drawText("TriFused", { x: margin, y: yPos, size: 24, font: helveticaBold, color: cyan });
+      page.drawText("Website Grade Report", { x: margin + trifusedWidth + 10, y: yPos, size: 24, font: helvetica, color: darkGray });
+      yPos -= 35;
 
       // URL
       page.drawText("Website:", { x: margin, y: yPos, size: 12, font: helveticaBold, color: darkGray });
@@ -2537,21 +2538,23 @@ Your primary goal is to help users AND capture their contact information natural
         color: gradeColor,
       });
 
-      // Category Scores
+      // Category Scores - now includes Email Security
       const categories = [
         { label: "SEO", score: grade.seoScore },
         { label: "Security", score: grade.securityScore },
         { label: "Performance", score: grade.performanceScore },
         { label: "Keywords", score: grade.keywordsScore },
         { label: "A11y", score: grade.accessibilityScore ?? 100 },
+        { label: "Email", score: grade.emailSecurityScore ?? 0 },
       ];
 
-      let xOffset = margin + gradeBoxSize + 30;
+      let xOffset = margin + gradeBoxSize + 20;
+      const scoreSpacing = 80;
       for (const cat of categories) {
         const catColor = cat.score >= 80 ? green : cat.score >= 60 ? yellow : red;
-        page.drawText(cat.label, { x: xOffset, y: yPos - 20, size: 11, font: helveticaBold, color: darkGray });
-        page.drawText(`${cat.score}/100`, { x: xOffset, y: yPos - 36, size: 14, font: helveticaBold, color: catColor });
-        xOffset += 100;
+        page.drawText(cat.label, { x: xOffset, y: yPos - 20, size: 10, font: helveticaBold, color: darkGray });
+        page.drawText(`${cat.score}/100`, { x: xOffset, y: yPos - 34, size: 12, font: helveticaBold, color: catColor });
+        xOffset += scoreSpacing;
       }
 
       yPos -= gradeBoxSize + 30;
@@ -2610,6 +2613,47 @@ Your primary goal is to help users AND capture their contact information natural
         }
 
         yPos -= 15;
+      }
+
+      // QR Code section - add shareable report link
+      if (grade.qrCodeData && grade.shareToken) {
+        addNewPageIfNeeded(120);
+        yPos -= 10;
+        page.drawLine({
+          start: { x: margin, y: yPos },
+          end: { x: pageWidth - margin, y: yPos },
+          thickness: 1,
+          color: rgb(0.9, 0.9, 0.9),
+        });
+        yPos -= 25;
+        page.drawText("Share This Report", { x: margin, y: yPos, size: 14, font: helveticaBold, color: darkGray });
+        yPos -= 18;
+        page.drawText("Scan the QR code or visit the link below to share this report:", { x: margin, y: yPos, size: 10, font: helvetica, color: lightGray });
+        yPos -= 15;
+        
+        // Extract base64 data and embed QR code
+        try {
+          const base64Data = grade.qrCodeData.replace(/^data:image\/png;base64,/, '');
+          const qrImageBytes = Buffer.from(base64Data, 'base64');
+          const qrImage = await pdfDoc.embedPng(qrImageBytes);
+          const qrSize = 80;
+          page.drawImage(qrImage, {
+            x: margin,
+            y: yPos - qrSize,
+            width: qrSize,
+            height: qrSize,
+          });
+          
+          // Share URL next to QR code
+          const shareUrl = `https://trifused.com/report/${grade.shareToken}`;
+          page.drawText("Shareable Link:", { x: margin + qrSize + 20, y: yPos - 20, size: 10, font: helveticaBold, color: darkGray });
+          page.drawText(shareUrl, { x: margin + qrSize + 20, y: yPos - 35, size: 9, font: helvetica, color: cyan });
+          page.drawText("Anyone with this link can view the full report.", { x: margin + qrSize + 20, y: yPos - 50, size: 8, font: helvetica, color: lightGray });
+          
+          yPos -= qrSize + 20;
+        } catch (qrError) {
+          console.error("Failed to embed QR code:", qrError);
+        }
       }
 
       // Footer
