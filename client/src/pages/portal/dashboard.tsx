@@ -29,7 +29,9 @@ import {
   ExternalLink,
   Copy,
   Check,
-  QrCode
+  QrCode,
+  Eye,
+  Download
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -104,6 +106,9 @@ interface WebsiteGrade {
   createdAt: string;
   shareToken: string | null;
   qrCodeData: string | null;
+  viewCount: number | null;
+  downloadCount: number | null;
+  lastViewedAt: string | null;
 }
 
 interface ChatMessage {
@@ -1071,7 +1076,7 @@ export default function Dashboard() {
                           {grade.ipAddress && <span className="hidden sm:inline">IP: {grade.ipAddress}</span>}
                         </div>
                         {grade.shareToken && (
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <Button
                               size="sm"
                               variant="outline"
@@ -1101,6 +1106,16 @@ export default function Dashboard() {
                                 Copy QR
                               </Button>
                             )}
+                            <div className="flex items-center gap-3 ml-2 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1" title="Views">
+                                <Eye className="w-3 h-3" />
+                                {grade.viewCount || 0}
+                              </span>
+                              <span className="flex items-center gap-1" title="Downloads">
+                                <Download className="w-3 h-3" />
+                                {grade.downloadCount || 0}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
