@@ -13,6 +13,7 @@ import { getCalendarEvents, isCalendarConnected } from "./lib/google-calendar";
 import { getInboxMessages, isGmailConnected } from "./lib/gmail";
 import { getAnalyticsData, isGoogleAnalyticsConnected } from "./lib/google-analytics";
 import * as cheerio from "cheerio";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 const SUPERUSER_EMAIL_DOMAIN = "@trifused.com";
 
@@ -1777,6 +1778,215 @@ Your primary goal is to help users AND capture their contact information natural
     } catch (error) {
       console.error("Admin grades error:", error);
       res.status(500).json({ error: "Failed to fetch grades" });
+    }
+  });
+
+  // PDF Report Generation
+  app.get("/api/grade/:id/pdf", async (req: Request, res: Response) => {
+    try {
+      const grade = await storage.getWebsiteGrade(req.params.id);
+      if (!grade) {
+        return res.status(404).json({ error: "Grade not found" });
+      }
+
+      const pdfDoc = await PDFDocument.create();
+      const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+      const pageWidth = 612;
+      const pageHeight = 792;
+      const margin = 50;
+      let page = pdfDoc.addPage([pageWidth, pageHeight]);
+      let yPos = pageHeight - margin;
+
+      const cyan = rgb(0.024, 0.714, 0.831);
+      const darkGray = rgb(0.2, 0.2, 0.2);
+      const lightGray = rgb(0.5, 0.5, 0.5);
+      const green = rgb(0.2, 0.8, 0.2);
+      const red = rgb(0.9, 0.2, 0.2);
+      const yellow = rgb(0.9, 0.7, 0.2);
+
+      function getGradeLetter(score: number): string {
+        if (score >= 90) return "A";
+        if (score >= 80) return "B";
+        if (score >= 70) return "C";
+        if (score >= 60) return "D";
+        return "F";
+      }
+
+      function addNewPageIfNeeded(requiredHeight: number) {
+        if (yPos - requiredHeight < margin) {
+          page = pdfDoc.addPage([pageWidth, pageHeight]);
+          yPos = pageHeight - margin;
+        }
+      }
+
+      function wrapText(text: string, maxWidth: number, font: any, fontSize: number): string[] {
+        const words = text.split(' ');
+        const lines: string[] = [];
+        let currentLine = '';
+
+        for (const word of words) {
+          const testLine = currentLine ? `${currentLine} ${word}` : word;
+          const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+          if (testWidth > maxWidth) {
+            if (currentLine) lines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) lines.push(currentLine);
+        return lines;
+      }
+
+      // Header
+      page.drawText("TriFused", { x: margin, y: yPos, size: 28, font: helveticaBold, color: cyan });
+      page.drawText(" Website Grade Report", { x: margin + 100, y: yPos, size: 28, font: helvetica, color: darkGray });
+      yPos -= 40;
+
+      // URL
+      page.drawText("Website:", { x: margin, y: yPos, size: 12, font: helveticaBold, color: darkGray });
+      page.drawText(grade.url, { x: margin + 60, y: yPos, size: 12, font: helvetica, color: cyan });
+      yPos -= 20;
+
+      // Date
+      page.drawText("Analyzed:", { x: margin, y: yPos, size: 10, font: helvetica, color: lightGray });
+      page.drawText(new Date(grade.createdAt).toLocaleString(), { x: margin + 60, y: yPos, size: 10, font: helvetica, color: lightGray });
+      yPos -= 40;
+
+      // Overall Score Box
+      const gradeBoxSize = 80;
+      const gradeColor = grade.overallScore >= 80 ? green : grade.overallScore >= 60 ? yellow : red;
+      page.drawRectangle({
+        x: margin,
+        y: yPos - gradeBoxSize,
+        width: gradeBoxSize,
+        height: gradeBoxSize,
+        borderColor: gradeColor,
+        borderWidth: 3,
+      });
+      page.drawText(getGradeLetter(grade.overallScore), {
+        x: margin + 25,
+        y: yPos - 50,
+        size: 36,
+        font: helveticaBold,
+        color: gradeColor,
+      });
+      page.drawText(String(grade.overallScore), {
+        x: margin + 20,
+        y: yPos - 70,
+        size: 18,
+        font: helveticaBold,
+        color: gradeColor,
+      });
+
+      // Category Scores
+      const categories = [
+        { label: "SEO", score: grade.seoScore },
+        { label: "Security", score: grade.securityScore },
+        { label: "Performance", score: grade.performanceScore },
+        { label: "Keywords", score: grade.keywordsScore },
+      ];
+
+      let xOffset = margin + gradeBoxSize + 30;
+      for (const cat of categories) {
+        const catColor = cat.score >= 80 ? green : cat.score >= 60 ? yellow : red;
+        page.drawText(cat.label, { x: xOffset, y: yPos - 20, size: 11, font: helveticaBold, color: darkGray });
+        page.drawText(`${cat.score}/100`, { x: xOffset, y: yPos - 36, size: 14, font: helveticaBold, color: catColor });
+        xOffset += 100;
+      }
+
+      yPos -= gradeBoxSize + 30;
+
+      // Divider
+      page.drawLine({
+        start: { x: margin, y: yPos },
+        end: { x: pageWidth - margin, y: yPos },
+        thickness: 1,
+        color: rgb(0.9, 0.9, 0.9),
+      });
+      yPos -= 30;
+
+      // Findings
+      page.drawText("Detailed Findings", { x: margin, y: yPos, size: 16, font: helveticaBold, color: darkGray });
+      yPos -= 25;
+
+      const findings = (grade.findings as any[]) || [];
+      const maxTextWidth = pageWidth - margin * 2 - 20;
+
+      for (const finding of findings) {
+        addNewPageIfNeeded(80);
+
+        const priorityColor = finding.passed ? green : finding.priority === "critical" ? red : finding.priority === "important" ? yellow : lightGray;
+        const statusText = finding.passed ? "[PASS]" : `[${finding.priority.toUpperCase()}]`;
+        const categoryText = `[${finding.category.toUpperCase()}]`;
+
+        page.drawText(categoryText, { x: margin, y: yPos, size: 9, font: helveticaBold, color: cyan });
+        page.drawText(statusText, { x: margin + 90, y: yPos, size: 9, font: helveticaBold, color: priorityColor });
+        yPos -= 14;
+
+        const issueLines = wrapText(finding.issue, maxTextWidth, helveticaBold, 11);
+        for (const line of issueLines) {
+          addNewPageIfNeeded(15);
+          page.drawText(line, { x: margin, y: yPos, size: 11, font: helveticaBold, color: darkGray });
+          yPos -= 14;
+        }
+
+        const impactLines = wrapText(finding.impact, maxTextWidth, helvetica, 10);
+        for (const line of impactLines) {
+          addNewPageIfNeeded(13);
+          page.drawText(line, { x: margin, y: yPos, size: 10, font: helvetica, color: lightGray });
+          yPos -= 13;
+        }
+
+        if (!finding.passed && finding.howToFix) {
+          yPos -= 5;
+          page.drawText("How to fix:", { x: margin, y: yPos, size: 9, font: helveticaBold, color: cyan });
+          yPos -= 12;
+          const fixLines = wrapText(finding.howToFix, maxTextWidth, helvetica, 9);
+          for (const line of fixLines) {
+            addNewPageIfNeeded(12);
+            page.drawText(line, { x: margin, y: yPos, size: 9, font: helvetica, color: darkGray });
+            yPos -= 12;
+          }
+        }
+
+        yPos -= 15;
+      }
+
+      // Footer
+      addNewPageIfNeeded(50);
+      yPos = margin + 20;
+      page.drawLine({
+        start: { x: margin, y: yPos + 10 },
+        end: { x: pageWidth - margin, y: yPos + 10 },
+        thickness: 1,
+        color: rgb(0.9, 0.9, 0.9),
+      });
+      page.drawText("Generated by TriFused Website Grader", {
+        x: margin,
+        y: yPos - 5,
+        size: 9,
+        font: helvetica,
+        color: lightGray,
+      });
+      page.drawText("https://trifused.com/grader", {
+        x: pageWidth - margin - 130,
+        y: yPos - 5,
+        size: 9,
+        font: helvetica,
+        color: cyan,
+      });
+
+      const pdfBytes = await pdfDoc.save();
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="website-grade-${grade.id}.pdf"`);
+      res.send(Buffer.from(pdfBytes));
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate PDF" });
     }
   });
 
