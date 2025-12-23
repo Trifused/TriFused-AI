@@ -9,6 +9,7 @@ import { useAnalytics } from "./hooks/use-analytics";
 import Home from "@/pages/home";
 import Blog from "@/pages/blog";
 import Signup from "@/pages/signup";
+import Grader from "@/pages/grader";
 import PortalLogin from "@/pages/portal/login";
 import Dashboard from "@/pages/portal/dashboard";
 import Admin from "@/pages/portal/admin";
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/blog" component={Blog} />
       <Route path="/signup" component={Signup} />
+      <Route path="/grader" component={Grader} />
       <Route path="/portal" component={PortalLogin} />
       <Route path="/portal/dashboard" component={Dashboard} />
       <Route path="/portal/admin" component={Admin} />

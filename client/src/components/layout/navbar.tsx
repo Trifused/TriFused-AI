@@ -30,6 +30,12 @@ export function Navbar() {
           <a href="/#services" className="hover:text-primary transition-colors">Services</a>
           <a href="/#ventures" className="hover:text-primary transition-colors">Ventures</a>
           <button 
+            onClick={() => setLocation("/grader")}
+            className="hover:text-primary transition-colors"
+          >
+            Website Grader
+          </button>
+          <button 
             onClick={() => setLocation("/blog")}
             className="hover:text-primary transition-colors"
           >
