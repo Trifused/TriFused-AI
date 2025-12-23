@@ -1502,10 +1502,11 @@ Your primary goal is to help users AND capture their contact information natural
   const gradeUrlSchema = z.object({
     url: z.string().url(),
     email: z.string().email().optional(),
+    complianceChecks: z.record(z.boolean()).optional(),
   });
 
   interface Finding {
-    category: "seo" | "security" | "performance" | "keywords" | "accessibility";
+    category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr";
     issue: string;
     impact: string;
     priority: "critical" | "important" | "optional";
@@ -1651,7 +1652,7 @@ Your primary goal is to help users AND capture their contact information natural
 
   app.post("/api/grade", async (req: Request, res: Response) => {
     try {
-      const { url, email } = gradeUrlSchema.parse(req.body);
+      const { url, email, complianceChecks } = gradeUrlSchema.parse(req.body);
       
       // SSRF protection: validate URL before fetching
       const urlValidation = await validateUrl(url);
@@ -2348,6 +2349,347 @@ Your primary goal is to help users AND capture their contact information natural
 
       // Generate share token and QR code
       const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      // Compliance checks (optional, based on user selection)
+      let fdicScore: number | null = null;
+      let secScore: number | null = null;
+      let adaScore: number | null = null;
+      let pciScore: number | null = null;
+      let fcaScore: number | null = null;
+      let gdprScore: number | null = null;
+
+      const htmlLower = html.toLowerCase();
+
+      // FDIC Compliance Check
+      if (complianceChecks?.fdic) {
+        fdicScore = 100;
+        const hasMemberFdic = /member\s*fdic/i.test(html) || /fdic[- ]?insured/i.test(html);
+        const hasFdicLogo = $('img[src*="fdic"], img[alt*="FDIC"], img[alt*="fdic"]').length > 0;
+        const fdicInFooter = $('footer').text().toLowerCase().includes('fdic');
+        const fdicNearBankName = $('header, nav, .logo, [class*="brand"]').text().toLowerCase().includes('fdic');
+
+        if (!hasMemberFdic && !hasFdicLogo) {
+          findings.push({
+            category: "fdic",
+            issue: "Missing 'Member FDIC' statement or FDIC digital sign",
+            impact: "FDIC Part 328 requires banks to display FDIC membership clearly",
+            priority: "critical",
+            howToFix: "Add 'Member FDIC' text or the official FDIC digital sign near your bank name",
+            passed: false,
+          });
+          fdicScore -= 40;
+        } else {
+          findings.push({
+            category: "fdic",
+            issue: "FDIC membership statement found",
+            impact: "Customers can see their deposits are insured",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+
+        if (fdicInFooter && !fdicNearBankName) {
+          findings.push({
+            category: "fdic",
+            issue: "FDIC sign only in footer",
+            impact: "FDIC requires sign to be 'clear, conspicuous, and continuous' - not hidden in footer",
+            priority: "important",
+            howToFix: "Move FDIC signage near your bank name in header or main content area",
+            passed: false,
+          });
+          fdicScore -= 20;
+        } else if (fdicNearBankName) {
+          findings.push({
+            category: "fdic",
+            issue: "FDIC sign displayed prominently near bank name",
+            impact: "Complies with FDIC Part 328 placement requirements",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+
+        fdicScore = Math.max(0, fdicScore);
+      }
+
+      // SEC Compliance Check
+      if (complianceChecks?.sec) {
+        secScore = 100;
+        const hasRiskDisclosure = /risk\s*(warning|disclosure)/i.test(html) || /past\s*performance/i.test(html);
+        const hasSecDisclaimer = /sec\s*registered/i.test(html) || /securities.*commission/i.test(html);
+        const hasInvestorProtection = /investor\s*(protection|relations)/i.test(html);
+
+        if (!hasRiskDisclosure) {
+          findings.push({
+            category: "sec",
+            issue: "No risk disclosure found",
+            impact: "SEC requires clear risk warnings for investment products",
+            priority: "important",
+            howToFix: "Add risk disclosures stating investments may lose value and past performance doesn't guarantee future results",
+            passed: false,
+          });
+          secScore -= 30;
+        } else {
+          findings.push({
+            category: "sec",
+            issue: "Risk disclosure statement present",
+            impact: "Helps protect investors and shows transparency",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+
+        if (!hasSecDisclaimer && !hasInvestorProtection) {
+          findings.push({
+            category: "sec",
+            issue: "No SEC registration or investor relations info found",
+            impact: "Regulated entities should display registration status",
+            priority: "optional",
+            howToFix: "Add SEC registration status or link to investor relations page",
+            passed: false,
+          });
+          secScore -= 10;
+        }
+
+        secScore = Math.max(0, secScore);
+      }
+
+      // ADA/WCAG Accessibility Check (enhanced)
+      if (complianceChecks?.ada) {
+        adaScore = 100;
+        
+        const imagesWithoutAlt = $('img:not([alt]), img[alt=""]').length;
+        if (imagesWithoutAlt > 0) {
+          findings.push({
+            category: "ada",
+            issue: `${imagesWithoutAlt} image(s) missing alt text`,
+            impact: "Screen readers cannot describe these images to blind users",
+            priority: "critical",
+            howToFix: "Add descriptive alt attributes to all images",
+            passed: false,
+          });
+          adaScore -= Math.min(30, imagesWithoutAlt * 5);
+        }
+
+        const formsWithoutLabels = $('input:not([type="hidden"]):not([type="submit"]):not([type="button"])').filter((_, el) => {
+          const id = $(el).attr('id');
+          return !id || $(`label[for="${id}"]`).length === 0;
+        }).length;
+        if (formsWithoutLabels > 0) {
+          findings.push({
+            category: "ada",
+            issue: `${formsWithoutLabels} form input(s) missing associated labels`,
+            impact: "Screen reader users cannot identify form fields",
+            priority: "critical",
+            howToFix: "Add <label for='inputId'> elements for all form inputs",
+            passed: false,
+          });
+          adaScore -= Math.min(25, formsWithoutLabels * 5);
+        }
+
+        const hasSkipLink = $('a[href="#main"], a[href="#content"], a[href="#main-content"], .skip-link, [class*="skip"]').length > 0;
+        if (!hasSkipLink) {
+          findings.push({
+            category: "ada",
+            issue: "No skip navigation link found",
+            impact: "Keyboard users must tab through entire navigation on every page",
+            priority: "important",
+            howToFix: "Add a 'Skip to main content' link at the top of the page",
+            passed: false,
+          });
+          adaScore -= 15;
+        }
+
+        const hasLangAttr = $('html[lang]').length > 0;
+        if (!hasLangAttr) {
+          findings.push({
+            category: "ada",
+            issue: "Missing lang attribute on HTML element",
+            impact: "Screen readers may not use correct pronunciation",
+            priority: "important",
+            howToFix: "Add lang='en' (or appropriate language) to your <html> tag",
+            passed: false,
+          });
+          adaScore -= 10;
+        }
+
+        adaScore = Math.max(0, adaScore);
+      }
+
+      // PCI DSS Check
+      if (complianceChecks?.pci) {
+        pciScore = 100;
+        
+        if (!isHttps) {
+          findings.push({
+            category: "pci",
+            issue: "Site not using HTTPS",
+            impact: "PCI DSS requires encryption of cardholder data in transit",
+            priority: "critical",
+            howToFix: "Install an SSL certificate and redirect all traffic to HTTPS",
+            passed: false,
+          });
+          pciScore -= 50;
+        } else {
+          findings.push({
+            category: "pci",
+            issue: "Site uses HTTPS encryption",
+            impact: "Data is encrypted in transit as required by PCI DSS",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+
+        const hasPaymentForm = $('input[type="password"], input[name*="card"], input[name*="cvv"], input[name*="cvc"], input[autocomplete*="cc-"]').length > 0;
+        const hasPaymentIframe = $('iframe[src*="stripe"], iframe[src*="paypal"], iframe[src*="braintree"], iframe[src*="square"]').length > 0;
+        
+        if (hasPaymentForm && !hasPaymentIframe) {
+          findings.push({
+            category: "pci",
+            issue: "Payment form detected without payment processor iframe",
+            impact: "Direct card handling requires full PCI DSS compliance",
+            priority: "important",
+            howToFix: "Consider using Stripe, PayPal, or other payment processor's hosted fields/iframes to reduce PCI scope",
+            passed: false,
+          });
+          pciScore -= 20;
+        } else if (hasPaymentIframe) {
+          findings.push({
+            category: "pci",
+            issue: "Payment processor iframe detected",
+            impact: "Using hosted payment forms reduces PCI compliance burden",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+
+        pciScore = Math.max(0, pciScore);
+      }
+
+      // FCA Compliance Check
+      if (complianceChecks?.fca) {
+        fcaScore = 100;
+        
+        const hasRiskWarning = /capital\s*at\s*risk/i.test(html) || /may\s*lose\s*(money|value)/i.test(html);
+        const hasOmbudsman = /financial\s*ombudsman/i.test(html) || /fos\.org/i.test(html);
+        const hasFcaRegistration = /fca\s*(registered|authorised|regulated)/i.test(html) || /financial\s*conduct\s*authority/i.test(html);
+
+        if (!hasRiskWarning) {
+          findings.push({
+            category: "fca",
+            issue: "No capital at risk warning found",
+            impact: "FCA requires clear risk warnings on financial promotions",
+            priority: "critical",
+            howToFix: "Add 'Capital at risk' or similar warning prominently on investment pages",
+            passed: false,
+          });
+          fcaScore -= 35;
+        } else {
+          findings.push({
+            category: "fca",
+            issue: "Risk warning present",
+            impact: "Complies with FCA financial promotion rules",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+
+        if (!hasOmbudsman) {
+          findings.push({
+            category: "fca",
+            issue: "No Financial Ombudsman Service reference found",
+            impact: "FCA regulated firms must provide FOS information",
+            priority: "important",
+            howToFix: "Add a link to the Financial Ombudsman Service and explain how customers can make complaints",
+            passed: false,
+          });
+          fcaScore -= 20;
+        }
+
+        if (!hasFcaRegistration) {
+          findings.push({
+            category: "fca",
+            issue: "No FCA registration statement found",
+            impact: "Regulated firms should display their FCA registration status",
+            priority: "important",
+            howToFix: "Add 'Authorised and regulated by the Financial Conduct Authority' with your FRN number",
+            passed: false,
+          });
+          fcaScore -= 15;
+        }
+
+        fcaScore = Math.max(0, fcaScore);
+      }
+
+      // GDPR Compliance Check
+      if (complianceChecks?.gdpr) {
+        gdprScore = 100;
+        
+        const hasPrivacyPolicy = $('a[href*="privacy"], a:contains("Privacy Policy"), a:contains("privacy policy")').length > 0;
+        const hasCookieConsent = /cookie\s*(consent|banner|notice)/i.test(html) || $('[class*="cookie"], [id*="cookie"], [class*="consent"]').length > 0;
+        const hasDataRights = /right\s*to\s*(access|erasure|deletion|be\s*forgotten)/i.test(html) || /data\s*(subject|protection)\s*rights/i.test(html);
+
+        if (!hasPrivacyPolicy) {
+          findings.push({
+            category: "gdpr",
+            issue: "No privacy policy link found",
+            impact: "GDPR requires clear privacy notices explaining data processing",
+            priority: "critical",
+            howToFix: "Add a visible 'Privacy Policy' link in your footer or navigation",
+            passed: false,
+          });
+          gdprScore -= 35;
+        } else {
+          findings.push({
+            category: "gdpr",
+            issue: "Privacy policy link present",
+            impact: "Users can understand how their data is processed",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+
+        if (!hasCookieConsent) {
+          findings.push({
+            category: "gdpr",
+            issue: "No cookie consent mechanism detected",
+            impact: "GDPR requires informed consent before setting non-essential cookies",
+            priority: "important",
+            howToFix: "Implement a cookie consent banner that allows users to accept or reject cookies",
+            passed: false,
+          });
+          gdprScore -= 25;
+        } else {
+          findings.push({
+            category: "gdpr",
+            issue: "Cookie consent mechanism present",
+            impact: "Users can control their cookie preferences",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+
+        if (!hasDataRights) {
+          findings.push({
+            category: "gdpr",
+            issue: "No data subject rights information found",
+            impact: "GDPR requires informing users of their rights (access, erasure, etc.)",
+            priority: "optional",
+            howToFix: "Include information about data subject rights in your privacy policy",
+            passed: false,
+          });
+          gdprScore -= 15;
+        }
+
+        gdprScore = Math.max(0, gdprScore);
+      }
       
       // Recalculate overall score with email security
       const updatedOverallScore = Math.round((seoScore + Math.max(0, securityScore) + performanceScore + keywordsScore + accessibilityScore + emailSecurity.emailSecurityScore) / 6);
@@ -2382,6 +2724,13 @@ Your primary goal is to help users AND capture their contact information natural
         blacklistStatus: blacklistInfo.blacklistStatus,
         blacklistDetails: blacklistInfo.blacklistDetails as any,
         contentLastModified,
+        fdicScore,
+        secScore,
+        adaScore,
+        pciScore,
+        fcaScore,
+        gdprScore,
+        complianceFlags: complianceChecks || null,
       });
 
       // Generate and update share token and QR code
