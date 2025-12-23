@@ -28,7 +28,8 @@ import {
   Building,
   Scale,
   CreditCard,
-  Cookie
+  Cookie,
+  RefreshCw
 } from "lucide-react";
 import { trackPageView } from "@/lib/analytics";
 
@@ -435,6 +436,18 @@ export default function Report() {
             <Button onClick={handleDownloadPDF} className="gap-2" data-testid="button-download-pdf">
               <Download className="w-4 h-4" />
               Download PDF Report
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                const url = encodeURIComponent(result?.url || '');
+                window.location.href = `/grader?rescan=${url}`;
+              }} 
+              className="gap-2"
+              data-testid="button-rescan"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Rescan Website
             </Button>
             <Button variant="outline" onClick={() => window.location.href = "/grader"} data-testid="button-analyze-own">
               Analyze Your Website

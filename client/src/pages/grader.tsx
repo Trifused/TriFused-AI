@@ -3,8 +3,9 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { 
   Search, 
   Shield, 
@@ -232,10 +233,30 @@ export default function Grader() {
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const { toast } = useToast();
+  const [location] = useLocation();
+  const hasAutoScanned = useRef(false);
 
   useEffect(() => {
     trackPageView('/grader');
     setScanHistory(loadHistory());
+    
+    // Check for rescan parameter
+    const params = new URLSearchParams(window.location.search);
+    const rescanUrl = params.get('rescan');
+    if (rescanUrl && !hasAutoScanned.current) {
+      hasAutoScanned.current = true;
+      const decodedUrl = decodeURIComponent(rescanUrl);
+      setUrl(decodedUrl);
+      // Auto-start scan after a brief delay
+      setTimeout(() => {
+        let processedUrl = decodedUrl.trim();
+        if (!processedUrl.startsWith("http://") && !processedUrl.startsWith("https://")) {
+          processedUrl = "https://" + processedUrl;
+        }
+        trackEvent('grader_rescan', 'website_grader', processedUrl);
+        gradeMutation.mutate(processedUrl);
+      }, 100);
+    }
   }, []);
 
   const gradeMutation = useMutation({
