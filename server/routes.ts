@@ -1661,9 +1661,13 @@ Your primary goal is to help users AND capture their contact information natural
       }
       
       // Check for cached result
-      const cached = await storage.getRecentGradeForUrl(url);
-      if (cached) {
-        return res.json(cached);
+      // Only use cache if no compliance checks are requested
+      const hasComplianceChecks = complianceChecks && Object.values(complianceChecks).some(v => v);
+      if (!hasComplianceChecks) {
+        const cached = await storage.getRecentGradeForUrl(url);
+        if (cached) {
+          return res.json(cached);
+        }
       }
 
       const findings: Finding[] = [];
