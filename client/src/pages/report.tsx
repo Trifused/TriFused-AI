@@ -361,83 +361,6 @@ export default function Report() {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-4xl mx-auto"
         >
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10 mb-6">
-            <form onSubmit={handleScanSubmit} className="flex gap-2">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  value={scanUrl}
-                  onChange={(e) => setScanUrl(e.target.value)}
-                  placeholder="Analyze another website..."
-                  className="pl-10 bg-white/5 border-white/10"
-                  data-testid="input-rescan-url"
-                />
-              </div>
-              <Button type="submit" className="bg-cyan-500 hover:bg-cyan-600" data-testid="button-rescan">
-                <Search className="w-4 h-4 mr-2" />
-                Scan
-              </Button>
-              {scanHistory.length > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowHistory(!showHistory)}
-                  className="border-white/20"
-                  data-testid="button-toggle-history"
-                >
-                  <History className="w-4 h-4" />
-                </Button>
-              )}
-            </form>
-            
-            {showHistory && scanHistory.length > 0 && (
-              <div className="mt-4 border-t border-white/10 pt-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                    <History className="w-4 h-4" />
-                    Scan History
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearHistory}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-7 px-2"
-                    data-testid="button-clear-history"
-                  >
-                    <Trash2 className="w-3 h-3 mr-1" />
-                    Clear
-                  </Button>
-                </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {scanHistory.map((item, index) => (
-                    <button
-                      key={item.id}
-                      onClick={() => handleHistoryClick(item)}
-                      className="w-full flex items-center justify-between p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-left"
-                      data-testid={`button-history-item-${index}`}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-cyan-400 font-mono truncate">{item.url}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(item.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 ml-3">
-                        <span className={`text-lg font-bold ${
-                          item.overallScore >= 80 ? "text-green-400" :
-                          item.overallScore >= 60 ? "text-yellow-400" : "text-red-400"
-                        }`}>
-                          {getGradeLetter(item.overallScore)}
-                        </span>
-                        <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Website Grade Report</h1>
             <p className="text-cyan-400 font-mono">{result.url}</p>
@@ -596,6 +519,84 @@ export default function Report() {
             <Button variant="outline" onClick={() => window.location.href = "/grader"} data-testid="button-analyze-own">
               Analyze Your Website
             </Button>
+          </div>
+
+          <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Search className="w-5 h-5 text-cyan-400" />
+              Analyze Another Website
+            </h3>
+            <form onSubmit={handleScanSubmit} className="flex gap-2 mb-4">
+              <div className="flex-1 relative">
+                <Input
+                  value={scanUrl}
+                  onChange={(e) => setScanUrl(e.target.value)}
+                  placeholder="Enter website URL..."
+                  className="bg-white/5 border-white/10"
+                  data-testid="input-rescan-url-bottom"
+                />
+              </div>
+              <Button type="submit" className="bg-cyan-500 hover:bg-cyan-600" data-testid="button-rescan-bottom">
+                Scan
+              </Button>
+            </form>
+            
+            {scanHistory.length > 0 && (
+              <div className="border-t border-white/10 pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <button 
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="text-sm font-medium text-white flex items-center gap-2 hover:text-cyan-400 transition-colors"
+                    data-testid="button-toggle-history-bottom"
+                  >
+                    <History className="w-4 h-4" />
+                    Recent Scans ({scanHistory.length})
+                    <span className={`transition-transform ${showHistory ? 'rotate-180' : ''}`}>▼</span>
+                  </button>
+                  {showHistory && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearHistory}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-7 px-2"
+                      data-testid="button-clear-history-bottom"
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                
+                {showHistory && (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {scanHistory.map((item, index) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleHistoryClick(item)}
+                        className="w-full flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-left"
+                        data-testid={`button-history-item-bottom-${index}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-cyan-400 font-mono truncate">{item.url}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(item.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 ml-3">
+                          <span className={`text-lg font-bold ${
+                            item.overallScore >= 80 ? "text-green-400" :
+                            item.overallScore >= 60 ? "text-yellow-400" : "text-red-400"
+                          }`}>
+                            {getGradeLetter(item.overallScore)}
+                          </span>
+                          <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="bg-white/5 rounded-2xl p-8 border border-white/10 mb-8">
