@@ -127,6 +127,24 @@ interface AnalyticsResponse {
   data: AnalyticsData | null;
 }
 
+interface WebsiteGrade {
+  id: string;
+  url: string;
+  email: string | null;
+  overallScore: number;
+  seoScore: number;
+  securityScore: number;
+  performanceScore: number;
+  keywordsScore: number;
+  accessibilityScore: number;
+  companyName: string | null;
+  companyDescription: string | null;
+  domain: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
 export default function Admin() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -225,6 +243,18 @@ export default function Admin() {
       return res.json();
     },
     enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'analytics',
+  });
+
+  const { data: graderLeads = [], isLoading: graderLoading } = useQuery<WebsiteGrade[]>({
+    queryKey: ['/api/admin/grades'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/grades', {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch grader leads');
+      return res.json();
+    },
+    enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'grader',
   });
 
   const internalStats = {
@@ -554,6 +584,10 @@ export default function Admin() {
             <TabsTrigger value="analytics" className="data-[state=active]:bg-primary" data-testid="tab-analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
+            </TabsTrigger>
+            <TabsTrigger value="grader" className="data-[state=active]:bg-primary" data-testid="tab-grader">
+              <Globe className="w-4 h-4 mr-2" />
+              Grader Leads
             </TabsTrigger>
           </TabsList>
 
@@ -1189,6 +1223,103 @@ export default function Admin() {
                 </>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="grader">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="glass-panel rounded-2xl overflow-hidden"
+            >
+              <div className="p-4 border-b border-white/5 bg-white/5">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-white">Website Grader Leads</h2>
+                  <div className="text-sm text-muted-foreground">
+                    {graderLeads.length} total scans
+                  </div>
+                </div>
+              </div>
+
+              {graderLoading ? (
+                <div className="p-12 text-center">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-muted-foreground">Loading grader leads...</p>
+                </div>
+              ) : graderLeads.length === 0 ? (
+                <div className="p-12 text-center">
+                  <Globe className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                  <p className="text-muted-foreground">No website grader submissions yet</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-white/5">
+                  {graderLeads.map((grade, index) => (
+                    <motion.div
+                      key={grade.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="p-4 hover:bg-white/5 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <a 
+                              href={grade.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-white font-medium hover:text-primary transition-colors truncate"
+                            >
+                              {grade.domain || grade.url}
+                            </a>
+                            <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                          </div>
+                          {grade.companyName && (
+                            <p className="text-sm text-primary mb-1">{grade.companyName}</p>
+                          )}
+                          {grade.companyDescription && (
+                            <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{grade.companyDescription}</p>
+                          )}
+                          <div className="flex flex-wrap gap-2 text-xs">
+                            <span className="px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
+                              SEO: {grade.seoScore}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
+                              Security: {grade.securityScore}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
+                              Perf: {grade.performanceScore}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
+                              Keywords: {grade.keywordsScore}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
+                              A11y: {grade.accessibilityScore}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                            <span>{format(new Date(grade.createdAt), 'MMM d, yyyy h:mm a')}</span>
+                            {grade.ipAddress && <span>IP: {grade.ipAddress}</span>}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                          <div className={`text-3xl font-bold ${
+                            grade.overallScore >= 90 ? 'text-green-400' :
+                            grade.overallScore >= 80 ? 'text-cyan-400' :
+                            grade.overallScore >= 70 ? 'text-yellow-400' :
+                            grade.overallScore >= 60 ? 'text-orange-400' :
+                            'text-red-400'
+                          }`}>
+                            {grade.overallScore}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Score</div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
           </TabsContent>
         </Tabs>
       </main>

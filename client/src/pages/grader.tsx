@@ -3,7 +3,7 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { 
   Search, 
@@ -24,6 +24,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { trackEvent, trackPageView } from "@/lib/analytics";
 
 interface Finding {
   category: "seo" | "security" | "performance" | "keywords" | "accessibility";
@@ -167,6 +168,10 @@ export default function Grader() {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    trackPageView('/grader');
+  }, []);
+
   const gradeMutation = useMutation({
     mutationFn: async (websiteUrl: string) => {
       const response = await fetch("/api/grade", {
@@ -182,6 +187,7 @@ export default function Grader() {
     },
     onSuccess: (data) => {
       setResult(data);
+      trackEvent('grader_complete', 'website_grader', data.url, data.overallScore);
     },
   });
 
@@ -191,11 +197,13 @@ export default function Grader() {
     if (!processedUrl.startsWith("http://") && !processedUrl.startsWith("https://")) {
       processedUrl = "https://" + processedUrl;
     }
+    trackEvent('grader_start', 'website_grader', processedUrl);
     gradeMutation.mutate(processedUrl);
   };
 
   const handleDownloadPDF = async () => {
     if (!result) return;
+    trackEvent('grader_pdf_download', 'website_grader', result.url);
     try {
       const response = await fetch(`/api/grade/${result.id}/pdf`);
       if (!response.ok) throw new Error("Failed to download PDF");
@@ -215,7 +223,7 @@ export default function Grader() {
 
   const handleCopyResults = async () => {
     if (!result) return;
-    
+    trackEvent('grader_copy_results', 'website_grader', result.url);
     const issues = result.findings.filter(f => !f.passed);
     const passes = result.findings.filter(f => f.passed);
     
