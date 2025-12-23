@@ -1503,6 +1503,7 @@ Your primary goal is to help users AND capture their contact information natural
     url: z.string().url(),
     email: z.string().email().optional(),
     complianceChecks: z.record(z.boolean()).optional(),
+    forceRefresh: z.boolean().optional(),
   });
 
   interface Finding {
@@ -1656,7 +1657,7 @@ Your primary goal is to help users AND capture their contact information natural
 
   app.post("/api/grade", async (req: Request, res: Response) => {
     try {
-      const { url, email, complianceChecks } = gradeUrlSchema.parse(req.body);
+      const { url, email, complianceChecks, forceRefresh } = gradeUrlSchema.parse(req.body);
       
       // SSRF protection: validate URL before fetching
       const urlValidation = await validateUrl(url);
@@ -1665,9 +1666,9 @@ Your primary goal is to help users AND capture their contact information natural
       }
       
       // Check for cached result
-      // Only use cache if no compliance checks are requested
+      // Only use cache if no compliance checks are requested and not forcing refresh
       const hasComplianceChecks = complianceChecks && Object.values(complianceChecks).some(v => v);
-      if (!hasComplianceChecks) {
+      if (!hasComplianceChecks && !forceRefresh) {
         const cached = await storage.getRecentGradeForUrl(url);
         if (cached) {
           return res.json(cached);

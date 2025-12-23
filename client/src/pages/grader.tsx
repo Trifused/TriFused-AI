@@ -237,6 +237,7 @@ export default function Grader() {
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [complianceChecks, setComplianceChecks] = useState<Record<string, boolean>>({});
+  const [forceRefresh, setForceRefresh] = useState(false);
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const { toast } = useToast();
@@ -271,7 +272,7 @@ export default function Grader() {
       const response = await fetch("/api/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: websiteUrl, complianceChecks }),
+        body: JSON.stringify({ url: websiteUrl, complianceChecks, forceRefresh }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -501,6 +502,22 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                     <span className="ml-1 text-xs opacity-70">({option.description})</span>
                   </button>
                 ))}
+              </div>
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setForceRefresh(!forceRefresh)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                    forceRefresh
+                      ? "bg-orange-500/20 border-orange-500 text-orange-400"
+                      : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
+                  }`}
+                  data-testid="checkbox-force-refresh"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Force Fresh Scan</span>
+                  <span className="text-xs opacity-70">(bypass 24h cache)</span>
+                </button>
               </div>
             </div>
 
