@@ -272,6 +272,7 @@ export const websiteGrades = pgTable("website_grades", {
   securityScore: integer("security_score").notNull(),
   performanceScore: integer("performance_score").notNull(),
   keywordsScore: integer("keywords_score").notNull(),
+  accessibilityScore: integer("accessibility_score").notNull().default(100),
   findings: jsonb("findings").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

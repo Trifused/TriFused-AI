@@ -1263,7 +1263,7 @@ Your primary goal is to help users AND capture their contact information natural
   });
 
   interface Finding {
-    category: "seo" | "security" | "performance" | "keywords";
+    category: "seo" | "security" | "performance" | "keywords" | "accessibility";
     issue: string;
     impact: string;
     priority: "critical" | "important" | "optional";
@@ -1428,6 +1428,7 @@ Your primary goal is to help users AND capture their contact information natural
       let securityScore = 100;
       let performanceScore = 70;
       let keywordsScore = 100;
+      let accessibilityScore = 100;
 
       // Fetch the website
       const controller = new AbortController();
@@ -1741,6 +1742,179 @@ Your primary goal is to help users AND capture their contact information natural
         });
       }
 
+      // WCAG Accessibility Checks
+      
+      // Check for missing form labels
+      const inputsWithoutLabels = $('input:not([type="hidden"]):not([type="submit"]):not([type="button"])').filter((_, el) => {
+        const id = $(el).attr('id');
+        const ariaLabel = $(el).attr('aria-label');
+        const ariaLabelledby = $(el).attr('aria-labelledby');
+        const hasLabel = id && $(`label[for="${id}"]`).length > 0;
+        return !hasLabel && !ariaLabel && !ariaLabelledby;
+      }).length;
+      
+      if (inputsWithoutLabels > 0) {
+        findings.push({
+          category: "accessibility",
+          issue: `${inputsWithoutLabels} form input(s) missing labels`,
+          impact: "Screen reader users won't know what to enter in these fields",
+          priority: inputsWithoutLabels > 3 ? "critical" : "important",
+          howToFix: "Add <label for='inputId'> or aria-label attribute to each input field",
+          passed: false,
+        });
+        accessibilityScore -= Math.min(20, inputsWithoutLabels * 5);
+      } else {
+        const totalInputs = $('input:not([type="hidden"]):not([type="submit"]):not([type="button"])').length;
+        if (totalInputs > 0) {
+          findings.push({
+            category: "accessibility",
+            issue: "All form inputs have proper labels",
+            impact: "Screen reader users can navigate forms",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+      }
+
+      // Check for buttons without accessible names
+      const buttonsWithoutText = $('button').filter((_, el) => {
+        const text = $(el).text().trim();
+        const ariaLabel = $(el).attr('aria-label');
+        const ariaLabelledby = $(el).attr('aria-labelledby');
+        const title = $(el).attr('title');
+        return !text && !ariaLabel && !ariaLabelledby && !title;
+      }).length;
+      
+      if (buttonsWithoutText > 0) {
+        findings.push({
+          category: "accessibility",
+          issue: `${buttonsWithoutText} button(s) without accessible text`,
+          impact: "Screen reader users won't know what these buttons do",
+          priority: "important",
+          howToFix: "Add text content, aria-label, or title attribute to buttons",
+          passed: false,
+        });
+        accessibilityScore -= Math.min(15, buttonsWithoutText * 5);
+      }
+
+      // Check for links without accessible names
+      const linksWithoutText = $('a[href]').filter((_, el) => {
+        const text = $(el).text().trim();
+        const ariaLabel = $(el).attr('aria-label');
+        const img = $(el).find('img[alt]');
+        return !text && !ariaLabel && img.length === 0;
+      }).length;
+      
+      if (linksWithoutText > 0) {
+        findings.push({
+          category: "accessibility",
+          issue: `${linksWithoutText} link(s) without accessible text`,
+          impact: "Screen reader users won't know where these links go",
+          priority: "important",
+          howToFix: "Add descriptive link text or aria-label to all links",
+          passed: false,
+        });
+        accessibilityScore -= Math.min(15, linksWithoutText * 3);
+      }
+
+      // Check heading hierarchy (h1 should come before h2, etc.)
+      const headings = $('h1, h2, h3, h4, h5, h6').toArray();
+      let headingIssues = 0;
+      let prevLevel = 0;
+      for (const heading of headings) {
+        const level = parseInt(heading.tagName.charAt(1));
+        if (prevLevel > 0 && level > prevLevel + 1) {
+          headingIssues++;
+        }
+        prevLevel = level;
+      }
+      
+      if (headingIssues > 0) {
+        findings.push({
+          category: "accessibility",
+          issue: "Heading hierarchy is inconsistent",
+          impact: "Screen reader users rely on heading structure for navigation",
+          priority: "important",
+          howToFix: "Use headings in order (h1, then h2, then h3). Don't skip levels",
+          passed: false,
+        });
+        accessibilityScore -= 10;
+      } else if (headings.length > 0) {
+        findings.push({
+          category: "accessibility",
+          issue: "Proper heading hierarchy",
+          impact: "Good structure for screen reader navigation",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      // Check for language attribute
+      const htmlLang = $('html').attr('lang');
+      if (!htmlLang) {
+        findings.push({
+          category: "accessibility",
+          issue: "Missing language attribute on <html>",
+          impact: "Screen readers may mispronounce content",
+          priority: "important",
+          howToFix: "Add lang attribute: <html lang=\"en\">",
+          passed: false,
+        });
+        accessibilityScore -= 10;
+      } else {
+        findings.push({
+          category: "accessibility",
+          issue: "Language attribute present",
+          impact: "Screen readers can pronounce content correctly",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      // Check for skip link (accessibility best practice)
+      const skipLink = $('a[href^="#"]:contains("skip"), a[href^="#"]:contains("Skip"), a.skip-link, a.sr-only').length;
+      if (skipLink === 0) {
+        findings.push({
+          category: "accessibility",
+          issue: "No skip navigation link found",
+          impact: "Keyboard users must tab through all navigation on every page",
+          priority: "optional",
+          howToFix: "Add a 'Skip to main content' link at the top of your page",
+          passed: false,
+        });
+        accessibilityScore -= 5;
+      } else {
+        findings.push({
+          category: "accessibility",
+          issue: "Skip navigation link present",
+          impact: "Keyboard users can skip repetitive content",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      // Check for tabindex misuse (positive values are problematic)
+      const badTabindex = $('[tabindex]').filter((_, el) => {
+        const val = parseInt($(el).attr('tabindex') || '0');
+        return val > 0;
+      }).length;
+      
+      if (badTabindex > 0) {
+        findings.push({
+          category: "accessibility",
+          issue: `${badTabindex} element(s) with positive tabindex values`,
+          impact: "Positive tabindex disrupts natural keyboard navigation order",
+          priority: "important",
+          howToFix: "Use tabindex='0' for focusable elements or tabindex='-1' to remove from tab order",
+          passed: false,
+        });
+        accessibilityScore -= 10;
+      }
+
       // Keywords Analysis
       const bodyText = $('body').text().replace(/\s+/g, ' ').trim();
       const keywords = extractKeywords(bodyText);
@@ -1871,8 +2045,8 @@ Your primary goal is to help users AND capture their contact information natural
         });
       }
 
-      // Calculate overall score
-      const overallScore = Math.round((seoScore + securityScore + performanceScore + keywordsScore) / 4);
+      // Calculate overall score (now includes accessibility)
+      const overallScore = Math.round((seoScore + securityScore + performanceScore + keywordsScore + accessibilityScore) / 5);
 
       // Ensure scores are within 0-100
       const finalScores = {
@@ -1881,6 +2055,7 @@ Your primary goal is to help users AND capture their contact information natural
         securityScore: Math.max(0, Math.min(100, securityScore)),
         performanceScore: Math.max(0, Math.min(100, performanceScore)),
         keywordsScore: Math.max(0, Math.min(100, keywordsScore)),
+        accessibilityScore: Math.max(0, Math.min(100, accessibilityScore)),
       };
 
       // Store the grade
@@ -2032,6 +2207,7 @@ Your primary goal is to help users AND capture their contact information natural
         { label: "Security", score: grade.securityScore },
         { label: "Performance", score: grade.performanceScore },
         { label: "Keywords", score: grade.keywordsScore },
+        { label: "A11y", score: grade.accessibilityScore ?? 100 },
       ];
 
       let xOffset = margin + gradeBoxSize + 30;
