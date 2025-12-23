@@ -415,6 +415,7 @@ ${result.findings.map(f => `[${f.passed ? 'PASS' : 'FAIL'}] ${f.issue} (${f.prio
         >
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Website Grade Report</h1>
+            <p className="text-xs text-muted-foreground mb-2">Free Tool - For informational purposes only</p>
             <p className="text-cyan-400 font-mono">{result.url}</p>
             {result.companyName && (
               <p className="text-muted-foreground mt-1">{result.companyName}</p>
@@ -618,6 +619,9 @@ ${result.findings.map(f => `[${f.passed ? 'PASS' : 'FAIL'}] ${f.issue} (${f.prio
                   </button>
                 ))}
               </div>
+              <p className="mt-3 text-xs text-muted-foreground text-center">
+                Free tool - Results are for informational purposes only
+              </p>
             </form>
           </div>
           
