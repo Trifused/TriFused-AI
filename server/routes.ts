@@ -306,6 +306,21 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
+  // Host-based routing: grader.trifused.com -> /grader
+  app.use((req, res, next) => {
+    const host = req.hostname || req.headers.host?.split(':')[0] || '';
+    
+    // If accessing from grader.trifused.com and not already on /grader path
+    if (host === 'grader.trifused.com' && !req.path.startsWith('/grader') && !req.path.startsWith('/api') && !req.path.startsWith('/report')) {
+      // Redirect root to grader page, preserve query string
+      if (req.path === '/') {
+        const queryString = Object.keys(req.query).length > 0 ? '?' + new URLSearchParams(req.query as Record<string, string>).toString() : '';
+        return res.redirect('/grader' + queryString);
+      }
+    }
+    next();
+  });
+  
   await setupAuth(app);
   
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
