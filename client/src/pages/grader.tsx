@@ -248,6 +248,9 @@ export default function Grader() {
     trackPageView('/grader');
     setScanHistory(loadHistory());
     
+    // Set page title for browser tab (meta tags are handled server-side for crawlers)
+    document.title = "Free Website Grader | TriFused";
+    
     // Check for rescan parameter
     const params = new URLSearchParams(window.location.search);
     const rescanUrl = params.get('rescan');
@@ -265,6 +268,10 @@ export default function Grader() {
         gradeMutation.mutate(processedUrl);
       }, 100);
     }
+    
+    return () => {
+      document.title = "TriFused | AI-Native Technology Services";
+    };
   }, []);
 
   const gradeMutation = useMutation({
