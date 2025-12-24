@@ -477,7 +477,10 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
           >
             <div className="flex gap-4">
               <Input
-                type="text"
+                type="url"
+                inputMode="url"
+                autoCapitalize="off"
+                autoCorrect="off"
                 placeholder="Enter your website URL (e.g., example.com)"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
@@ -864,7 +867,10 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   </h3>
                   <div className="flex gap-4">
                     <Input
-                      type="text"
+                      type="url"
+                      inputMode="url"
+                      autoCapitalize="off"
+                      autoCorrect="off"
                       placeholder="Enter your website URL (e.g., example.com)"
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
