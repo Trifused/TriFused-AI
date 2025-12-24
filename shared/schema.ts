@@ -274,6 +274,7 @@ export const websiteGrades = pgTable("website_grades", {
   keywordsScore: integer("keywords_score").notNull(),
   accessibilityScore: integer("accessibility_score").notNull().default(100),
   emailSecurityScore: integer("email_security_score").default(0),
+  mobileScore: integer("mobile_score").default(0),
   // Compliance scores (null if not checked)
   fdicScore: integer("fdic_score"),
   secScore: integer("sec_score"),

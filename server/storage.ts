@@ -484,7 +484,9 @@ class Storage implements IStorage {
       .orderBy(desc(websiteGrades.createdAt))
       .limit(1);
     
-    if (grade && new Date(grade.createdAt) > oneDayAgo) {
+    // Only return cached grades that have mobileScore computed (not legacy grades without mobile checks)
+    // A grade with mobileScore === 0 could be a legitimate poor mobile score, but null means it was never computed
+    if (grade && new Date(grade.createdAt) > oneDayAgo && grade.mobileScore !== null) {
       return grade;
     }
     return undefined;

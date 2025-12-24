@@ -1522,7 +1522,7 @@ Your primary goal is to help users AND capture their contact information natural
   });
 
   interface Finding {
-    category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr";
+    category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "mobile" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr";
     issue: string;
     impact: string;
     priority: "critical" | "important" | "optional";
@@ -1697,6 +1697,7 @@ Your primary goal is to help users AND capture their contact information natural
       let performanceScore = 70;
       let keywordsScore = 100;
       let accessibilityScore = 100;
+      let mobileScore = 100;
 
       // Fetch the website
       const controller = new AbortController();
@@ -1705,6 +1706,7 @@ Your primary goal is to help users AND capture their contact information natural
       let html = "";
       let responseHeaders: Record<string, string> = {};
       let isHttps = url.startsWith("https://");
+      let redirectCount = 0;
       
       try {
         let finalUrl = url;
@@ -1717,7 +1719,6 @@ Your primary goal is to help users AND capture their contact information natural
         });
         
         // Handle redirects safely (up to 5 redirects)
-        let redirectCount = 0;
         while (response.status >= 300 && response.status < 400 && redirectCount < 5) {
           const redirectUrl = response.headers.get('location');
           if (!redirectUrl) break;
@@ -2313,8 +2314,212 @@ Your primary goal is to help users AND capture their contact information natural
         });
       }
 
-      // Calculate overall score (now includes accessibility)
-      const overallScore = Math.round((seoScore + securityScore + performanceScore + keywordsScore + accessibilityScore) / 5);
+      // Mobile Checks
+      const viewportMeta = $('meta[name="viewport"]').attr('content') || '';
+      
+      // Check for viewport meta tag
+      if (!viewportMeta) {
+        findings.push({
+          category: "mobile",
+          issue: "Missing viewport meta tag",
+          impact: "Without a viewport meta tag, mobile browsers may render the page at desktop width and scale it down",
+          priority: "critical",
+          howToFix: 'Add <meta name="viewport" content="width=device-width, initial-scale=1"> to your <head> section',
+          passed: false,
+        });
+        mobileScore -= 25;
+      } else if (viewportMeta.includes('width=device-width')) {
+        findings.push({
+          category: "mobile",
+          issue: "Responsive viewport configured",
+          impact: "Page adapts properly to mobile screen sizes",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      } else {
+        findings.push({
+          category: "mobile",
+          issue: "Viewport meta tag missing width=device-width",
+          impact: "Page may not scale properly on mobile devices",
+          priority: "important",
+          howToFix: 'Update your viewport meta tag to include width=device-width: <meta name="viewport" content="width=device-width, initial-scale=1">',
+          passed: false,
+        });
+        mobileScore -= 15;
+      }
+
+      // Check for small font sizes in inline styles
+      const smallFontPattern = /font-size:\s*(\d+)(px|pt)/gi;
+      let match;
+      const htmlStr = html;
+      let hasSmallFonts = false;
+      while ((match = smallFontPattern.exec(htmlStr)) !== null) {
+        const size = parseInt(match[1]);
+        const unit = match[2].toLowerCase();
+        if ((unit === 'px' && size < 12) || (unit === 'pt' && size < 9)) {
+          hasSmallFonts = true;
+          break;
+        }
+      }
+      
+      if (hasSmallFonts) {
+        findings.push({
+          category: "mobile",
+          issue: "Small font sizes detected in inline styles",
+          impact: "Text smaller than 12px is difficult to read on mobile devices",
+          priority: "important",
+          howToFix: "Use a minimum font size of 16px for body text on mobile devices",
+          passed: false,
+        });
+        mobileScore -= 10;
+      } else {
+        findings.push({
+          category: "mobile",
+          issue: "No extremely small inline font sizes detected",
+          impact: "Text should be readable on mobile devices",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      // Check for minified JS
+      const scripts = $('script[src]');
+      const hasMinifiedJs = scripts.toArray().some(el => {
+        const src = $(el).attr('src') || '';
+        return src.includes('.min.js');
+      });
+      
+      if (hasMinifiedJs) {
+        findings.push({
+          category: "mobile",
+          issue: "Minified JavaScript detected",
+          impact: "Minified JS reduces file size and improves mobile load times",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      } else if (scripts.length > 0) {
+        findings.push({
+          category: "mobile",
+          issue: "JavaScript files may not be minified",
+          impact: "Unminified JS can slow down mobile page loads on cellular networks",
+          priority: "optional",
+          howToFix: "Minify your JavaScript files to reduce file size and improve load times",
+          passed: false,
+        });
+        mobileScore -= 5;
+      }
+
+      // Check for minified CSS
+      const stylesheets = $('link[rel="stylesheet"]');
+      const hasMinifiedCss = stylesheets.toArray().some(el => {
+        const href = $(el).attr('href') || '';
+        return href.includes('.min.css');
+      });
+      
+      if (hasMinifiedCss) {
+        findings.push({
+          category: "mobile",
+          issue: "Minified CSS detected",
+          impact: "Minified CSS reduces file size and improves mobile load times",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      } else if (stylesheets.length > 0) {
+        findings.push({
+          category: "mobile",
+          issue: "CSS files may not be minified",
+          impact: "Unminified CSS can slow down mobile page loads on cellular networks",
+          priority: "optional",
+          howToFix: "Minify your CSS files to reduce file size and improve load times",
+          passed: false,
+        });
+        mobileScore -= 5;
+      }
+
+      // Check redirect count (from earlier fetch)
+      if (redirectCount > 1) {
+        findings.push({
+          category: "mobile",
+          issue: `Multiple redirects detected (${redirectCount} redirects)`,
+          impact: "Each redirect adds latency, especially impactful on mobile networks",
+          priority: "important",
+          howToFix: "Reduce the number of redirects. Each redirect adds round-trip time that's especially noticeable on mobile.",
+          passed: false,
+        });
+        mobileScore -= 10;
+      } else if (redirectCount === 0) {
+        findings.push({
+          category: "mobile",
+          issue: "No redirects detected",
+          impact: "Direct access improves mobile page load time",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      } else {
+        findings.push({
+          category: "mobile",
+          issue: "Single redirect detected",
+          impact: "One redirect is acceptable but adds some latency",
+          priority: "optional",
+          howToFix: "",
+          passed: true,
+        });
+      }
+
+      // Check for image optimization (width/height attributes for CLS)
+      const mobileImages = $('img');
+      const imagesWithDimensions = mobileImages.filter((_, el) => {
+        const $el = $(el);
+        return !!($el.attr('width') && $el.attr('height'));
+      });
+      
+      const mobileImagesTotal = mobileImages.length;
+      const imagesWithDims = imagesWithDimensions.length;
+      
+      if (mobileImagesTotal > 0) {
+        const percentage = Math.round((imagesWithDims / mobileImagesTotal) * 100);
+        if (percentage < 50) {
+          findings.push({
+            category: "mobile",
+            issue: `Only ${percentage}% of images have width/height attributes`,
+            impact: "Missing dimensions cause layout shift (CLS) which hurts mobile UX and Core Web Vitals",
+            priority: "important",
+            howToFix: "Add width and height attributes to all <img> tags to prevent layout shift",
+            passed: false,
+          });
+          mobileScore -= 15;
+        } else if (percentage < 80) {
+          findings.push({
+            category: "mobile",
+            issue: `${percentage}% of images have width/height attributes`,
+            impact: "Some images may cause layout shift on mobile",
+            priority: "optional",
+            howToFix: "Add width and height attributes to remaining images to prevent layout shift",
+            passed: false,
+          });
+          mobileScore -= 5;
+        } else {
+          findings.push({
+            category: "mobile",
+            issue: "Most images have dimension attributes",
+            impact: "Helps prevent layout shift and improves mobile Core Web Vitals",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+      }
+
+      // Ensure mobile score stays in valid range
+      mobileScore = Math.max(0, Math.min(100, mobileScore));
+
+      // Calculate overall score (now includes accessibility and mobile)
+      const overallScore = Math.round((seoScore + securityScore + performanceScore + keywordsScore + accessibilityScore + mobileScore) / 6);
 
       // Ensure scores are within 0-100
       const finalScores = {
@@ -2324,6 +2529,7 @@ Your primary goal is to help users AND capture their contact information natural
         performanceScore: Math.max(0, Math.min(100, performanceScore)),
         keywordsScore: Math.max(0, Math.min(100, keywordsScore)),
         accessibilityScore: Math.max(0, Math.min(100, accessibilityScore)),
+        mobileScore: Math.max(0, Math.min(100, mobileScore)),
       };
 
       // Extract company/lead information from website
@@ -2716,8 +2922,8 @@ Your primary goal is to help users AND capture their contact information natural
         gdprScore = Math.max(0, gdprScore);
       }
       
-      // Recalculate overall score with email security
-      const updatedOverallScore = Math.round((seoScore + Math.max(0, securityScore) + performanceScore + keywordsScore + accessibilityScore + emailSecurity.emailSecurityScore) / 6);
+      // Recalculate overall score with email security and mobile
+      const updatedOverallScore = Math.round((seoScore + Math.max(0, securityScore) + performanceScore + keywordsScore + accessibilityScore + emailSecurity.emailSecurityScore + finalScores.mobileScore) / 7);
 
       // Store the grade with lead data
       const grade = await storage.createWebsiteGrade({
@@ -2730,6 +2936,7 @@ Your primary goal is to help users AND capture their contact information natural
         keywordsScore: finalScores.keywordsScore,
         accessibilityScore: finalScores.accessibilityScore,
         emailSecurityScore: emailSecurity.emailSecurityScore,
+        mobileScore: finalScores.mobileScore,
         findings: findings as any,
         companyName: companyName || null,
         companyDescription: companyDescription || null,
@@ -2883,22 +3090,22 @@ Your primary goal is to help users AND capture their contact information natural
       const red = rgb(0.9, 0.2, 0.2);
       const yellow = rgb(0.9, 0.7, 0.2);
 
-      function getGradeLetter(score: number): string {
+      const getGradeLetter = (score: number): string => {
         if (score >= 90) return "A";
         if (score >= 80) return "B";
         if (score >= 70) return "C";
         if (score >= 60) return "D";
         return "F";
-      }
+      };
 
-      function addNewPageIfNeeded(requiredHeight: number) {
+      const addNewPageIfNeeded = (requiredHeight: number) => {
         if (yPos - requiredHeight < margin) {
           page = pdfDoc.addPage([pageWidth, pageHeight]);
           yPos = pageHeight - margin;
         }
-      }
+      };
 
-      function wrapText(text: string, maxWidth: number, font: any, fontSize: number): string[] {
+      const wrapText = (text: string, maxWidth: number, font: any, fontSize: number): string[] => {
         const words = text.split(' ');
         const lines: string[] = [];
         let currentLine = '';
@@ -2915,7 +3122,7 @@ Your primary goal is to help users AND capture their contact information natural
         }
         if (currentLine) lines.push(currentLine);
         return lines;
-      }
+      };
 
       // Header - calculate proper width to avoid overlap
       const trifusedWidth = helveticaBold.widthOfTextAtSize("TriFused", 24);

@@ -35,13 +35,14 @@ import {
   RefreshCw,
   History,
   ExternalLink,
-  Trash2
+  Trash2,
+  Smartphone
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent, trackPageView } from "@/lib/analytics";
 
 interface Finding {
-  category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr";
+  category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "mobile" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr";
   issue: string;
   impact: string;
   priority: "critical" | "important" | "optional";
@@ -59,6 +60,7 @@ interface GradeResult {
   keywordsScore: number;
   accessibilityScore: number;
   emailSecurityScore: number;
+  mobileScore: number;
   findings: Finding[];
   createdAt: string;
   shareToken: string | null;
@@ -379,6 +381,7 @@ export default function Grader() {
 - Keywords: ${result.keywordsScore}/100
 - Accessibility: ${result.accessibilityScore}/100
 - Email Security: ${result.emailSecurityScore || 0}/100
+- Mobile: ${result.mobileScore || 0}/100
 
 ${issues.length > 0 ? `## Issues Found (${issues.length}):
 ${issues.map(f => `
@@ -415,6 +418,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
     { id: "keywords", label: "Keywords", icon: Key },
     { id: "accessibility", label: "Accessibility", icon: Accessibility },
     { id: "email", label: "Email Security", icon: Mail },
+    { id: "mobile", label: "Mobile", icon: Smartphone },
   ];
   
   const complianceCategories = [
@@ -667,6 +671,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                         <ScoreCircle score={result.keywordsScore} label="Keywords" icon={Key} />
                         <ScoreCircle score={result.accessibilityScore} label="Accessibility" icon={Accessibility} />
                         <ScoreCircle score={result.emailSecurityScore || 0} label="Email" icon={Mail} />
+                        <ScoreCircle score={result.mobileScore || 0} label="Mobile" icon={Smartphone} />
                         {result.fdicScore !== null && result.fdicScore !== undefined && (
                           <ScoreCircle score={result.fdicScore} label="FDIC" icon={Building} />
                         )}
