@@ -9,6 +9,9 @@ export function Navbar() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const isGraderSubdomain = typeof window !== 'undefined' && window.location.hostname === 'grader.trifused.com';
+  const mainSiteUrl = 'https://trifused.com';
 
   const navLinks = [
     { label: "Services", href: "/#services" },
@@ -20,10 +23,21 @@ export function Navbar() {
 
   const handleNavClick = (href: string) => {
     setMobileMenuOpen(false);
-    if (href.startsWith("/#")) {
-      window.location.href = href;
+    
+    if (isGraderSubdomain) {
+      if (href === '/grader') {
+        setLocation(href);
+      } else if (href.startsWith("/#") || href === '/blog' || href === '/portal') {
+        window.location.href = mainSiteUrl + href;
+      } else {
+        window.location.href = mainSiteUrl + href;
+      }
     } else {
-      setLocation(href);
+      if (href.startsWith("/#")) {
+        window.location.href = href;
+      } else {
+        setLocation(href);
+      }
     }
   };
 
@@ -31,7 +45,7 @@ export function Navbar() {
     <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-background/50 backdrop-blur-lg">
       <div className="container mx-auto px-6 h-20 flex items-center justify-between">
         <button 
-          onClick={() => setLocation("/")}
+          onClick={() => isGraderSubdomain ? window.location.href = mainSiteUrl : setLocation("/")}
           className="text-2xl font-bold font-heading tracking-tighter flex items-center gap-2"
         >
           <span className="text-primary">Tri</span>Fused
@@ -39,7 +53,7 @@ export function Navbar() {
             className="w-6 h-6 cursor-default" 
             onClick={(e) => {
               e.stopPropagation();
-              setLocation("/portal");
+              isGraderSubdomain ? window.location.href = mainSiteUrl + '/portal' : setLocation("/portal");
             }}
             data-testid="hidden-portal-link"
           />
@@ -63,7 +77,7 @@ export function Navbar() {
             <Button 
               variant="outline" 
               className="hidden md:flex border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/50 text-foreground transition-all duration-300"
-              onClick={() => setLocation("/portal/dashboard")}
+              onClick={() => isGraderSubdomain ? window.location.href = mainSiteUrl + '/portal/dashboard' : setLocation("/portal/dashboard")}
               data-testid="button-nav-dashboard"
             >
               {user?.profileImageUrl ? (
@@ -77,7 +91,7 @@ export function Navbar() {
             <Button 
               variant="outline" 
               className="hidden md:flex border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/50 text-foreground transition-all duration-300"
-              onClick={() => setLocation("/portal")}
+              onClick={() => isGraderSubdomain ? window.location.href = mainSiteUrl + '/portal' : setLocation("/portal")}
               data-testid="button-nav-portal"
             >
               Client Portal
@@ -134,7 +148,7 @@ export function Navbar() {
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      setLocation("/portal/dashboard");
+                      isGraderSubdomain ? window.location.href = mainSiteUrl + '/portal/dashboard' : setLocation("/portal/dashboard");
                     }}
                     className="w-full text-left py-3 px-4 rounded-lg text-sm font-medium text-muted-foreground hover:bg-white/5 hover:text-primary transition-colors flex items-center gap-2"
                   >
@@ -149,7 +163,7 @@ export function Navbar() {
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      setLocation("/portal");
+                      isGraderSubdomain ? window.location.href = mainSiteUrl + '/portal' : setLocation("/portal");
                     }}
                     className="w-full text-left py-3 px-4 rounded-lg text-sm font-medium text-muted-foreground hover:bg-white/5 hover:text-primary transition-colors"
                   >
