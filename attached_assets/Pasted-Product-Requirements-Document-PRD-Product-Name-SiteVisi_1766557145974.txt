@@ -1,0 +1,94 @@
+Product Requirements Document (PRD)
+Product Name: SiteVision AI Auditor Version: 1.0 Date: December 23, 2025 Author: [Your Name/Team] Status: Draft
+1. Overview & Purpose
+SiteVision AI Auditor is a SaaS web application that provides instant, comprehensive website performance and accessibility audits. Users submit a website URL and receive:
+	•	A detailed performance report powered by Google PageSpeed Insights (Lighthouse engine), including Core Web Vitals, scores, and optimization recommendations.
+	•	AI-powered visual analysis of the rendered page screenshot, identifying accessibility issues (e.g., low contrast, tiny text, missing alt text on images, overlays blocking content, cookie banners) that standard HTML-based tools miss.
+The product combines reliable, free third-party data with advanced AI vision capabilities to deliver deeper, more actionable insights than basic free graders—positioning it as a premium tool for agencies, freelancers, marketers, and web developers.
+Why build this? Existing free tools (PageSpeed Insights, GTmetrix) provide great data but lack rendered-page visual compliance checks. Paid tools charge $50–$300/month for similar aggregation + extras. SiteVision fills the gap with AI-enhanced reports at an accessible price point.
+2. Goals & Objectives
+	•	Business Goals:
+	◦	Achieve 500 paying users in the first 12 months.
+	◦	Generate recurring revenue through subscriptions.
+	◦	Establish brand as an innovative AI-powered website health tool.
+	•	Product Goals:
+	◦	Deliver audits in under 10 seconds.
+	◦	Provide reports that are 30% more insightful than Google PSI alone (via AI visual notes).
+	◦	Ensure 100% compliance with third-party TOS (Google PSI commercial use allowed; AI vision on public screenshots).
+	•	Success Metrics:
+	◦	Conversion rate from free trial audits to paid subscription: >15%.
+	◦	Monthly audit volume: 10,000+ in first 6 months.
+	◦	NPS > 40 from user feedback.
+	◦	Churn rate < 10% monthly.
+	◦	Average report score accuracy validated against manual reviews.
+3. Target Audience & User Personas
+	•	Primary Users:
+	◦	Digital agencies & SEO consultants (need white-labeled reports for clients).
+	◦	Freelance web developers/designers (quick checks before launch).
+	◦	Marketing teams (monitoring site health impacting conversions).
+	◦	Small business owners (DIY optimization).
+	•	Key Persona Example:
+	◦	Alex, 32, freelance web dev: Runs 5–10 audits/week, needs fast visual accessibility flags to fix issues before client sign-off. Budget: $29–$99/month.
+4. Key Features
+MVP (Minimum Viable Product)
+	1	URL Submission & Audit Trigger
+	◦	Simple input form for website URL.
+	◦	Instant audit on submit (no signup for free tier trials).
+	2	Core Data Integration
+	◦	Fetch Google PageSpeed Insights JSON (mobile + desktop).
+	◦	Extract performance scores, Core Web Vitals, diagnostics, and full-page screenshot.
+	3	AI Visual Analysis
+	◦	Send screenshot to vision model (Claude 3.5 Sonnet or equivalent).
+	◦	Prompt: Identify accessibility/compliance issues visible in the rendered page (contrast, text size, overlays, image alt gaps, etc.).
+	◦	Return bullet-point insights.
+	4	Report Generation
+	◦	Clean, branded PDF/HTML report combining:
+	▪	PSI scores & recommendations.
+	▪	AI visual findings.
+	▪	Overall “health grade” (aggregated score).
+	◦	Downloadable + shareable link.
+	5	User Accounts & History
+	◦	Signup/login (email or Google).
+	◦	Dashboard with past audits.
+Post-MVP (Future Phases)
+	•	Historical tracking & alerts.
+	•	Bulk audits (multiple URLs).
+	•	White-label reports for agencies.
+	•	Additional integrations (e.g., WebPageTest if self-hosted).
+	•	Custom AI prompts per user.
+5. User Flows
+	1	Free Trial Audit
+	◦	Visit homepage → Enter URL → View instant report (limited to 3/month without signup).
+	2	Paid Audit
+	◦	Logged-in user → Dashboard → New audit → Full report + history.
+	3	Subscription Flow
+	◦	After free audits → Prompt to subscribe → Stripe checkout → Unlock unlimited.
+6. Technical Requirements
+	•	Backend: Python (Flask or FastAPI) on Replit/Vercel/Heroku.
+	•	APIs:
+	◦	Google PageSpeed Insights API (free key required).
+	◦	Anthropic Claude API (or OpenAI GPT-4o vision) for AI analysis.
+	•	Frontend: Simple React or plain HTML/JS (Replit-friendly).
+	•	Payments: Stripe subscriptions ($29/month basic, $79 agency plan).
+	•	Data Storage: Replit DB or Firebase for user accounts/history.
+	•	Hosting: Replit for prototype → Scale to Vercel/Netlify + serverless backend.
+	•	Rate Limiting: Respect API limits; cache results where possible.
+Non-Functional Requirements:
+	•	Response time: <10s per audit.
+	•	Uptime: 99.9%.
+	•	Security: HTTPS, no storage of sensitive data.
+	•	Scalability: Handle 100 concurrent audits.
+7. Pricing & Monetization
+	•	Free Tier: 5 audits/month (basic report, watermarked).
+	•	Pro: $29/month – Unlimited audits, full AI insights, PDF exports.
+	•	Agency: $99/month – White-label, team seats, priority support.
+8. Risks & Dependencies
+	•	API changes from Google/Anthropic.
+	•	Vision model costs (monitor usage).
+	•	Competitor response (differentiate with AI depth).
+9. Timeline (High-Level)
+	•	Week 1–2: Prototype core audit (PSI + AI vision).
+	•	Week 3: Frontend + report UI.
+	•	Week 4: Stripe integration + accounts.
+	•	Week 5: Testing & launch MVP.
+This PRD is a living document—feel free to tweak it as we build. Drop this into Notion, Google Docs, or wherever your team collaborates best. Ready to start coding the next piece?

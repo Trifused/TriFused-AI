@@ -148,31 +148,65 @@ A: Scan history is stored in your browser's localStorage (key: `trifused_scan_hi
 
 ### Feature Flags System
 
-The platform uses a feature flag system (`shared/feature-flags.ts`) to manage free, paid, and coming soon features:
+The platform uses a feature flag system (`shared/feature-flags.ts`) to manage free, paid, and coming soon features. Super admins can view all feature flags in the Admin Panel → Features tab.
 
 **Feature Statuses:**
 - `free` - Available to all users
 - `paid` - Requires subscription (tier-based)
 - `coming_soon` - Announced but not yet available
+- `disabled` - Feature is turned off
 
 **Feature Tiers:**
 - `basic` - Entry-level paid features
-- `pro` - Professional tier features
+- `pro` - Professional tier features  
 - `enterprise` - Enterprise-only features
+- `api` - API access tier
+
+**Feature Categories:**
+- `grader` - Website grader features
+- `reports` - Report generation features
+- `api` - TrifusedAI API features
+- `payments` - Payment and subscription features
+- `portal` - User portal features
 
 **Current Premium Features (Coming Soon):**
-- AI Vision Detection - Visual badge detection using AI
-- Scheduled Scans - Automated recurring website scans
-- Bulk Scans - Scan multiple websites at once
-- White Label Reports - Custom branded PDF reports
-- API Access - Programmatic grader access
+
+*Grader:*
+- Google Lighthouse Integration - Core Web Vitals powered by Lighthouse ($pro)
+- AI Vision Detection - Visual badge detection using AI ($pro)
+- Scheduled Scans - Automated recurring website scans ($pro)
+- Multi-Site Monitoring - Monitor multiple websites ($pro)
+- Bulk Scans - Scan multiple websites at once ($enterprise)
+
+*Reports:*
+- Advanced AI Compliance Report - One-time purchase ($9.99)
+- White Label Reports - Custom branded PDF reports ($enterprise)
+- PDF Export - Download reports as PDF ($pro)
+
+*API (TrifusedAI):*
+- TrifusedAI API - REST API access ($25.67/year)
+- POST /v1/score Endpoint - Machine-callable health check
+- Lighthouse Mode - Include Lighthouse data in API responses
+- CI/CD Integrations - GitHub Actions, Jenkins, GitLab CI support
+
+*Payments:*
+- Stripe Payments - Payment processing integration
+- One-Time Purchases - Pay-per-report for AI reports
+- Subscription Plans - Monthly plans for multi-site/scheduled scans
+- API Access Tier - $25.67/year for 1000 calls/month
+
+*Portal:*
+- API Key Management - Generate and manage API keys
+- Usage Statistics - Track API usage and quotas
+- Team Seats - Add team members ($enterprise)
 
 **UI Components:**
-- `FeatureBadge` - Shows Coming Soon/Paid badges
+- `FeatureBadge` - Shows Coming Soon/Paid badges with tier colors
 - `FeatureGate` - Conditionally renders content based on feature status
 
 **Adding New Features:**
 1. Add feature to `FEATURE_FLAGS` in `shared/feature-flags.ts`
-2. Set initial status to `coming_soon` or `paid`
-3. Use `FeatureBadge` component to show status
-4. When ready, change status to `free` to enable
+2. Set category, status, tier, and optional price
+3. Use `FeatureBadge` component to show status in UI
+4. View all flags in Admin Panel → Features tab
+5. When ready to launch, change status to `free` or `paid`

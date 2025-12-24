@@ -30,8 +30,13 @@ import {
   Monitor,
   Smartphone,
   Tablet,
-  ExternalLink
+  ExternalLink,
+  Settings,
+  Sparkles,
+  Zap
 } from "lucide-react";
+import { FEATURE_FLAGS, type FeatureFlag, type FeatureStatus, type FeatureCategory } from "@shared/feature-flags";
+import { FeatureBadge } from "@/components/ui/feature-badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -588,6 +593,10 @@ export default function Admin() {
             <TabsTrigger value="grader" className="data-[state=active]:bg-primary" data-testid="tab-grader">
               <Globe className="w-4 h-4 mr-2" />
               Grader Leads
+            </TabsTrigger>
+            <TabsTrigger value="features" className="data-[state=active]:bg-primary" data-testid="tab-features">
+              <Settings className="w-4 h-4 mr-2" />
+              Features
             </TabsTrigger>
           </TabsList>
 
@@ -1319,6 +1328,92 @@ export default function Admin() {
                   ))}
                 </div>
               )}
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="features">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="space-y-6"
+            >
+              <div className="glass-panel rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                      Feature Flags
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Control which features are available to users. Toggle features between free, paid, coming soon, or disabled.
+                    </p>
+                  </div>
+                </div>
+
+                {(['grader', 'reports', 'api', 'payments', 'portal'] as FeatureCategory[]).map((category) => {
+                  const categoryFeatures = Object.entries(FEATURE_FLAGS).filter(([_, f]) => f.category === category);
+                  if (categoryFeatures.length === 0) return null;
+                  
+                  const categoryLabels: Record<FeatureCategory, string> = {
+                    grader: 'Website Grader',
+                    reports: 'Reports',
+                    api: 'API',
+                    payments: 'Payments',
+                    portal: 'Portal',
+                  };
+
+                  return (
+                    <div key={category} className="mb-8">
+                      <h3 className="text-sm font-semibold text-primary uppercase tracking-wider mb-4 flex items-center gap-2">
+                        {category === 'grader' && <Globe className="w-4 h-4" />}
+                        {category === 'api' && <Zap className="w-4 h-4" />}
+                        {category === 'payments' && <Crown className="w-4 h-4" />}
+                        {category === 'reports' && <BarChart3 className="w-4 h-4" />}
+                        {category === 'portal' && <Users className="w-4 h-4" />}
+                        {categoryLabels[category]}
+                      </h3>
+                      <div className="space-y-3">
+                        {categoryFeatures.map(([key, feature]) => (
+                          <div 
+                            key={key}
+                            className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10 hover:border-white/20 transition-colors"
+                            data-testid={`feature-row-${feature.id}`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-3">
+                                <span className="font-medium text-white">{feature.name}</span>
+                                <FeatureBadge status={feature.status} tier={feature.tier} />
+                                {feature.price && (
+                                  <span className="text-xs text-cyan-400 font-mono">{feature.price}</span>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground mt-1">{feature.description}</p>
+                            </div>
+                            <div className="flex items-center gap-3 ml-4">
+                              <span className={`text-xs font-mono px-2 py-1 rounded ${
+                                feature.status === 'free' ? 'bg-green-500/20 text-green-400' :
+                                feature.status === 'paid' ? 'bg-purple-500/20 text-purple-400' :
+                                feature.status === 'coming_soon' ? 'bg-amber-500/20 text-amber-400' :
+                                'bg-red-500/20 text-red-400'
+                              }`}>
+                                {feature.status.replace('_', ' ').toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div className="mt-8 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                  <p className="text-sm text-amber-400">
+                    <AlertTriangle className="w-4 h-4 inline mr-2" />
+                    Feature flag controls are read-only. To enable features, update the <code className="px-1 py-0.5 bg-black/30 rounded">shared/feature-flags.ts</code> file and redeploy.
+                  </p>
+                </div>
+              </div>
             </motion.div>
           </TabsContent>
         </Tabs>

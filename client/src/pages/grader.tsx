@@ -200,7 +200,7 @@ const complianceOptions: Array<{
   description: string;
   featureKey: keyof typeof FEATURE_FLAGS;
   status: FeatureStatus;
-  tier?: 'basic' | 'pro' | 'enterprise';
+  tier?: 'basic' | 'pro' | 'enterprise' | 'api';
 }> = [
   { id: "fdic", label: "FDIC", description: "Bank deposit insurance signage", featureKey: "GRADER_COMPLIANCE_FDIC", status: FEATURE_FLAGS.GRADER_COMPLIANCE_FDIC.status },
   { id: "sec", label: "SEC", description: "Securities disclosures", featureKey: "GRADER_COMPLIANCE_SEC", status: FEATURE_FLAGS.GRADER_COMPLIANCE_SEC.status },
@@ -210,13 +210,17 @@ const complianceOptions: Array<{
   { id: "gdpr", label: "GDPR", description: "EU privacy compliance", featureKey: "GRADER_COMPLIANCE_GDPR", status: FEATURE_FLAGS.GRADER_COMPLIANCE_GDPR.status },
 ];
 
-// Premium features (coming soon)
+// Premium features (coming soon) - all grader and report related features
 const premiumFeatures = [
+  { ...FEATURE_FLAGS.GRADER_LIGHTHOUSE },
   { ...FEATURE_FLAGS.GRADER_VISION_DETECTION },
   { ...FEATURE_FLAGS.GRADER_SCHEDULED_SCANS },
+  { ...FEATURE_FLAGS.GRADER_MULTI_SITE },
   { ...FEATURE_FLAGS.GRADER_BULK_SCANS },
-  { ...FEATURE_FLAGS.GRADER_WHITE_LABEL },
-  { ...FEATURE_FLAGS.GRADER_API_ACCESS },
+  { ...FEATURE_FLAGS.REPORT_AI_ADVANCED },
+  { ...FEATURE_FLAGS.REPORT_WHITE_LABEL },
+  { ...FEATURE_FLAGS.REPORT_PDF_EXPORT },
+  { ...FEATURE_FLAGS.API_ACCESS },
 ];
 
 interface ScanHistoryItem {

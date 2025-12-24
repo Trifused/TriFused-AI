@@ -5,13 +5,13 @@ import { FeatureStatus } from "@shared/feature-flags";
 
 interface FeatureBadgeProps {
   status: FeatureStatus;
-  tier?: 'basic' | 'pro' | 'enterprise';
+  tier?: 'basic' | 'pro' | 'enterprise' | 'api';
   className?: string;
   size?: 'sm' | 'md' | 'lg';
 }
 
 export function FeatureBadge({ status, tier, className, size = 'sm' }: FeatureBadgeProps) {
-  if (status === 'free') return null;
+  if (status === 'free' || status === 'disabled') return null;
 
   const sizeClasses = {
     sm: 'text-xs px-2 py-0.5 gap-1',
@@ -43,16 +43,18 @@ export function FeatureBadge({ status, tier, className, size = 'sm' }: FeatureBa
   }
 
   if (status === 'paid') {
-    const tierColors = {
+    const tierColors: Record<string, string> = {
       basic: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
       pro: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
       enterprise: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+      api: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
     };
 
-    const tierLabels = {
+    const tierLabels: Record<string, string> = {
       basic: 'Basic',
       pro: 'Pro',
       enterprise: 'Enterprise',
+      api: 'API',
     };
 
     return (
@@ -81,7 +83,7 @@ export function FeatureBadge({ status, tier, className, size = 'sm' }: FeatureBa
 interface FeatureGateProps {
   featureId: string;
   status: FeatureStatus;
-  tier?: 'basic' | 'pro' | 'enterprise';
+  tier?: 'basic' | 'pro' | 'enterprise' | 'api';
   children: ReactNode;
   fallback?: ReactNode;
   showBadge?: boolean;
