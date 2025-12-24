@@ -477,7 +477,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
           >
             <div className="flex gap-4">
               <Input
-                type="url"
+                type="text"
                 inputMode="url"
                 autoCapitalize="off"
                 autoCorrect="off"
@@ -867,7 +867,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   </h3>
                   <div className="flex gap-4">
                     <Input
-                      type="url"
+                      type="text"
                       inputMode="url"
                       autoCapitalize="off"
                       autoCorrect="off"
