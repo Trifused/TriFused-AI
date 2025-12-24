@@ -109,7 +109,7 @@ export function Navbar() {
           </Button>
           
           <button
-            className="md:hidden p-2 text-foreground hover:text-primary transition-colors"
+            className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center text-foreground hover:text-primary transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             data-testid="button-mobile-menu"
             aria-label="Toggle menu"

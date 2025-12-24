@@ -512,7 +512,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                     key={option.id}
                     type="button"
                     onClick={() => toggleCompliance(option.id)}
-                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                    className={`min-h-[44px] px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
                       complianceChecks[option.id]
                         ? "bg-primary/20 border-primary text-primary"
                         : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
@@ -528,7 +528,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 <button
                   type="button"
                   onClick={() => setForceRefresh(!forceRefresh)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                  className={`min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
                     forceRefresh
                       ? "bg-orange-500/20 border-orange-500 text-orange-400"
                       : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
@@ -564,7 +564,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
             >
               <button
                 onClick={() => setShowHistory(!showHistory)}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors mb-3"
+                className="min-h-[44px] flex items-center gap-2 px-2 py-2 -ml-2 text-sm text-muted-foreground hover:text-white transition-colors mb-3"
                 data-testid="button-toggle-history"
               >
                 <History className="w-4 h-4" />
@@ -584,10 +584,10 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                       <span className="text-xs text-muted-foreground">Click to view report</span>
                       <button
                         onClick={clearHistory}
-                        className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                        className="min-h-[44px] min-w-[44px] px-3 py-2 -mr-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg flex items-center gap-2 transition-colors"
                         data-testid="button-clear-history"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-4 h-4" />
                         Clear
                       </button>
                     </div>
@@ -895,7 +895,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                           key={option.id}
                           type="button"
                           onClick={() => toggleCompliance(option.id)}
-                          className={`px-2 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                          className={`min-h-[44px] px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
                             complianceChecks[option.id]
                               ? "bg-primary/20 border-primary text-primary"
                               : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
@@ -903,7 +903,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                           data-testid={`checkbox-compliance-${option.id}-bottom`}
                         >
                           <span className="font-bold">{option.label}</span>
-                          <span className="ml-1 opacity-70">({option.description})</span>
+                          <span className="ml-1 text-xs opacity-70">({option.description})</span>
                         </button>
                       ))}
                     </div>
@@ -911,16 +911,16 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                       <button
                         type="button"
                         onClick={() => setForceRefresh(!forceRefresh)}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                        className={`min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
                           forceRefresh
                             ? "bg-orange-500/20 border-orange-500 text-orange-400"
                             : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
                         }`}
                         data-testid="checkbox-force-refresh-bottom"
                       >
-                        <RefreshCw className="w-3 h-3" />
+                        <RefreshCw className="w-4 h-4" />
                         <span>Force Fresh Scan</span>
-                        <span className="opacity-70">(bypass 24h cache)</span>
+                        <span className="text-xs opacity-70">(bypass 24h cache)</span>
                       </button>
                     </div>
                   </div>
