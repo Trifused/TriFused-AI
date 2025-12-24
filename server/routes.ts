@@ -3844,5 +3844,53 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Seed sample products (admin only)
+  app.post("/api/admin/stripe/seed", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const products = [
+        {
+          name: 'Advanced AI Compliance Report',
+          description: 'AI-powered visual compliance analysis for your website',
+          price: 999,
+          type: 'one_time',
+          features: 'AI Analysis, Visual Badge Detection, Detailed Recommendations'
+        },
+        {
+          name: 'Pro Plan',
+          description: 'Multi-site monitoring and scheduled scans',
+          price: 1999,
+          type: 'subscription',
+          interval: 'month',
+          features: 'Unlimited Scans, Multi-Site Dashboard, Scheduled Scans, Priority Support'
+        },
+        {
+          name: 'TrifusedAI API Access',
+          description: 'Programmatic access to website scoring via REST API',
+          price: 2567,
+          type: 'subscription',
+          interval: 'year',
+          features: '1000 API Calls/Month, CI/CD Integrations, JSON Reports, Webhook Notifications'
+        }
+      ];
+
+      const created = [];
+      for (const p of products) {
+        const product = await stripeService.createProduct(p.name, p.description, { features: p.features });
+        const recurring = p.type === 'subscription' ? { interval: (p.interval || 'month') as 'month' | 'year' } : undefined;
+        await stripeService.createPrice(product.id, p.price, 'usd', recurring);
+        created.push(product.name);
+      }
+
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+
+      res.json({ success: true, created });
+    } catch (error) {
+      console.error("Seed products error:", error);
+      res.status(500).json({ error: "Failed to seed products" });
+    }
+  });
+
   return httpServer;
 }
