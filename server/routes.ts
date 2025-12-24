@@ -17,6 +17,92 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import * as dns from "dns/promises";
 import * as crypto from "crypto";
 import QRCode from "qrcode";
+import puppeteer from "puppeteer";
+
+// AI Vision helper for FDIC badge detection
+async function detectFdicWithVision(url: string): Promise<{ found: boolean; confidence: string; location: string | null }> {
+  let browser = null;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 1024 });
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+    
+    // Take a full-page screenshot
+    const screenshotBuffer = await page.screenshot({ 
+      fullPage: true,
+      type: 'jpeg',
+      quality: 80,
+      encoding: 'base64',
+    }) as string;
+    await browser.close();
+    browser = null;
+    
+    // Convert to base64
+    const base64Image = screenshotBuffer;
+    
+    // Use OpenAI vision to analyze
+    const openai = new OpenAI({
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Analyze this bank website screenshot for FDIC compliance. Look for:
+1. "Member FDIC" text or similar (Member FDIC, FDIC Insured, etc.)
+2. Official FDIC logo/badge (rectangular badge with "FDIC" text, often with "Each depositor insured" text)
+3. FDIC digital sign
+
+Respond in JSON format:
+{
+  "found": true/false,
+  "confidence": "high/medium/low",
+  "location": "description of where FDIC signage appears (header, footer, near logo, etc.) or null if not found",
+  "details": "brief description of what was found"
+}`
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/jpeg;base64,${base64Image}`,
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 300,
+    });
+    
+    const content = response.choices[0]?.message?.content || '{}';
+    // Parse JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0]);
+      return {
+        found: result.found === true,
+        confidence: result.confidence || 'low',
+        location: result.location || null,
+      };
+    }
+    return { found: false, confidence: 'low', location: null };
+  } catch (error) {
+    console.error('FDIC vision detection error:', error);
+    if (browser) {
+      try { await browser.close(); } catch {}
+    }
+    return { found: false, confidence: 'low', location: null };
+  }
+}
 
 const SUPERUSER_EMAIL_DOMAIN = "@trifused.com";
 
@@ -2683,12 +2769,80 @@ Your primary goal is to help users AND capture their contact information natural
       // FDIC Compliance Check
       if (complianceChecks?.fdic) {
         fdicScore = 100;
+        
+        // Text-based detection
         const hasMemberFdic = /member\s*fdic/i.test(html) || /fdic[- ]?insured/i.test(html);
-        const hasFdicLogo = $('img[src*="fdic"], img[alt*="FDIC"], img[alt*="fdic"]').length > 0;
-        const fdicInFooter = $('footer').text().toLowerCase().includes('fdic');
-        const fdicNearBankName = $('header, nav, .logo, [class*="brand"]').text().toLowerCase().includes('fdic');
+        
+        // Image detection - check src, alt, title, class, id attributes
+        const hasFdicImg = $('img[src*="fdic" i], img[src*="FDIC"], img[alt*="fdic" i], img[alt*="FDIC"], img[title*="fdic" i], img[title*="FDIC"], img[class*="fdic" i], img[id*="fdic" i]').length > 0;
+        
+        // SVG detection - check for FDIC in SVG content, class, id, or aria-label
+        const hasFdicSvg = $('svg').filter((_, el) => {
+          const $el = $(el);
+          const svgHtml = $.html(el).toLowerCase();
+          const className = ($el.attr('class') || '').toLowerCase();
+          const id = ($el.attr('id') || '').toLowerCase();
+          const ariaLabel = ($el.attr('aria-label') || '').toLowerCase();
+          const title = $el.find('title').text().toLowerCase();
+          return svgHtml.includes('fdic') || className.includes('fdic') || id.includes('fdic') || ariaLabel.includes('fdic') || title.includes('fdic');
+        }).length > 0;
+        
+        // Check for FDIC in any element's class or id (could be a styled div with background image)
+        const hasFdicElement = $('[class*="fdic" i], [id*="fdic" i], [data-fdic], [aria-label*="fdic" i]').length > 0;
+        
+        // Check for inline styles with FDIC background images
+        const hasFdicBgImage = /background[^;]*url[^)]*fdic/i.test(html);
+        
+        // Check for common bank trust badge patterns containing FDIC
+        const hasFdicInTrustBadge = $('[class*="trust"], [class*="badge"], [class*="seal"], [class*="insured"], [class*="member"]').filter((_, el) => {
+          const text = $(el).text().toLowerCase();
+          const html = $.html(el).toLowerCase();
+          return text.includes('fdic') || html.includes('fdic');
+        }).length > 0;
+        
+        const hasFdicLogo = hasFdicImg || hasFdicSvg || hasFdicElement || hasFdicBgImage || hasFdicInTrustBadge;
+        
+        // Helper function to check if element contains FDIC references
+        const elementContainsFdic = (el: any) => {
+          const $el = $(el);
+          const html = $.html(el).toLowerCase();
+          const text = $el.text().toLowerCase();
+          return html.includes('fdic') || text.includes('fdic');
+        };
+        
+        // Check footer for FDIC content (text, images, SVGs with FDIC references)
+        const fdicInFooter = $('footer').text().toLowerCase().includes('fdic') || 
+          $('footer').find('[class*="fdic" i], [id*="fdic" i], img[alt*="fdic" i], img[src*="fdic" i]').length > 0 ||
+          $('footer').find('svg').filter((_, el) => elementContainsFdic(el)).length > 0;
+        
+        // Check header/nav area for FDIC content
+        const fdicNearBankName = $('header, nav, .logo, [class*="brand"], [class*="header"]').text().toLowerCase().includes('fdic') || 
+          $('header, nav, .logo, [class*="brand"], [class*="header"]').find('[class*="fdic" i], [id*="fdic" i], img[alt*="fdic" i], img[src*="fdic" i]').length > 0 ||
+          $('header, nav, .logo, [class*="brand"], [class*="header"]').find('svg').filter((_, el) => elementContainsFdic(el)).length > 0;
 
-        if (!hasMemberFdic && !hasFdicLogo) {
+        // AI vision fallback is disabled by default (adds latency, requires Chromium)
+        // Enable by setting USE_FDIC_VISION=true in environment
+        let fdicFoundViaVision = false;
+        let visionLocation: string | null = null;
+        
+        if (!hasMemberFdic && !hasFdicLogo && process.env.USE_FDIC_VISION === 'true') {
+          try {
+            // Try AI vision detection as fallback with 30s timeout
+            const visionPromise = detectFdicWithVision(url);
+            const timeoutPromise = new Promise<{ found: boolean; confidence: string; location: string | null }>((resolve) => 
+              setTimeout(() => resolve({ found: false, confidence: 'low', location: null }), 30000)
+            );
+            const visionResult = await Promise.race([visionPromise, timeoutPromise]);
+            if (visionResult.found && (visionResult.confidence === 'high' || visionResult.confidence === 'medium')) {
+              fdicFoundViaVision = true;
+              visionLocation = visionResult.location;
+            }
+          } catch (err) {
+            console.error('FDIC vision fallback failed:', err);
+          }
+        }
+        
+        if (!hasMemberFdic && !hasFdicLogo && !fdicFoundViaVision) {
           findings.push({
             category: "fdic",
             issue: "Missing 'Member FDIC' statement or FDIC digital sign",
@@ -2699,9 +2853,12 @@ Your primary goal is to help users AND capture their contact information natural
           });
           fdicScore -= 40;
         } else {
+          const detectionMethod = fdicFoundViaVision 
+            ? `FDIC signage detected via visual analysis${visionLocation ? ` (${visionLocation})` : ''}`
+            : "FDIC membership statement found";
           findings.push({
             category: "fdic",
-            issue: "FDIC membership statement found",
+            issue: detectionMethod,
             impact: "Customers can see their deposits are insured",
             priority: "optional",
             howToFix: "",
