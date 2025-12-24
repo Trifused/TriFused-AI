@@ -1901,6 +1901,95 @@ Your primary goal is to help users AND capture their contact information natural
         });
       }
 
+      // Check for robots.txt and sitemap.xml
+      const siteRoot = url.replace(/\/$/, '').split('/').slice(0, 3).join('/');
+      
+      // Check robots.txt
+      try {
+        const robotsResponse = await fetch(`${siteRoot}/robots.txt`, {
+          signal: AbortSignal.timeout(5000),
+          headers: { 'User-Agent': 'TriFused Website Grader Bot/1.0' },
+        });
+        if (robotsResponse.ok) {
+          const robotsText = await robotsResponse.text();
+          if (robotsText.includes('User-agent') || robotsText.includes('Disallow') || robotsText.includes('Allow')) {
+            findings.push({
+              category: "seo",
+              issue: "robots.txt file present",
+              impact: "Helps search engines understand which pages to crawl",
+              priority: "optional",
+              howToFix: "",
+              passed: true,
+            });
+          } else {
+            findings.push({
+              category: "seo",
+              issue: "robots.txt exists but may be empty or malformed",
+              impact: "Search engines may not understand your crawl preferences",
+              priority: "optional",
+              howToFix: "Add valid directives to your robots.txt file (e.g., User-agent: * and Allow: /)",
+              passed: false,
+            });
+            seoScore -= 5;
+          }
+        } else {
+          findings.push({
+            category: "seo",
+            issue: "Missing robots.txt file",
+            impact: "Search engines have no guidance on which pages to crawl",
+            priority: "optional",
+            howToFix: "Create a robots.txt file in your root directory with crawl directives",
+            passed: false,
+          });
+          seoScore -= 5;
+        }
+      } catch {
+        // Silently skip if we can't check robots.txt - don't penalize or add finding
+      }
+
+      // Check sitemap.xml
+      try {
+        const sitemapResponse = await fetch(`${siteRoot}/sitemap.xml`, {
+          signal: AbortSignal.timeout(5000),
+          headers: { 'User-Agent': 'TriFused Website Grader Bot/1.0' },
+        });
+        if (sitemapResponse.ok) {
+          const sitemapText = await sitemapResponse.text();
+          if (sitemapText.includes('<urlset') || sitemapText.includes('<sitemapindex')) {
+            findings.push({
+              category: "seo",
+              issue: "sitemap.xml file present",
+              impact: "Helps search engines discover all your pages",
+              priority: "optional",
+              howToFix: "",
+              passed: true,
+            });
+          } else {
+            findings.push({
+              category: "seo",
+              issue: "sitemap.xml exists but may be malformed",
+              impact: "Search engines may not be able to parse your sitemap",
+              priority: "important",
+              howToFix: "Ensure your sitemap.xml follows the XML sitemap protocol format",
+              passed: false,
+            });
+            seoScore -= 10;
+          }
+        } else {
+          findings.push({
+            category: "seo",
+            issue: "Missing sitemap.xml file",
+            impact: "Search engines may not discover all your pages",
+            priority: "important",
+            howToFix: "Create a sitemap.xml file listing all your important pages and submit it to search engines",
+            passed: false,
+          });
+          seoScore -= 10;
+        }
+      } catch {
+        // Silently skip if we can't check sitemap.xml - don't penalize or add finding
+      }
+
       // Security Checks
       if (!isHttps) {
         findings.push({
