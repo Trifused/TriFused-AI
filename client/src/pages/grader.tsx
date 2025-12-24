@@ -924,6 +924,16 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                       </button>
                     </div>
                   </div>
+
+                  {gradeMutation.isError && (
+                    <p className="mt-3 text-red-400 text-sm text-center">
+                      {gradeMutation.error.message}
+                    </p>
+                  )}
+                  
+                  <p className="mt-4 text-xs text-muted-foreground text-center">
+                    This is a free tool. Results are for informational purposes only.
+                  </p>
                 </motion.form>
               </motion.div>
             )}
