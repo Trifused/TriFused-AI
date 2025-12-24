@@ -3744,5 +3744,56 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // ========== ADMIN COMMERCE ROUTES ==========
+
+  // Get all products including inactive (admin only)
+  app.get("/api/admin/stripe/products", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const rows = await stripeService.listProductsWithPrices(false);
+      
+      const productsMap = new Map();
+      for (const row of rows as any[]) {
+        if (!productsMap.has(row.product_id)) {
+          productsMap.set(row.product_id, {
+            id: row.product_id,
+            name: row.product_name,
+            description: row.product_description,
+            active: row.product_active,
+            metadata: row.product_metadata,
+            prices: []
+          });
+        }
+        if (row.price_id) {
+          productsMap.get(row.product_id).prices.push({
+            id: row.price_id,
+            unit_amount: row.unit_amount,
+            currency: row.currency,
+            recurring: row.recurring,
+            active: row.price_active,
+            metadata: row.price_metadata,
+          });
+        }
+      }
+
+      res.json({ data: Array.from(productsMap.values()) });
+    } catch (error) {
+      console.error("Admin products error:", error);
+      res.status(500).json({ error: "Failed to list products" });
+    }
+  });
+
+  // Trigger Stripe data sync (admin only)
+  app.post("/api/admin/stripe/sync", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+      res.json({ success: true, message: "Stripe data synced successfully" });
+    } catch (error) {
+      console.error("Stripe sync error:", error);
+      res.status(500).json({ error: "Failed to sync Stripe data" });
+    }
+  });
+
   return httpServer;
 }

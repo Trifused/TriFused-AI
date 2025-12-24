@@ -598,6 +598,10 @@ export default function Admin() {
               <Settings className="w-4 h-4 mr-2" />
               Features
             </TabsTrigger>
+            <TabsTrigger value="commerce" className="data-[state=active]:bg-primary" data-testid="tab-commerce">
+              <Crown className="w-4 h-4 mr-2" />
+              Commerce
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -1416,8 +1420,164 @@ export default function Admin() {
               </div>
             </motion.div>
           </TabsContent>
+
+          <TabsContent value="commerce">
+            <CommerceTab />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
+  );
+}
+
+function CommerceTab() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: productsData, isLoading: productsLoading } = useQuery({
+    queryKey: ["admin-stripe-products"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/stripe/products", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch products");
+      return response.json();
+    },
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/admin/stripe/sync", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Sync failed");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Sync complete", description: "Stripe data has been synchronized" });
+      queryClient.invalidateQueries({ queryKey: ["admin-stripe-products"] });
+    },
+    onError: () => {
+      toast({ title: "Sync failed", description: "Could not sync Stripe data", variant: "destructive" });
+    },
+  });
+
+  const products = productsData?.data || [];
+
+  const formatPrice = (amount: number, currency: string = "usd") => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format(amount / 100);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="space-y-6"
+    >
+      <div className="glass-panel rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Crown className="w-5 h-5 text-primary" />
+              Stripe Products
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage products and prices synced from Stripe
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => syncMutation.mutate()}
+              disabled={syncMutation.isPending}
+              data-testid="btn-sync-stripe"
+            >
+              {syncMutation.isPending ? (
+                <Clock className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Zap className="w-4 h-4 mr-2" />
+              )}
+              Sync from Stripe
+            </Button>
+            <a
+              href="https://dashboard.stripe.com/products"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" data-testid="btn-stripe-dashboard">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Stripe Dashboard
+              </Button>
+            </a>
+          </div>
+        </div>
+
+        {productsLoading ? (
+          <div className="py-12 text-center">
+            <Clock className="w-8 h-8 animate-spin mx-auto text-primary mb-4" />
+            <p className="text-muted-foreground">Loading products...</p>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="py-12 text-center">
+            <Crown className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-white text-lg">No products found</p>
+            <p className="text-muted-foreground text-sm mt-2">
+              Create products in Stripe Dashboard, then sync here
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {products.map((product: any) => (
+              <div
+                key={product.id}
+                className="p-4 bg-white/5 rounded-lg border border-white/10"
+                data-testid={`product-row-${product.id}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-white">{product.name}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded ${
+                        product.active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {product.active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {product.description || 'No description'}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {product.prices?.map((price: any) => (
+                        <div
+                          key={price.id}
+                          className="text-xs px-2 py-1 bg-cyan-500/10 text-cyan-400 rounded border border-cyan-500/30"
+                        >
+                          {formatPrice(price.unit_amount, price.currency)}
+                          {price.recurring && ` / ${price.recurring.interval}`}
+                          {!price.active && ' (inactive)'}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground font-mono">
+                    {product.id}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-8 p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+          <p className="text-sm text-cyan-400">
+            <Zap className="w-4 h-4 inline mr-2" />
+            Products are managed in the <a href="https://dashboard.stripe.com/products" target="_blank" rel="noopener noreferrer" className="underline">Stripe Dashboard</a>. Click "Sync from Stripe" to update the local cache.
+          </p>
+        </div>
+      </div>
+    </motion.div>
   );
 }

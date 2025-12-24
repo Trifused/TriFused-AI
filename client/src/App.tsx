@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect, lazy, Suspense } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
+import { CartProvider } from "./context/cart-context";
 
 // Eager load Home for fast initial paint
 import Home from "@/pages/home";
@@ -16,6 +17,7 @@ const Blog = lazy(() => import("@/pages/blog"));
 const Signup = lazy(() => import("@/pages/signup"));
 const Grader = lazy(() => import("@/pages/grader"));
 const Report = lazy(() => import("@/pages/report"));
+const Store = lazy(() => import("@/pages/store"));
 const PortalLogin = lazy(() => import("@/pages/portal/login"));
 const Dashboard = lazy(() => import("@/pages/portal/dashboard"));
 const Admin = lazy(() => import("@/pages/portal/admin"));
@@ -45,6 +47,7 @@ function Router() {
         <Route path="/signup" component={Signup} />
         <Route path="/grader" component={Grader} />
         <Route path="/report/:shareToken" component={Report} />
+        <Route path="/store" component={Store} />
         <Route path="/portal" component={PortalLogin} />
         <Route path="/portal/dashboard" component={Dashboard} />
         <Route path="/portal/admin" component={Admin} />
@@ -68,10 +71,12 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <CartProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </CartProvider>
     </QueryClientProvider>
   );
 }
