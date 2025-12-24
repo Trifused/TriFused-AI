@@ -145,3 +145,34 @@ A: Scan history is stored in your browser's localStorage (key: `trifused_scan_hi
 - Different browsers or devices won't share history
 - No account or login is required to use the grader
 - Maximum of 10 scans are stored in history
+
+### Feature Flags System
+
+The platform uses a feature flag system (`shared/feature-flags.ts`) to manage free, paid, and coming soon features:
+
+**Feature Statuses:**
+- `free` - Available to all users
+- `paid` - Requires subscription (tier-based)
+- `coming_soon` - Announced but not yet available
+
+**Feature Tiers:**
+- `basic` - Entry-level paid features
+- `pro` - Professional tier features
+- `enterprise` - Enterprise-only features
+
+**Current Premium Features (Coming Soon):**
+- AI Vision Detection - Visual badge detection using AI
+- Scheduled Scans - Automated recurring website scans
+- Bulk Scans - Scan multiple websites at once
+- White Label Reports - Custom branded PDF reports
+- API Access - Programmatic grader access
+
+**UI Components:**
+- `FeatureBadge` - Shows Coming Soon/Paid badges
+- `FeatureGate` - Conditionally renders content based on feature status
+
+**Adding New Features:**
+1. Add feature to `FEATURE_FLAGS` in `shared/feature-flags.ts`
+2. Set initial status to `coming_soon` or `paid`
+3. Use `FeatureBadge` component to show status
+4. When ready, change status to `free` to enable

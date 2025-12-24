@@ -2,6 +2,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FeatureBadge } from "@/components/ui/feature-badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -40,6 +41,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent, trackPageView } from "@/lib/analytics";
+import { FEATURE_FLAGS, type FeatureStatus } from "@shared/feature-flags";
 
 interface Finding {
   category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "mobile" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr";
@@ -191,14 +193,30 @@ function FindingCard({ finding }: { finding: Finding }) {
   );
 }
 
-// Compliance check options
-const complianceOptions = [
-  { id: "fdic", label: "FDIC", description: "Bank deposit insurance signage" },
-  { id: "sec", label: "SEC", description: "Securities disclosures" },
-  { id: "ada", label: "ADA", description: "Accessibility (WCAG)" },
-  { id: "pci", label: "PCI", description: "Payment card security" },
-  { id: "fca", label: "FCA", description: "UK financial promotions" },
-  { id: "gdpr", label: "GDPR", description: "EU privacy compliance" },
+// Compliance check options with feature flag integration
+const complianceOptions: Array<{
+  id: string;
+  label: string;
+  description: string;
+  featureKey: keyof typeof FEATURE_FLAGS;
+  status: FeatureStatus;
+  tier?: 'basic' | 'pro' | 'enterprise';
+}> = [
+  { id: "fdic", label: "FDIC", description: "Bank deposit insurance signage", featureKey: "GRADER_COMPLIANCE_FDIC", status: FEATURE_FLAGS.GRADER_COMPLIANCE_FDIC.status },
+  { id: "sec", label: "SEC", description: "Securities disclosures", featureKey: "GRADER_COMPLIANCE_SEC", status: FEATURE_FLAGS.GRADER_COMPLIANCE_SEC.status },
+  { id: "ada", label: "ADA", description: "Accessibility (WCAG)", featureKey: "GRADER_COMPLIANCE_ADA", status: FEATURE_FLAGS.GRADER_COMPLIANCE_ADA.status },
+  { id: "pci", label: "PCI", description: "Payment card security", featureKey: "GRADER_COMPLIANCE_PCI", status: FEATURE_FLAGS.GRADER_COMPLIANCE_PCI.status },
+  { id: "fca", label: "FCA", description: "UK financial promotions", featureKey: "GRADER_COMPLIANCE_FCA", status: FEATURE_FLAGS.GRADER_COMPLIANCE_FCA.status },
+  { id: "gdpr", label: "GDPR", description: "EU privacy compliance", featureKey: "GRADER_COMPLIANCE_GDPR", status: FEATURE_FLAGS.GRADER_COMPLIANCE_GDPR.status },
+];
+
+// Premium features (coming soon)
+const premiumFeatures = [
+  { ...FEATURE_FLAGS.GRADER_VISION_DETECTION },
+  { ...FEATURE_FLAGS.GRADER_SCHEDULED_SCANS },
+  { ...FEATURE_FLAGS.GRADER_BULK_SCANS },
+  { ...FEATURE_FLAGS.GRADER_WHITE_LABEL },
+  { ...FEATURE_FLAGS.GRADER_API_ACCESS },
 ];
 
 interface ScanHistoryItem {
@@ -518,9 +536,12 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   <button
                     key={option.id}
                     type="button"
-                    onClick={() => toggleCompliance(option.id)}
+                    onClick={() => option.status === 'free' && toggleCompliance(option.id)}
+                    disabled={option.status !== 'free'}
                     className={`min-h-[44px] px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-                      complianceChecks[option.id]
+                      option.status !== 'free'
+                        ? "bg-white/5 border-white/10 text-muted-foreground opacity-60 cursor-not-allowed"
+                        : complianceChecks[option.id]
                         ? "bg-primary/20 border-primary text-primary"
                         : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
                     }`}
@@ -528,9 +549,33 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   >
                     <span className="font-bold">{option.label}</span>
                     <span className="ml-1 text-xs opacity-70">({option.description})</span>
+                    {option.status !== 'free' && (
+                      <FeatureBadge status={option.status} tier={option.tier} className="ml-2" />
+                    )}
                   </button>
                 ))}
               </div>
+              
+              {premiumFeatures.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Premium Features:
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {premiumFeatures.map((feature) => (
+                      <div
+                        key={feature.id}
+                        className="min-h-[44px] px-3 py-2 rounded-lg border bg-white/5 border-white/10 text-sm font-medium opacity-60 cursor-not-allowed flex items-center gap-2"
+                        data-testid={`feature-${feature.id}`}
+                      >
+                        <span className="text-muted-foreground">{feature.name}</span>
+                        <FeatureBadge status={feature.status} tier={feature.tier} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <div className="mt-3 pt-3 border-t border-white/10">
                 <button
                   type="button"
@@ -905,9 +950,12 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                         <button
                           key={option.id}
                           type="button"
-                          onClick={() => toggleCompliance(option.id)}
+                          onClick={() => option.status === 'free' && toggleCompliance(option.id)}
+                          disabled={option.status !== 'free'}
                           className={`min-h-[44px] px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-                            complianceChecks[option.id]
+                            option.status !== 'free'
+                              ? "bg-white/5 border-white/10 text-muted-foreground opacity-60 cursor-not-allowed"
+                              : complianceChecks[option.id]
                               ? "bg-primary/20 border-primary text-primary"
                               : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
                           }`}
@@ -915,6 +963,9 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                         >
                           <span className="font-bold">{option.label}</span>
                           <span className="ml-1 text-xs opacity-70">({option.description})</span>
+                          {option.status !== 'free' && (
+                            <FeatureBadge status={option.status} tier={option.tier} className="ml-2" />
+                          )}
                         </button>
                       ))}
                     </div>
