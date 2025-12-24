@@ -3,48 +3,61 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
+
+// Eager load Home for fast initial paint
 import Home from "@/pages/home";
-import Blog from "@/pages/blog";
-import Signup from "@/pages/signup";
-import Grader from "@/pages/grader";
-import Report from "@/pages/report";
-import PortalLogin from "@/pages/portal/login";
-import Dashboard from "@/pages/portal/dashboard";
-import Admin from "@/pages/portal/admin";
-import MFT from "@/pages/portal/mft";
-import Media from "@/pages/portal/media";
-import Integrations from "@/pages/portal/integrations";
-import PublicMedia from "@/pages/public-media";
-import Privacy from "@/pages/legal/privacy";
-import Terms from "@/pages/legal/terms";
-import Cookies from "@/pages/legal/cookies";
 import NotFound from "@/pages/not-found";
+
+// Lazy load all other pages for code splitting
+const Blog = lazy(() => import("@/pages/blog"));
+const Signup = lazy(() => import("@/pages/signup"));
+const Grader = lazy(() => import("@/pages/grader"));
+const Report = lazy(() => import("@/pages/report"));
+const PortalLogin = lazy(() => import("@/pages/portal/login"));
+const Dashboard = lazy(() => import("@/pages/portal/dashboard"));
+const Admin = lazy(() => import("@/pages/portal/admin"));
+const MFT = lazy(() => import("@/pages/portal/mft"));
+const Media = lazy(() => import("@/pages/portal/media"));
+const Integrations = lazy(() => import("@/pages/portal/integrations"));
+const PublicMedia = lazy(() => import("@/pages/public-media"));
+const Privacy = lazy(() => import("@/pages/legal/privacy"));
+const Terms = lazy(() => import("@/pages/legal/terms"));
+const Cookies = lazy(() => import("@/pages/legal/cookies"));
+
+// Loading fallback for lazy components
+const PageLoader = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="animate-pulse text-primary font-mono">Loading...</div>
+  </div>
+);
 
 function Router() {
   useAnalytics();
   
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/blog" component={Blog} />
-      <Route path="/signup" component={Signup} />
-      <Route path="/grader" component={Grader} />
-      <Route path="/report/:shareToken" component={Report} />
-      <Route path="/portal" component={PortalLogin} />
-      <Route path="/portal/dashboard" component={Dashboard} />
-      <Route path="/portal/admin" component={Admin} />
-      <Route path="/portal/mft" component={MFT} />
-      <Route path="/portal/media" component={Media} />
-      <Route path="/portal/integrations" component={Integrations} />
-      <Route path="/media" component={PublicMedia} />
-      <Route path="/legal/privacy" component={Privacy} />
-      <Route path="/legal/terms" component={Terms} />
-      <Route path="/legal/cookies" component={Cookies} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<PageLoader />}>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/blog" component={Blog} />
+        <Route path="/signup" component={Signup} />
+        <Route path="/grader" component={Grader} />
+        <Route path="/report/:shareToken" component={Report} />
+        <Route path="/portal" component={PortalLogin} />
+        <Route path="/portal/dashboard" component={Dashboard} />
+        <Route path="/portal/admin" component={Admin} />
+        <Route path="/portal/mft" component={MFT} />
+        <Route path="/portal/media" component={Media} />
+        <Route path="/portal/integrations" component={Integrations} />
+        <Route path="/media" component={PublicMedia} />
+        <Route path="/legal/privacy" component={Privacy} />
+        <Route path="/legal/terms" component={Terms} />
+        <Route path="/legal/cookies" component={Cookies} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 
