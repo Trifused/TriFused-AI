@@ -485,8 +485,10 @@ class Storage implements IStorage {
       .limit(1);
     
     // Only return cached grades that have mobileScore computed (not legacy grades without mobile checks)
-    // A grade with mobileScore === 0 could be a legitimate poor mobile score, but null means it was never computed
-    if (grade && new Date(grade.createdAt) > oneDayAgo && grade.mobileScore !== null) {
+    // Legacy grades have mobileScore = 0 (default) or null. Fresh scans start at 100 and decrement.
+    // A real scan with all mobile checks failing would be extremely rare, so we check for > 0.
+    // This forces rescans for legacy grades without mobile analysis.
+    if (grade && new Date(grade.createdAt) > oneDayAgo && grade.mobileScore !== null && grade.mobileScore > 0) {
       return grade;
     }
     return undefined;
