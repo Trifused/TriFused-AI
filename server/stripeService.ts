@@ -117,6 +117,40 @@ export class StripeService {
     );
     return result.rows;
   }
+
+  async createProduct(name: string, description: string, metadata?: Record<string, string>) {
+    const stripe = await getUncachableStripeClient();
+    return await stripe.products.create({
+      name,
+      description,
+      metadata,
+    });
+  }
+
+  async createPrice(
+    productId: string,
+    unitAmount: number,
+    currency: string = 'usd',
+    recurring?: { interval: 'month' | 'year' }
+  ) {
+    const stripe = await getUncachableStripeClient();
+    return await stripe.prices.create({
+      product: productId,
+      unit_amount: unitAmount,
+      currency,
+      ...(recurring ? { recurring } : {}),
+    });
+  }
+
+  async updateProduct(productId: string, updates: { name?: string; description?: string; active?: boolean; metadata?: Record<string, string> }) {
+    const stripe = await getUncachableStripeClient();
+    return await stripe.products.update(productId, updates);
+  }
+
+  async archiveProduct(productId: string) {
+    const stripe = await getUncachableStripeClient();
+    return await stripe.products.update(productId, { active: false });
+  }
 }
 
 export const stripeService = new StripeService();

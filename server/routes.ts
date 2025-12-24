@@ -3795,5 +3795,54 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Create product with price (admin only)
+  app.post("/api/admin/stripe/products", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { name, description, price, type, interval, features } = req.body;
+      
+      if (!name || !price || !type) {
+        return res.status(400).json({ error: "Name, price, and type are required" });
+      }
+
+      const metadata: Record<string, string> = {};
+      if (features) {
+        metadata.features = features;
+      }
+
+      const product = await stripeService.createProduct(name, description || '', metadata);
+      
+      const priceAmount = Math.round(parseFloat(price) * 100);
+      const recurring = type === 'subscription' ? { interval: interval || 'month' as const } : undefined;
+      
+      await stripeService.createPrice(product.id, priceAmount, 'usd', recurring);
+
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+
+      res.json({ success: true, product });
+    } catch (error) {
+      console.error("Create product error:", error);
+      res.status(500).json({ error: "Failed to create product" });
+    }
+  });
+
+  // Archive product (admin only)
+  app.delete("/api/admin/stripe/products/:productId", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { productId } = req.params;
+      await stripeService.archiveProduct(productId);
+      
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Archive product error:", error);
+      res.status(500).json({ error: "Failed to archive product" });
+    }
+  });
+
   return httpServer;
 }

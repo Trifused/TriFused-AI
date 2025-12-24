@@ -33,7 +33,10 @@ import {
   ExternalLink,
   Settings,
   Sparkles,
-  Zap
+  Zap,
+  Plus,
+  Check,
+  Trash2
 } from "lucide-react";
 import { FEATURE_FLAGS, type FeatureFlag, type FeatureStatus, type FeatureCategory } from "@shared/feature-flags";
 import { FeatureBadge } from "@/components/ui/feature-badge";
@@ -1433,6 +1436,15 @@ export default function Admin() {
 function CommerceTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    description: '',
+    price: '',
+    type: 'one_time' as 'one_time' | 'subscription',
+    interval: 'month' as 'month' | 'year',
+    features: '',
+  });
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ["admin-stripe-products"],
@@ -1458,6 +1470,46 @@ function CommerceTab() {
     },
     onError: () => {
       toast({ title: "Sync failed", description: "Could not sync Stripe data", variant: "destructive" });
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: typeof newProduct) => {
+      const response = await fetch("/api/admin/stripe/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to create product");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Product created", description: "Product has been added to Stripe" });
+      queryClient.invalidateQueries({ queryKey: ["admin-stripe-products"] });
+      setShowCreateForm(false);
+      setNewProduct({ name: '', description: '', price: '', type: 'one_time', interval: 'month', features: '' });
+    },
+    onError: () => {
+      toast({ title: "Failed to create product", variant: "destructive" });
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      const response = await fetch(`/api/admin/stripe/products/${productId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to archive product");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Product archived" });
+      queryClient.invalidateQueries({ queryKey: ["admin-stripe-products"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to archive product", variant: "destructive" });
     },
   });
 
@@ -1490,6 +1542,13 @@ function CommerceTab() {
           </div>
           <div className="flex items-center gap-3">
             <Button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              data-testid="btn-add-product"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Product
+            </Button>
+            <Button
               variant="outline"
               onClick={() => syncMutation.mutate()}
               disabled={syncMutation.isPending}
@@ -1500,20 +1559,119 @@ function CommerceTab() {
               ) : (
                 <Zap className="w-4 h-4 mr-2" />
               )}
-              Sync from Stripe
+              Sync
             </Button>
             <a
               href="https://dashboard.stripe.com/products"
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Button variant="outline" data-testid="btn-stripe-dashboard">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Stripe Dashboard
+              <Button variant="outline" size="icon" data-testid="btn-stripe-dashboard">
+                <ExternalLink className="w-4 h-4" />
               </Button>
             </a>
           </div>
         </div>
+
+        {showCreateForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="mb-6 p-4 bg-white/5 rounded-lg border border-white/10"
+          >
+            <h3 className="text-white font-medium mb-4">Create New Product</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">Name *</label>
+                <input
+                  type="text"
+                  className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                  value={newProduct.name}
+                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                  placeholder="Advanced AI Report"
+                  data-testid="input-product-name"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">Price (USD) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                  value={newProduct.price}
+                  onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                  placeholder="9.99"
+                  data-testid="input-product-price"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">Type *</label>
+                <select
+                  className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                  value={newProduct.type}
+                  onChange={(e) => setNewProduct({ ...newProduct, type: e.target.value as 'one_time' | 'subscription' })}
+                  data-testid="select-product-type"
+                >
+                  <option value="one_time">One-time Purchase</option>
+                  <option value="subscription">Subscription</option>
+                </select>
+              </div>
+              {newProduct.type === 'subscription' && (
+                <div>
+                  <label className="text-sm text-muted-foreground block mb-1">Billing Interval</label>
+                  <select
+                    className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                    value={newProduct.interval}
+                    onChange={(e) => setNewProduct({ ...newProduct, interval: e.target.value as 'month' | 'year' })}
+                    data-testid="select-product-interval"
+                  >
+                    <option value="month">Monthly</option>
+                    <option value="year">Yearly</option>
+                  </select>
+                </div>
+              )}
+              <div className="md:col-span-2">
+                <label className="text-sm text-muted-foreground block mb-1">Description</label>
+                <textarea
+                  className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                  value={newProduct.description}
+                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                  placeholder="AI-powered visual compliance analysis report"
+                  rows={2}
+                  data-testid="input-product-description"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-sm text-muted-foreground block mb-1">Features (comma-separated)</label>
+                <input
+                  type="text"
+                  className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                  value={newProduct.features}
+                  onChange={(e) => setNewProduct({ ...newProduct, features: e.target.value })}
+                  placeholder="AI Analysis, PDF Export, 24/7 Support"
+                  data-testid="input-product-features"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <Button
+                onClick={() => createMutation.mutate(newProduct)}
+                disabled={createMutation.isPending || !newProduct.name || !newProduct.price}
+                data-testid="btn-create-product"
+              >
+                {createMutation.isPending ? (
+                  <Clock className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Check className="w-4 h-4 mr-2" />
+                )}
+                Create Product
+              </Button>
+              <Button variant="ghost" onClick={() => setShowCreateForm(false)}>
+                Cancel
+              </Button>
+            </div>
+          </motion.div>
+        )}
 
         {productsLoading ? (
           <div className="py-12 text-center">
@@ -1562,8 +1720,22 @@ function CommerceTab() {
                       ))}
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground font-mono">
-                    {product.id}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-mono hidden lg:block">
+                      {product.id.slice(0, 20)}...
+                    </span>
+                    {product.active && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => archiveMutation.mutate(product.id)}
+                        disabled={archiveMutation.isPending}
+                        className="text-red-400 hover:text-red-300"
+                        data-testid={`btn-archive-${product.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
