@@ -132,3 +132,16 @@ Preferred communication style: Simple, everyday language.
 - Client: Vite builds to `dist/public`
 - Server: esbuild bundles to `dist/index.cjs` with selective dependencies bundled (allowlist pattern to reduce cold start times)
 - Static serving: Express serves pre-built client in production
+
+## FAQ / Help Notes
+
+### Website Grader - Scan History
+
+**Q: Is scan history saved to my account or just my browser?**
+
+A: Scan history is stored in your browser's localStorage (key: `trifused_scan_history`), not on our servers. This means:
+- History is private to each browser/device
+- Clearing browser data will erase history
+- Different browsers or devices won't share history
+- No account or login is required to use the grader
+- Maximum of 10 scans are stored in history
