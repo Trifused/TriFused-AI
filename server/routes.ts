@@ -2820,12 +2820,14 @@ Your primary goal is to help users AND capture their contact information natural
           $('header, nav, .logo, [class*="brand"], [class*="header"]').find('[class*="fdic" i], [id*="fdic" i], img[alt*="fdic" i], img[src*="fdic" i]').length > 0 ||
           $('header, nav, .logo, [class*="brand"], [class*="header"]').find('svg').filter((_, el) => elementContainsFdic(el)).length > 0;
 
-        // AI vision fallback is disabled by default (adds latency, requires Chromium)
-        // Enable by setting USE_FDIC_VISION=true in environment
+        // AI vision FDIC detection - PAID FEATURE
+        // Requires USE_FDIC_VISION=true and valid premium subscription
         let fdicFoundViaVision = false;
         let visionLocation: string | null = null;
         
-        if (!hasMemberFdic && !hasFdicLogo && process.env.USE_FDIC_VISION === 'true') {
+        // Vision detection is a premium feature - gated behind env flag
+        const isPaidVisionEnabled = process.env.USE_FDIC_VISION === 'true';
+        if (!hasMemberFdic && !hasFdicLogo && isPaidVisionEnabled) {
           try {
             // Try AI vision detection as fallback with 30s timeout
             const visionPromise = detectFdicWithVision(url);
