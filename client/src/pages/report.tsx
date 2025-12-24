@@ -35,12 +35,13 @@ import {
   ExternalLink,
   Trash2,
   Copy,
-  Check
+  Check,
+  Smartphone
 } from "lucide-react";
 import { trackPageView } from "@/lib/analytics";
 
 interface Finding {
-  category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr";
+  category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "mobile" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr";
   issue: string;
   impact: string;
   priority: "critical" | "important" | "optional";
@@ -59,6 +60,7 @@ interface GradeResult {
   keywordsScore: number;
   accessibilityScore: number;
   emailSecurityScore: number;
+  mobileScore: number;
   findings: Finding[];
   companyName: string | null;
   hostIp: string | null;
@@ -306,6 +308,7 @@ Category Scores:
 - Keywords: ${result.keywordsScore}/100
 - Accessibility: ${result.accessibilityScore}/100
 - Email Security: ${result.emailSecurityScore || 0}/100
+- Mobile: ${result.mobileScore || 0}/100
 
 ${failures.length > 0 ? `Issues Found (${failures.length}):
 ${failures.map(f => `- [${f.priority.toUpperCase()}] ${f.issue}: ${f.impact}
@@ -478,6 +481,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}` : ''}`;
               <ScoreCircle score={result.keywordsScore} label="Keywords" icon={Key} />
               <ScoreCircle score={result.accessibilityScore} label="A11y" icon={Accessibility} />
               <ScoreCircle score={result.emailSecurityScore || 0} label="Email" icon={Mail} />
+              <ScoreCircle score={result.mobileScore || 0} label="Mobile" icon={Smartphone} />
               {result.fdicScore !== null && result.fdicScore !== undefined && (
                 <ScoreCircle score={result.fdicScore} label="FDIC" icon={Building} />
               )}
