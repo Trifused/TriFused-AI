@@ -547,6 +547,14 @@ class Storage implements IStorage {
       .where(eq(reportEvents.shareToken, shareToken))
       .orderBy(desc(reportEvents.triggeredAt));
   }
+
+  async updateUserStripeInfo(userId: string, stripeInfo: {
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+  }): Promise<User | undefined> {
+    const [user] = await db.update(users).set(stripeInfo).where(eq(users.id, userId)).returning();
+    return user;
+  }
 }
 
 export const storage = new Storage();

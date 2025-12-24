@@ -178,7 +178,7 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     id: 'payments_stripe',
     name: 'Stripe Payments',
     description: 'Accept payments via Stripe',
-    status: 'coming_soon',
+    status: 'free',
     category: 'payments',
   },
   PAYMENTS_ONE_TIME: {
