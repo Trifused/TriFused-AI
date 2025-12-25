@@ -51,6 +51,7 @@ function Router() {
         <Route path="/grader" component={Grader} />
         <Route path="/report/:shareToken" component={Report} />
         <Route path="/store" component={Store} />
+        <Route path="/shop">{() => { window.location.replace('/store'); return null; }}</Route>
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/portal" component={PortalLogin} />
         <Route path="/portal/dashboard" component={Dashboard} />
