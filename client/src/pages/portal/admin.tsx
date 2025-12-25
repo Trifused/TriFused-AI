@@ -291,6 +291,23 @@ export default function Admin() {
     enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'analytics',
   });
 
+  const { data: productionAnalytics, isLoading: productionAnalyticsLoading } = useQuery<{
+    httpStatusesByHour: Array<{ hour: string; status_code: number; count: string }>;
+    durationDistribution: Array<{ bucket: string; count: string }>;
+    topEndpoints: Array<{ endpoint: string; requests: string; avg_duration: string; errors: string }>;
+    summary: { total_requests: string; avg_duration: string; success_count: string; error_count: string };
+  }>({
+    queryKey: ['/api/admin/production-analytics'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/production-analytics', {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch production analytics');
+      return res.json();
+    },
+    enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'analytics',
+  });
+
   const analyticsData = analyticsResponse?.data;
 
   interface DiagnosticScan {
@@ -1514,6 +1531,143 @@ export default function Admin() {
                       </p>
                     </div>
                   )}
+
+                  {/* Production Analytics - API Usage */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="mt-8"
+                  >
+                    <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-orange-400" />
+                      Production Analytics (24h)
+                    </h2>
+                    
+                    {productionAnalyticsLoading ? (
+                      <div className="p-8 text-center glass-panel rounded-2xl">
+                        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                        <p className="text-muted-foreground">Loading production analytics...</p>
+                      </div>
+                    ) : productionAnalytics ? (
+                      <>
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                          <div className="glass-panel rounded-xl p-4">
+                            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                              <Globe className="w-4 h-4" />
+                              Total Requests
+                            </div>
+                            <div className="text-2xl font-bold text-white">
+                              {parseInt(productionAnalytics.summary.total_requests || '0').toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="glass-panel rounded-xl p-4">
+                            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                              <Clock className="w-4 h-4" />
+                              Avg Response
+                            </div>
+                            <div className="text-2xl font-bold text-white">
+                              {Math.round(parseFloat(productionAnalytics.summary.avg_duration || '0'))}ms
+                            </div>
+                          </div>
+                          <div className="glass-panel rounded-xl p-4">
+                            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                              <CheckCircle2 className="w-4 h-4 text-green-400" />
+                              Success (2xx)
+                            </div>
+                            <div className="text-2xl font-bold text-green-400">
+                              {parseInt(productionAnalytics.summary.success_count || '0').toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="glass-panel rounded-xl p-4">
+                            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+                              <XCircle className="w-4 h-4 text-red-400" />
+                              Errors (4xx/5xx)
+                            </div>
+                            <div className="text-2xl font-bold text-red-400">
+                              {parseInt(productionAnalytics.summary.error_count || '0').toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-6">
+                          {/* Request Duration Distribution */}
+                          <div className="glass-panel rounded-2xl overflow-hidden">
+                            <div className="p-4 border-b border-white/5 bg-white/5">
+                              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-primary" />
+                                Response Time Distribution
+                              </h3>
+                            </div>
+                            <div className="p-4">
+                              {productionAnalytics.durationDistribution.length === 0 ? (
+                                <div className="p-8 text-center text-muted-foreground">No data yet</div>
+                              ) : (
+                                <div className="space-y-3">
+                                  {productionAnalytics.durationDistribution.map((item) => {
+                                    const count = parseInt(item.count);
+                                    const total = productionAnalytics.durationDistribution.reduce((sum, d) => sum + parseInt(d.count), 0);
+                                    const percentage = total > 0 ? (count / total) * 100 : 0;
+                                    return (
+                                      <div key={item.bucket} className="space-y-1">
+                                        <div className="flex justify-between text-sm">
+                                          <span className="text-white font-mono">{item.bucket}</span>
+                                          <span className="text-muted-foreground">{count.toLocaleString()} ({percentage.toFixed(1)}%)</span>
+                                        </div>
+                                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                          <div 
+                                            className="h-full bg-gradient-to-r from-cyan-500 to-primary rounded-full transition-all"
+                                            style={{ width: `${percentage}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Top Endpoints */}
+                          <div className="glass-panel rounded-2xl overflow-hidden">
+                            <div className="p-4 border-b border-white/5 bg-white/5">
+                              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <Link2 className="w-5 h-5 text-primary" />
+                                Top Endpoints
+                              </h3>
+                            </div>
+                            <div className="divide-y divide-white/5 max-h-64 overflow-y-auto">
+                              {productionAnalytics.topEndpoints.length === 0 ? (
+                                <div className="p-8 text-center text-muted-foreground">No data yet</div>
+                              ) : (
+                                productionAnalytics.topEndpoints.map((ep) => (
+                                  <div key={ep.endpoint} className="p-3 hover:bg-white/5">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-white font-mono text-sm truncate flex-1 mr-2">{ep.endpoint}</span>
+                                      <span className="text-cyan-400 font-bold">{parseInt(ep.requests).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                      <span>Avg: {Math.round(parseFloat(ep.avg_duration || '0'))}ms</span>
+                                      {parseInt(ep.errors) > 0 && (
+                                        <span className="text-red-400">{ep.errors} errors</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="p-6 text-center glass-panel rounded-2xl border border-white/10">
+                        <p className="text-muted-foreground text-sm">
+                          No production analytics data available.
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
                 </>
               )}
             </div>

@@ -1149,6 +1149,85 @@ export async function registerRoutes(
     }
   });
 
+  // Production Analytics - HTTP status codes and request durations
+  app.get("/api/admin/production-analytics", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      // Get API usage logs from last 24 hours with hourly aggregation
+      const httpStatusesByHour = await db.execute(sql`
+        SELECT 
+          date_trunc('hour', called_at) as hour,
+          status_code,
+          COUNT(*) as count
+        FROM api_usage_logs
+        WHERE called_at >= NOW() - INTERVAL '24 hours'
+        GROUP BY date_trunc('hour', called_at), status_code
+        ORDER BY hour ASC
+      `);
+
+      // Get request duration distribution
+      const durationDistribution = await db.execute(sql`
+        SELECT 
+          CASE 
+            WHEN response_time_ms < 50 THEN '< 50ms'
+            WHEN response_time_ms < 150 THEN '< 150ms'
+            WHEN response_time_ms < 300 THEN '< 300ms'
+            WHEN response_time_ms < 500 THEN '< 500ms'
+            WHEN response_time_ms < 1000 THEN '< 1000ms'
+            ELSE '1000ms+'
+          END as bucket,
+          COUNT(*) as count
+        FROM api_usage_logs
+        WHERE called_at >= NOW() - INTERVAL '24 hours'
+          AND response_time_ms IS NOT NULL
+        GROUP BY bucket
+        ORDER BY 
+          CASE bucket
+            WHEN '< 50ms' THEN 1
+            WHEN '< 150ms' THEN 2
+            WHEN '< 300ms' THEN 3
+            WHEN '< 500ms' THEN 4
+            WHEN '< 1000ms' THEN 5
+            ELSE 6
+          END
+      `);
+
+      // Get top endpoints
+      const topEndpoints = await db.execute(sql`
+        SELECT 
+          endpoint,
+          COUNT(*) as requests,
+          AVG(response_time_ms) as avg_duration,
+          COUNT(CASE WHEN status_code >= 400 THEN 1 END) as errors
+        FROM api_usage_logs
+        WHERE called_at >= NOW() - INTERVAL '24 hours'
+        GROUP BY endpoint
+        ORDER BY requests DESC
+        LIMIT 10
+      `);
+
+      // Get summary stats
+      const summary = await db.execute(sql`
+        SELECT 
+          COUNT(*) as total_requests,
+          AVG(response_time_ms) as avg_duration,
+          COUNT(CASE WHEN status_code >= 200 AND status_code < 300 THEN 1 END) as success_count,
+          COUNT(CASE WHEN status_code >= 400 THEN 1 END) as error_count
+        FROM api_usage_logs
+        WHERE called_at >= NOW() - INTERVAL '24 hours'
+      `);
+
+      res.json({
+        httpStatusesByHour: httpStatusesByHour.rows,
+        durationDistribution: durationDistribution.rows,
+        topEndpoints: topEndpoints.rows,
+        summary: summary.rows[0] || { total_requests: 0, avg_duration: 0, success_count: 0, error_count: 0 }
+      });
+    } catch (error: any) {
+      console.error("Production analytics error:", error);
+      res.status(500).json({ error: "Failed to fetch production analytics" });
+    }
+  });
+
   app.get("/public-objects/:filePath(*)", async (req, res) => {
     const filePath = req.params.filePath;
     const objectStorageService = new ObjectStorageService();
