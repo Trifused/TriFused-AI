@@ -44,7 +44,8 @@ import {
   Edit,
   Save,
   Upload,
-  Download
+  Download,
+  UserCog
 } from "lucide-react";
 import { FEATURE_FLAGS, type FeatureFlag, type FeatureStatus, type FeatureCategory } from "@shared/feature-flags";
 import { FeatureBadge } from "@/components/ui/feature-badge";
@@ -609,6 +610,35 @@ export default function Admin() {
     },
   });
 
+  const impersonateMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await fetch(`/api/admin/impersonate/${userId}`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to impersonate user');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Impersonating User",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      setLocation("/portal/dashboard");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
@@ -914,6 +944,20 @@ export default function Admin() {
                             />
                             <span className="text-xs text-muted-foreground">MFT</span>
                           </div>
+
+                          {u.id !== user?.id && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => impersonateMutation.mutate(u.id)}
+                              disabled={impersonateMutation.isPending}
+                              className="ml-2"
+                              data-testid={`btn-impersonate-${u.id}`}
+                            >
+                              <UserCog className="w-4 h-4 mr-1" />
+                              Run As
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </motion.div>

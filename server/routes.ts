@@ -416,17 +416,84 @@ export async function registerRoutes(
   
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      let user = await storage.getUser(userId);
+      const realUserId = req.user.claims.sub;
+      let realUser = await storage.getUser(realUserId);
       
-      if (user && user.email && SUPERUSER_EMAILS.includes(user.email.toLowerCase()) && user.role !== "superuser") {
-        user = await storage.updateUserRole(userId, "superuser") || user;
+      if (realUser && realUser.email && SUPERUSER_EMAILS.includes(realUser.email.toLowerCase()) && realUser.role !== "superuser") {
+        realUser = await storage.updateUserRole(realUserId, "superuser") || realUser;
       }
       
-      res.json(user);
+      // Check for impersonation
+      const impersonatingUserId = req.session?.impersonatingUserId;
+      if (impersonatingUserId && realUser?.role === "superuser") {
+        const impersonatedUser = await storage.getUser(impersonatingUserId);
+        if (impersonatedUser) {
+          return res.json({
+            ...impersonatedUser,
+            isImpersonating: true,
+            originalUser: {
+              id: realUser.id,
+              email: realUser.email,
+              firstName: realUser.firstName,
+              lastName: realUser.lastName,
+              role: realUser.role,
+            },
+          });
+        }
+      }
+      
+      res.json(realUser);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Start impersonating a user (superuser only)
+  app.post('/api/admin/impersonate/:userId', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const targetUser = await storage.getUser(userId);
+      
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Store impersonation in session
+      req.session.impersonatingUserId = userId;
+      
+      res.json({ 
+        success: true, 
+        message: `Now impersonating ${targetUser.email || targetUser.id}`,
+        user: targetUser,
+      });
+    } catch (error) {
+      console.error("Error starting impersonation:", error);
+      res.status(500).json({ message: "Failed to start impersonation" });
+    }
+  });
+
+  // Stop impersonating (superuser only)
+  app.post('/api/admin/stop-impersonate', isAuthenticated, async (req: any, res) => {
+    try {
+      const realUserId = req.user.claims.sub;
+      const realUser = await storage.getUser(realUserId);
+      
+      if (realUser?.role !== "superuser") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      // Clear impersonation from session
+      delete req.session.impersonatingUserId;
+      
+      res.json({ 
+        success: true, 
+        message: "Stopped impersonating",
+        user: realUser,
+      });
+    } catch (error) {
+      console.error("Error stopping impersonation:", error);
+      res.status(500).json({ message: "Failed to stop impersonation" });
     }
   });
 
