@@ -694,17 +694,116 @@ export default function WebsitesPortal() {
                     </Button>
                   </div>
                   <p className="text-muted-foreground text-sm mb-3">Run a fresh scan and get CI/CD report (use forceRefresh: true for new scans).</p>
-                  <div className="bg-slate-800 rounded p-3">
-                    <pre className="text-xs text-gray-300 overflow-x-auto">{`# GitHub Actions Example
-curl -X POST https://your-domain/api/v1/score \\
-  -H "Content-Type: application/json" \\
-  -d '{"url":"$SITE_URL","threshold":70,"forceRefresh":true}'
+                </div>
 
-# Check exit code in CI
-if [ $? -ne 0 ]; then
-  echo "Website grade below threshold - failing build"
-  exit 1
-fi`}</pre>
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Key className="w-5 h-5 text-cyan-400" />
+                    API Key Authentication
+                  </h3>
+                </div>
+
+                <div className="p-6 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 rounded-xl border border-purple-500/30">
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Use API keys for automated access. Create keys in the <span className="text-cyan-400">API Keys</span> tab.
+                  </p>
+                  <div className="bg-slate-800 rounded p-3 mb-4">
+                    <pre className="text-xs text-gray-300 overflow-x-auto">{`# Authentication Header
+Authorization: Bearer tf_your_api_key_here
+
+# Example: Get website score with API key
+curl -X GET "https://your-domain/api/v1/score?url=https://example.com&threshold=70" \\
+  -H "Authorization: Bearer tf_54e072ee9abc123..."
+
+# Example: Run fresh scan with API key
+curl -X POST "https://your-domain/api/v1/score" \\
+  -H "Authorization: Bearer tf_54e072ee9abc123..." \\
+  -H "Content-Type: application/json" \\
+  -d '{"url":"https://example.com","threshold":70,"forceRefresh":true}'`}</pre>
+                  </div>
+                  <p className="text-xs text-muted-foreground">API keys start with <code className="text-cyan-400">tf_</code> prefix. Keep your keys secure and never commit them to version control.</p>
+                </div>
+
+                <div className="p-6 bg-white/5 rounded-xl border border-white/10 mt-4">
+                  <h4 className="text-white font-medium mb-3">GitHub Actions Example</h4>
+                  <div className="bg-slate-800 rounded p-3">
+                    <pre className="text-xs text-gray-300 overflow-x-auto">{`# .github/workflows/website-check.yml
+name: Website Health Check
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 9 * * 1'  # Weekly on Monday 9am
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Website Score
+        run: |
+          RESPONSE=$(curl -s -w "\\n%{http_code}" \\
+            -H "Authorization: Bearer \${{ secrets.TRIFUSED_API_KEY }}" \\
+            "https://trifused.com/api/v1/score?url=\${{ vars.SITE_URL }}&threshold=70")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          
+          echo "Score: $(echo $BODY | jq -r '.overallScore')"
+          echo "Grade: $(echo $BODY | jq -r '.grade')"
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Website grade below threshold!"
+            exit 1
+          fi`}</pre>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-white/5 rounded-xl border border-white/10 mt-4">
+                  <h4 className="text-white font-medium mb-3">GitLab CI Example</h4>
+                  <div className="bg-slate-800 rounded p-3">
+                    <pre className="text-xs text-gray-300 overflow-x-auto">{`# .gitlab-ci.yml
+website-grade:
+  stage: test
+  script:
+    - |
+      RESULT=$(curl -sf -H "Authorization: Bearer $TRIFUSED_API_KEY" \\
+        "https://trifused.com/api/v1/score?url=$SITE_URL&threshold=70")
+      echo "Grade: $(echo $RESULT | jq -r '.grade')"
+      [ $(echo $RESULT | jq -r '.passed') = "true" ] || exit 1
+  only:
+    - main`}</pre>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-white/5 rounded-xl border border-white/10 mt-4">
+                  <h4 className="text-white font-medium mb-3">Jenkins Pipeline Example</h4>
+                  <div className="bg-slate-800 rounded p-3">
+                    <pre className="text-xs text-gray-300 overflow-x-auto">{`// Jenkinsfile
+pipeline {
+    agent any
+    environment {
+        TRIFUSED_API_KEY = credentials('trifused-api-key')
+    }
+    stages {
+        stage('Website Grade Check') {
+            steps {
+                script {
+                    def response = sh(
+                        script: '''
+                            curl -sf -H "Authorization: Bearer $TRIFUSED_API_KEY" \\
+                            "https://trifused.com/api/v1/score?url=$SITE_URL&threshold=70"
+                        ''',
+                        returnStdout: true
+                    ).trim()
+                    def grade = readJSON text: response
+                    echo "Score: \${grade.overallScore} (\${grade.grade})"
+                    if (!grade.passed) { error("Grade below threshold") }
+                }
+            }
+        }
+    }
+}`}</pre>
                   </div>
                 </div>
               </div>
@@ -712,7 +811,7 @@ fi`}</pre>
               <div className="p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
                 <p className="text-sm text-cyan-400">
                   <Code className="w-4 h-4 inline mr-2" />
-                  All API requests require authentication. Use session cookies or API keys from the API Keys tab.
+                  All API requests require authentication. Use the <code className="text-white">Authorization: Bearer</code> header with your API key.
                 </p>
               </div>
             </TabsContent>
