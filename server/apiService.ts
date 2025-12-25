@@ -146,12 +146,41 @@ class ApiService {
       return { success: false, error: 'API quota exceeded' };
     }
 
-    await db.update(apiQuotas)
-      .set({
-        usedCalls: quota.usedCalls + 1,
-        updatedAt: new Date(),
-      })
-      .where(eq(apiQuotas.userId, userId));
+    const subscriptionRemaining = quota.subscriptionCalls - quota.usedCalls;
+    const useFromPack = subscriptionRemaining <= 0;
+
+    if (useFromPack) {
+      const packs = await db.select().from(apiCallPacks)
+        .where(and(
+          eq(apiCallPacks.userId, userId),
+          sql`calls_remaining > 0`
+        ))
+        .orderBy(apiCallPacks.purchasedAt)
+        .limit(1);
+
+      if (packs.length > 0) {
+        await db.update(apiCallPacks)
+          .set({ callsRemaining: packs[0].callsRemaining - 1 })
+          .where(eq(apiCallPacks.id, packs[0].id));
+
+        await db.update(apiQuotas)
+          .set({
+            usedCalls: quota.usedCalls + 1,
+            packCalls: Math.max(0, quota.packCalls - 1),
+            updatedAt: new Date(),
+          })
+          .where(eq(apiQuotas.userId, userId));
+      } else {
+        return { success: false, error: 'No available call packs' };
+      }
+    } else {
+      await db.update(apiQuotas)
+        .set({
+          usedCalls: quota.usedCalls + 1,
+          updatedAt: new Date(),
+        })
+        .where(eq(apiQuotas.userId, userId));
+    }
 
     await db.insert(apiUsageLogs).values({
       userId,
