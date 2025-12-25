@@ -40,7 +40,9 @@ import {
   CreditCard,
   DollarSign,
   RefreshCw,
-  Receipt
+  Receipt,
+  Edit,
+  Save
 } from "lucide-react";
 import { FEATURE_FLAGS, type FeatureFlag, type FeatureStatus, type FeatureCategory } from "@shared/feature-flags";
 import { FeatureBadge } from "@/components/ui/feature-badge";
@@ -1740,6 +1742,17 @@ function CommerceTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    description: '',
+    features: '',
+    product_type: '',
+    tier: '',
+    calls_included: '',
+    discount_percent: '',
+    parent_product: '',
+  });
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
@@ -1798,6 +1811,27 @@ function CommerceTab() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ productId, updates }: { productId: string; updates: any }) => {
+      const response = await fetch(`/api/admin/stripe/products/${productId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) throw new Error("Failed to update product");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Product updated" });
+      queryClient.invalidateQueries({ queryKey: ["admin-stripe-products"] });
+      setEditingProduct(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to update product", variant: "destructive" });
+    },
+  });
+
   const archiveMutation = useMutation({
     mutationFn: async (productId: string) => {
       const response = await fetch(`/api/admin/stripe/products/${productId}`, {
@@ -1815,6 +1849,42 @@ function CommerceTab() {
       toast({ title: "Failed to archive product", variant: "destructive" });
     },
   });
+
+  const openEditDialog = (product: any) => {
+    const meta = product.metadata || {};
+    setEditForm({
+      name: product.name || '',
+      description: product.description || '',
+      features: meta.features || '',
+      product_type: meta.product_type || '',
+      tier: meta.tier || '',
+      calls_included: meta.calls_included || '',
+      discount_percent: meta.discount_percent || '',
+      parent_product: meta.parent_product || '',
+    });
+    setEditingProduct(product);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingProduct) return;
+    
+    const metadata: Record<string, string> = {};
+    if (editForm.features) metadata.features = editForm.features;
+    if (editForm.product_type) metadata.product_type = editForm.product_type;
+    if (editForm.tier) metadata.tier = editForm.tier;
+    if (editForm.calls_included) metadata.calls_included = editForm.calls_included;
+    if (editForm.discount_percent) metadata.discount_percent = editForm.discount_percent;
+    if (editForm.parent_product) metadata.parent_product = editForm.parent_product;
+
+    updateMutation.mutate({
+      productId: editingProduct.id,
+      updates: {
+        name: editForm.name,
+        description: editForm.description,
+        metadata,
+      },
+    });
+  };
 
   const products = productsData?.data || [];
 
@@ -2027,6 +2097,15 @@ function CommerceTab() {
                     <span className="text-xs text-muted-foreground font-mono hidden lg:block">
                       {product.id.slice(0, 20)}...
                     </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEditDialog(product)}
+                      className="text-cyan-400 hover:text-cyan-300"
+                      data-testid={`btn-edit-${product.id}`}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
                     {product.active && (
                       <Button
                         variant="ghost"
@@ -2053,6 +2132,146 @@ function CommerceTab() {
           </p>
         </div>
       </div>
+
+      {/* Edit Product Dialog */}
+      {editingProduct && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-slate-900 border border-white/10 rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+              <Edit className="w-5 h-5 text-primary" />
+              Edit Product
+            </h3>
+            
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="text-sm text-muted-foreground block mb-1">Name</label>
+                <input
+                  type="text"
+                  className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  data-testid="input-edit-name"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-sm text-muted-foreground block mb-1">Description</label>
+                <textarea
+                  className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  rows={2}
+                  data-testid="input-edit-description"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-sm text-muted-foreground block mb-1">Features (comma-separated)</label>
+                <input
+                  type="text"
+                  className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                  value={editForm.features}
+                  onChange={(e) => setEditForm({ ...editForm, features: e.target.value })}
+                  data-testid="input-edit-features"
+                />
+              </div>
+              
+              <div className="md:col-span-2 border-t border-white/10 pt-4 mt-2">
+                <p className="text-sm font-medium text-white mb-3">Product Metadata (Advanced)</p>
+              </div>
+              
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">Product Type</label>
+                <select
+                  className="w-full bg-slate-800 border border-white/10 rounded px-3 py-2 text-white"
+                  value={editForm.product_type}
+                  onChange={(e) => setEditForm({ ...editForm, product_type: e.target.value })}
+                  data-testid="select-edit-product-type"
+                >
+                  <option value="">None</option>
+                  <option value="one_time">One-time</option>
+                  <option value="subscription">Subscription</option>
+                  <option value="call_pack">Call Pack</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">Tier</label>
+                <select
+                  className="w-full bg-slate-800 border border-white/10 rounded px-3 py-2 text-white"
+                  value={editForm.tier}
+                  onChange={(e) => setEditForm({ ...editForm, tier: e.target.value })}
+                  data-testid="select-edit-tier"
+                >
+                  <option value="">None</option>
+                  <option value="starter">Starter</option>
+                  <option value="professional">Professional</option>
+                  <option value="master">Master</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">Calls Included</label>
+                <input
+                  type="number"
+                  className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                  value={editForm.calls_included}
+                  onChange={(e) => setEditForm({ ...editForm, calls_included: e.target.value })}
+                  placeholder="e.g., 1000"
+                  data-testid="input-edit-calls"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">Pack Discount %</label>
+                <input
+                  type="number"
+                  className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                  value={editForm.discount_percent}
+                  onChange={(e) => setEditForm({ ...editForm, discount_percent: e.target.value })}
+                  placeholder="e.g., 25"
+                  data-testid="input-edit-discount"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-sm text-muted-foreground block mb-1">Parent Product ID (for call packs)</label>
+                <select
+                  className="w-full bg-slate-800 border border-white/10 rounded px-3 py-2 text-white"
+                  value={editForm.parent_product}
+                  onChange={(e) => setEditForm({ ...editForm, parent_product: e.target.value })}
+                  data-testid="select-edit-parent"
+                >
+                  <option value="">No parent (standalone product)</option>
+                  {products.filter((p: any) => p.id !== editingProduct.id && p.metadata?.product_type === 'subscription').map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Link call packs to a subscription product to show them as add-ons
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                onClick={handleSaveEdit}
+                disabled={updateMutation.isPending}
+                data-testid="btn-save-edit"
+              >
+                {updateMutation.isPending ? (
+                  <Clock className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                Save Changes
+              </Button>
+              <Button variant="ghost" onClick={() => setEditingProduct(null)}>
+                Cancel
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 }

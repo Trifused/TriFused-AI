@@ -3988,6 +3988,31 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Update product (admin only)
+  app.patch("/api/admin/stripe/products/:productId", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { productId } = req.params;
+      const { name, description, metadata, active } = req.body;
+      
+      const updates: { name?: string; description?: string; active?: boolean; metadata?: Record<string, string> } = {};
+      if (name !== undefined) updates.name = name;
+      if (description !== undefined) updates.description = description;
+      if (active !== undefined) updates.active = active;
+      if (metadata !== undefined) updates.metadata = metadata;
+
+      await stripeService.updateProduct(productId, updates);
+      
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update product error:", error);
+      res.status(500).json({ error: "Failed to update product" });
+    }
+  });
+
   // Archive product (admin only)
   app.delete("/api/admin/stripe/products/:productId", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
     try {
