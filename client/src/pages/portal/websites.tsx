@@ -132,6 +132,16 @@ export default function WebsitesPortal() {
     enabled: isAuthenticated && activeTab === "history",
   });
 
+  const { data: apiUsageData, isLoading: apiUsageLoading } = useQuery({
+    queryKey: ["/api/user/api-usage"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/api-usage", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch API usage");
+      return res.json();
+    },
+    enabled: isAuthenticated && activeTab === "history",
+  });
+
   const { data: apiKeysData } = useQuery({
     queryKey: ["/api/user/api-keys"],
     queryFn: async () => {
@@ -244,6 +254,30 @@ export default function WebsitesPortal() {
 
   const websites: UserWebsite[] = websitesData?.data || [];
   const scans: WebsiteGrade[] = scansData?.data || [];
+  const apiUsageLogs: any[] = apiUsageData?.recent || [];
+  
+  // Merge scans and API usage into unified history
+  const mergedHistory = [
+    ...scans.map(scan => ({
+      id: scan.id,
+      type: 'scan' as const,
+      url: scan.url,
+      score: scan.overallScore,
+      shareToken: scan.shareToken,
+      createdAt: new Date(scan.createdAt),
+    })),
+    ...apiUsageLogs.map(log => ({
+      id: log.id,
+      type: 'api_call' as const,
+      url: log.endpoint,
+      score: null,
+      shareToken: null,
+      createdAt: new Date(log.calledAt),
+      statusCode: log.statusCode,
+      responseTime: log.responseTimeMs,
+      method: log.method,
+    })),
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -521,44 +555,61 @@ export default function WebsitesPortal() {
             <TabsContent value="history" className="mt-6 space-y-6">
               <div>
                 <h2 className="text-lg font-semibold text-white mb-2">Scan History</h2>
-                <p className="text-muted-foreground">View all your past website scans and reports.</p>
+                <p className="text-muted-foreground">View all your past website scans and API calls.</p>
               </div>
 
-              {scansLoading ? (
+              {(scansLoading || apiUsageLoading) ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
                 </div>
-              ) : scans.length === 0 ? (
+              ) : mergedHistory.length === 0 ? (
                 <div className="text-center py-16 bg-white/5 rounded-xl border border-white/10">
                   <History className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <h3 className="text-lg font-medium text-white mb-2">No scan history yet</h3>
+                  <h3 className="text-lg font-medium text-white mb-2">No history yet</h3>
                   <p className="text-muted-foreground">
-                    Run scans on your websites to build your scan history.
+                    Run scans on your websites or make API calls to build your history.
                   </p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {scans.map((scan) => (
+                  {mergedHistory.map((item) => (
                     <div
-                      key={scan.id}
+                      key={item.id}
                       className="p-4 bg-white/5 rounded-lg border border-white/10 flex items-center justify-between"
                     >
                       <div className="flex items-center gap-4">
-                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${getGradeBg(scan.overallScore)} ${getGradeColor(scan.overallScore)}`}>
-                          {getGradeLetter(scan.overallScore)}
-                        </span>
+                        {item.type === 'scan' ? (
+                          <span className={`px-3 py-1 rounded-full text-sm font-bold ${getGradeBg(item.score!)} ${getGradeColor(item.score!)}`}>
+                            {getGradeLetter(item.score!)}
+                          </span>
+                        ) : (
+                          <span className={`px-3 py-1 rounded-full text-sm font-bold ${item.statusCode === 200 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                            API
+                          </span>
+                        )}
                         <div>
-                          <p className="text-white font-medium">{new URL(scan.url).hostname}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Score: {scan.overallScore}/100 • {format(new Date(scan.createdAt), "MMM d, yyyy h:mm a")}
-                          </p>
+                          {item.type === 'scan' ? (
+                            <>
+                              <p className="text-white font-medium">{new URL(item.url).hostname}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Score: {item.score}/100 • {format(item.createdAt, "MMM d, yyyy h:mm a")}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-white font-medium font-mono text-sm">{item.method} {item.url}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Status: {item.statusCode} • {item.responseTime}ms • {format(item.createdAt, "MMM d, yyyy h:mm a")}
+                              </p>
+                            </>
+                          )}
                         </div>
                       </div>
-                      {scan.shareToken && (
+                      {item.type === 'scan' && item.shareToken && (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setLocation(`/report/${scan.shareToken}`)}
+                          onClick={() => setLocation(`/report/${item.shareToken}`)}
                           className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
                         >
                           <ExternalLink className="w-4 h-4 mr-2" />
