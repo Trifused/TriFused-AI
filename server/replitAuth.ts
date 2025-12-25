@@ -50,7 +50,9 @@ function updateUserSession(
   user.expires_at = user.claims?.exp;
 }
 
-const SUPERUSER_EMAIL_DOMAIN = "@trifused.com";
+const SUPERUSER_EMAILS = [
+  "trifused@gmail.com",
+];
 
 async function upsertUser(
   claims: any,
@@ -59,7 +61,7 @@ async function upsertUser(
   const existingUser = await storage.getUser(claims["sub"]);
   
   let role = existingUser?.role || "guest";
-  if (email?.endsWith(SUPERUSER_EMAIL_DOMAIN) && role !== "superuser") {
+  if (email && SUPERUSER_EMAILS.includes(email.toLowerCase()) && role !== "superuser") {
     role = "superuser";
   }
 

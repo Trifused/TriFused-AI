@@ -171,7 +171,6 @@ interface Order {
   customer_name: string | null;
   payment_intent_id: string | null;
   charge_id: string | null;
-  receipt_url: string | null;
   refunded: boolean | null;
 }
 
@@ -1628,17 +1627,15 @@ export default function Admin() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              {order.receipt_url && (
-                                <a
-                                  href={order.receipt_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
-                                >
-                                  <ExternalLink className="w-3 h-3" />
-                                  Receipt
-                                </a>
-                              )}
+                              <a
+                                href={`https://dashboard.stripe.com/payments/${order.session_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                Stripe
+                              </a>
                               <span className="text-xs text-muted-foreground font-mono hidden lg:block">
                                 {order.session_id.slice(0, 15)}...
                               </span>

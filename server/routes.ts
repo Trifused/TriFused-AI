@@ -106,7 +106,9 @@ Respond in JSON format:
   }
 }
 
-const SUPERUSER_EMAIL_DOMAIN = "@trifused.com";
+const SUPERUSER_EMAILS = [
+  "trifused@gmail.com",
+];
 
 const isSuperuser = async (req: any, res: Response, next: NextFunction) => {
   try {
@@ -416,7 +418,7 @@ export async function registerRoutes(
       const userId = req.user.claims.sub;
       let user = await storage.getUser(userId);
       
-      if (user && user.email?.endsWith(SUPERUSER_EMAIL_DOMAIN) && user.role !== "superuser") {
+      if (user && user.email && SUPERUSER_EMAILS.includes(user.email.toLowerCase()) && user.role !== "superuser") {
         user = await storage.updateUserRole(userId, "superuser") || user;
       }
       

@@ -203,12 +203,11 @@ export class StripeService {
           pi.id as payment_intent_id,
           pi.status as payment_status_detail,
           ch.id as charge_id,
-          ch.receipt_url,
           ch.refunded
         FROM stripe.checkout_sessions cs
         LEFT JOIN stripe.customers c ON cs.customer = c.id
         LEFT JOIN stripe.payment_intents pi ON cs.payment_intent = pi.id
-        LEFT JOIN stripe.charges ch ON pi.latest_charge = ch.id
+        LEFT JOIN stripe.charges ch ON ch.payment_intent = pi.id
         WHERE cs.payment_status IS NOT NULL
         ORDER BY cs.created DESC
         LIMIT ${limit} OFFSET ${offset}
@@ -224,18 +223,16 @@ export class StripeService {
           cs.*,
           c.email as customer_email_stripe,
           c.name as customer_name,
-          c.phone as customer_phone,
           pi.id as payment_intent_id,
           pi.status as payment_status_detail,
           pi.amount as payment_amount,
           ch.id as charge_id,
-          ch.receipt_url,
           ch.refunded,
           ch.amount_refunded
         FROM stripe.checkout_sessions cs
         LEFT JOIN stripe.customers c ON cs.customer = c.id
         LEFT JOIN stripe.payment_intents pi ON cs.payment_intent = pi.id
-        LEFT JOIN stripe.charges ch ON pi.latest_charge = ch.id
+        LEFT JOIN stripe.charges ch ON ch.payment_intent = pi.id
         WHERE cs.id = ${sessionId}
       `
     );
