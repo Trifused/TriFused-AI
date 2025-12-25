@@ -3886,11 +3886,27 @@ Your primary goal is to help users AND capture their contact information natural
   });
 
   // ========== API KEY MANAGEMENT ROUTES ==========
+  
+  // Helper to get effective user ID (accounts for impersonation)
+  const getEffectiveUserId = async (req: any): Promise<string | null> => {
+    const realUserId = req.user?.claims?.sub;
+    if (!realUserId) return null;
+    
+    // Check for impersonation
+    const impersonatingUserId = req.session?.impersonatingUserId;
+    if (impersonatingUserId) {
+      const realUser = await storage.getUser(realUserId);
+      if (realUser?.role === "superuser") {
+        return impersonatingUserId;
+      }
+    }
+    return realUserId;
+  };
 
   // Get user's API keys
   app.get("/api/user/api-keys", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = await getEffectiveUserId(req);
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
       const keys = await apiService.getApiKeysByUser(userId);
@@ -3915,7 +3931,7 @@ Your primary goal is to help users AND capture their contact information natural
   // Create new API key
   app.post("/api/user/api-keys", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = await getEffectiveUserId(req);
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
       const { name, expiresAt } = req.body;
@@ -3943,7 +3959,7 @@ Your primary goal is to help users AND capture their contact information natural
   // Revoke API key
   app.post("/api/user/api-keys/:keyId/revoke", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = await getEffectiveUserId(req);
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
       const result = await apiService.revokeApiKey(req.params.keyId, userId);
@@ -3959,7 +3975,7 @@ Your primary goal is to help users AND capture their contact information natural
   // Delete API key
   app.delete("/api/user/api-keys/:keyId", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = await getEffectiveUserId(req);
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
       await apiService.deleteApiKey(req.params.keyId, userId);
@@ -3973,7 +3989,7 @@ Your primary goal is to help users AND capture their contact information natural
   // Get user's API quota and usage
   app.get("/api/user/api-quota", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = await getEffectiveUserId(req);
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
       const quota = await apiService.getUserQuota(userId);
@@ -3994,7 +4010,7 @@ Your primary goal is to help users AND capture their contact information natural
   // Get usage statistics
   app.get("/api/user/api-usage", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = await getEffectiveUserId(req);
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
       const days = parseInt(req.query.days as string) || 30;
