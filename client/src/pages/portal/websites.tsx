@@ -107,6 +107,7 @@ export default function WebsitesPortal() {
   const [activeTab, setActiveTab] = useState("websites");
   const [testUrl, setTestUrl] = useState("");
   const [testApiKey, setTestApiKey] = useState("");
+  const [testManualKey, setTestManualKey] = useState("");
   const [testThreshold, setTestThreshold] = useState("70");
   const [testResult, setTestResult] = useState<any>(null);
   const [testError, setTestError] = useState<string | null>(null);
@@ -209,9 +210,21 @@ export default function WebsitesPortal() {
   });
 
   const testApiMutation = useMutation({
-    mutationFn: async ({ url, threshold, apiKeyId }: { url: string; threshold: number; apiKeyId?: string }) => {
+    mutationFn: async ({ url, threshold, apiKeyId, manualKey }: { url: string; threshold: number; apiKeyId?: string; manualKey?: string }) => {
       setTestResult(null);
       setTestError(null);
+      
+      // If manual key provided, use the actual /api/v1/score endpoint with X-API-Key header
+      if (manualKey) {
+        const res = await fetch(`/api/v1/score?url=${encodeURIComponent(url)}&threshold=${threshold}`, {
+          method: "GET",
+          headers: { "X-API-Key": manualKey },
+        });
+        const data = await res.json();
+        return { data: { ...data, _usedManualKey: true }, status: res.status, ok: res.ok };
+      }
+      
+      // Otherwise use the test-score endpoint with session auth + optional apiKeyId
       const res = await fetch("/api/v1/test-score", {
         method: "POST",
         credentials: "include",
@@ -905,11 +918,14 @@ pipeline {
                     <div>
                       <Label className="text-white mb-2 block">
                         <Key className="w-3 h-3 inline mr-1" />
-                        API Key
+                        API Key (Select)
                       </Label>
                       <select
                         value={testApiKey}
-                        onChange={(e) => setTestApiKey(e.target.value)}
+                        onChange={(e) => {
+                          setTestApiKey(e.target.value);
+                          setTestManualKey("");
+                        }}
                         className="w-full bg-white/5 border border-white/10 text-white rounded-md px-3 py-2 text-sm"
                         data-testid="select-api-key"
                       >
@@ -927,17 +943,38 @@ pipeline {
                       )}
                     </div>
                     <div>
-                      <Label className="text-white mb-2 block">Threshold (pass/fail)</Label>
+                      <Label className="text-white mb-2 block">
+                        <Key className="w-3 h-3 inline mr-1" />
+                        Or Paste API Key
+                      </Label>
                       <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={testThreshold}
-                        onChange={(e) => setTestThreshold(e.target.value)}
-                        className="bg-white/5 border-white/10 text-white"
-                        data-testid="input-threshold"
+                        type="password"
+                        placeholder="tf_xxxxxxxx..."
+                        value={testManualKey}
+                        onChange={(e) => {
+                          setTestManualKey(e.target.value);
+                          if (e.target.value) setTestApiKey("");
+                        }}
+                        className="bg-white/5 border-white/10 text-white font-mono"
+                        data-testid="input-manual-api-key"
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Paste your full API key to test auth
+                      </p>
                     </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-white mb-2 block">Threshold (pass/fail)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={testThreshold}
+                      onChange={(e) => setTestThreshold(e.target.value)}
+                      className="bg-white/5 border-white/10 text-white w-32"
+                      data-testid="input-threshold"
+                    />
                   </div>
 
                   <div className="flex items-center justify-between pt-2">
@@ -954,7 +991,8 @@ pipeline {
                         testApiMutation.mutate({ 
                           url, 
                           threshold: parseInt(testThreshold) || 70,
-                          apiKeyId: testApiKey || undefined 
+                          apiKeyId: testApiKey || undefined,
+                          manualKey: testManualKey || undefined
                         });
                       }}
                       disabled={!testUrl || testApiMutation.isPending}
