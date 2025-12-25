@@ -4137,8 +4137,6 @@ Your primary goal is to help users AND capture their contact information natural
       const days = parseInt(req.query.days as string) || 30;
       const stats = await apiService.getUsageStats(userId, days);
       const recent = await apiService.getRecentUsage(userId, 20);
-      
-      console.log('API Usage fetch:', { userId, statsCount: stats?.length, recentCount: recent?.length });
 
       res.json({ stats, recent });
     } catch (error) {
