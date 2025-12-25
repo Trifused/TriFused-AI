@@ -3983,6 +3983,7 @@ Your primary goal is to help users AND capture their contact information natural
       await storage.updateUserWebsiteScan(
         req.params.id,
         gradeResult.id,
+        gradeResult.shareToken,
         gradeResult.overallScore
       );
       

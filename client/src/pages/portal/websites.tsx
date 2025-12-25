@@ -51,6 +51,7 @@ interface UserWebsite {
   name: string | null;
   lastScannedAt: string | null;
   lastGradeId: string | null;
+  lastShareToken: string | null;
   lastScore: number | null;
   scanCount: number;
   isActive: number;
@@ -359,11 +360,11 @@ export default function WebsitesPortal() {
                         )}
                       </Button>
 
-                      {website.lastGradeId && (
+                      {website.lastShareToken && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setLocation(`/report/${website.lastGradeId}`)}
+                          onClick={() => setLocation(`/report/${website.lastShareToken}`)}
                           className="text-muted-foreground hover:text-white"
                           data-testid={`btn-view-report-${website.id}`}
                         >

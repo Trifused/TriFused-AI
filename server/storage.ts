@@ -159,7 +159,7 @@ export interface IStorage {
   getUserWebsite(id: string): Promise<UserWebsite | undefined>;
   updateUserWebsite(id: string, data: Partial<UserWebsite>): Promise<UserWebsite | undefined>;
   deleteUserWebsite(id: string): Promise<void>;
-  updateUserWebsiteScan(id: string, gradeId: string, score: number): Promise<UserWebsite | undefined>;
+  updateUserWebsiteScan(id: string, gradeId: string, shareToken: string, score: number): Promise<UserWebsite | undefined>;
   
   // User website scans methods (ownership tracking)
   createUserWebsiteScan(data: InsertUserWebsiteScan): Promise<UserWebsiteScan>;
@@ -655,12 +655,13 @@ class Storage implements IStorage {
     await db.delete(userWebsites).where(eq(userWebsites.id, id));
   }
 
-  async updateUserWebsiteScan(id: string, gradeId: string, score: number): Promise<UserWebsite | undefined> {
+  async updateUserWebsiteScan(id: string, gradeId: string, shareToken: string, score: number): Promise<UserWebsite | undefined> {
     const [website] = await db
       .update(userWebsites)
       .set({
         lastScannedAt: new Date(),
         lastGradeId: gradeId,
+        lastShareToken: shareToken,
         lastScore: score,
         scanCount: sql`${userWebsites.scanCount} + 1`
       })

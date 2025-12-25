@@ -475,6 +475,7 @@ export const userWebsites = pgTable("user_websites", {
   name: text("name"),
   lastScannedAt: timestamp("last_scanned_at"),
   lastGradeId: varchar("last_grade_id"),
+  lastShareToken: varchar("last_share_token"),
   lastScore: integer("last_score"),
   scanCount: integer("scan_count").default(0).notNull(),
   isActive: integer("is_active").default(1).notNull(),
@@ -486,6 +487,7 @@ export const insertUserWebsiteSchema = createInsertSchema(userWebsites).omit({
   createdAt: true,
   lastScannedAt: true,
   lastGradeId: true,
+  lastShareToken: true,
   lastScore: true,
   scanCount: true,
 });
