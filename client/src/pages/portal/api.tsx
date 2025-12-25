@@ -408,6 +408,12 @@ export default function ApiPortal() {
                 <Play className="w-4 h-4 mr-2" />
                 Test API
               </TabsTrigger>
+              {user?.role === "superuser" && (
+                <TabsTrigger value="admin" className="data-[state=active]:bg-background">
+                  <Shield className="w-4 h-4 mr-2" />
+                  All Keys
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* API Keys Tab */}
@@ -867,9 +873,120 @@ export default function ApiPortal() {
                 </div>
               )}
             </TabsContent>
+
+            {/* Admin Tab - All Keys (Superuser Only) */}
+            {user?.role === "superuser" && (
+              <AdminKeysTab />
+            )}
           </Tabs>
         </motion.div>
       </main>
     </div>
+  );
+}
+
+// Admin Keys Tab Component (for superusers only)
+function AdminKeysTab() {
+  const { toast } = useToast();
+
+  interface AdminApiKey {
+    id: string;
+    userId: string;
+    name: string;
+    keyPrefix: string;
+    lastUsedAt: string | null;
+    expiresAt: string | null;
+    isActive: number;
+    createdAt: string;
+  }
+
+  const { data: adminKeysData, isLoading: adminKeysLoading } = useQuery({
+    queryKey: ["/api/admin/api-keys"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/api-keys", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch all API keys");
+      return res.json();
+    },
+  });
+
+  const adminKeys: AdminApiKey[] = adminKeysData?.data || [];
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied to clipboard" });
+  };
+
+  return (
+    <TabsContent value="admin" className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-lg font-semibold">All API Keys</h2>
+          <p className="text-sm text-muted-foreground">Admin view of all user API keys</p>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Total: {adminKeys.length} keys
+        </div>
+      </div>
+
+      {adminKeysLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+        </div>
+      ) : adminKeys.length === 0 ? (
+        <div className="bg-muted/30 rounded-lg p-8 text-center">
+          <Key className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground">No API keys have been created yet</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {adminKeys.map((key) => (
+            <div
+              key={key.id}
+              className={`bg-card border rounded-lg p-4 ${
+                key.isActive ? 'border-border' : 'border-red-500/30 bg-red-500/5'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-cyan-500/10 rounded-lg">
+                    <Key className="w-5 h-5 text-cyan-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{key.name}</span>
+                      {!key.isActive && (
+                        <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">
+                          Revoked
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                      <span className="font-mono">{key.keyPrefix}...</span>
+                      <span>User: {key.userId.substring(0, 8)}...</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2"
+                        onClick={() => copyToClipboard(key.userId)}
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right text-sm text-muted-foreground">
+                  <p>Created {format(new Date(key.createdAt), "MMM d, yyyy")}</p>
+                  {key.lastUsedAt && (
+                    <p className="text-xs">
+                      Last used {formatDistanceToNow(new Date(key.lastUsedAt), { addSuffix: true })}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </TabsContent>
   );
 }

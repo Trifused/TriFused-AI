@@ -40,6 +40,20 @@ class ApiService {
       .orderBy(desc(apiKeys.createdAt));
   }
 
+  async getAllApiKeys() {
+    return await db.select({
+      id: apiKeys.id,
+      userId: apiKeys.userId,
+      name: apiKeys.name,
+      keyPrefix: apiKeys.keyPrefix,
+      lastUsedAt: apiKeys.lastUsedAt,
+      expiresAt: apiKeys.expiresAt,
+      isActive: apiKeys.isActive,
+      createdAt: apiKeys.createdAt,
+    }).from(apiKeys)
+      .orderBy(desc(apiKeys.createdAt));
+  }
+
   async validateApiKey(key: string) {
     const hash = crypto.createHash('sha256').update(key).digest('hex');
     const [apiKey] = await db.select().from(apiKeys)

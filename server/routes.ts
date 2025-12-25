@@ -3901,6 +3901,17 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Admin: Get all API keys (superuser only)
+  app.get("/api/admin/api-keys", isAuthenticated, isSuperuser, async (req: any, res: Response) => {
+    try {
+      const keys = await apiService.getAllApiKeys();
+      res.json({ data: keys });
+    } catch (error) {
+      console.error("Admin get all API keys error:", error);
+      res.status(500).json({ error: "Failed to get API keys" });
+    }
+  });
+
   // Create new API key
   app.post("/api/user/api-keys", isAuthenticated, async (req: any, res: Response) => {
     try {
