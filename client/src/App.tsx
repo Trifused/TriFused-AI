@@ -28,6 +28,7 @@ const Integrations = lazy(() => import("@/pages/portal/integrations"));
 const Billing = lazy(() => import("@/pages/portal/billing"));
 const ApiPortal = lazy(() => import("@/pages/portal/api"));
 const ReportsPortal = lazy(() => import("@/pages/portal/reports"));
+const WebsitesPortal = lazy(() => import("@/pages/portal/websites"));
 const GradeEmbed = lazy(() => import("@/pages/grade-embed"));
 const PublicMedia = lazy(() => import("@/pages/public-media"));
 const Privacy = lazy(() => import("@/pages/legal/privacy"));
@@ -65,6 +66,7 @@ function Router() {
         <Route path="/portal/billing" component={Billing} />
         <Route path="/portal/api" component={ApiPortal} />
         <Route path="/portal/reports" component={ReportsPortal} />
+        <Route path="/portal/websites" component={WebsitesPortal} />
         <Route path="/grade/:slug" component={GradeEmbed} />
         <Route path="/media" component={PublicMedia} />
         <Route path="/legal/privacy" component={Privacy} />

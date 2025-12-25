@@ -335,7 +335,7 @@ export default function Dashboard() {
     },
   ] : [
     { icon: CreditCard, label: "Billing & Purchases", description: "View orders and subscriptions", status: "emerald", onClick: () => setLocation("/portal/billing") },
-    { icon: Globe, label: "Website Grader", description: "Analyze your website", status: "cyan", onClick: () => setLocation("/grader") },
+    { icon: Globe, label: "Website Grader", description: "Analyze your website", status: "cyan", onClick: () => setLocation("/portal/websites") },
     { icon: HardDrive, label: "Media Library", description: "Manage your files", status: "purple", onClick: () => setLocation("/portal/media") },
     { icon: Plug, label: "Integrations", description: "Connect your services", status: "blue", onClick: () => setLocation("/portal/integrations") },
   ];
