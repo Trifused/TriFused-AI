@@ -908,26 +908,18 @@ pipeline {
                     <div>
                       <Label className="text-white mb-2 block">
                         <Key className="w-3 h-3 inline mr-1" />
-                        API Key
+                        API Key (paste full key)
                       </Label>
-                      <select
+                      <Input
+                        placeholder="tf_..."
                         value={testApiKey}
                         onChange={(e) => setTestApiKey(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 text-white rounded-md px-3 py-2 text-sm"
-                        data-testid="select-api-key"
-                      >
-                        <option value="" className="bg-slate-800">-- Use session (no API key) --</option>
-                        {apiKeys.map((k: any) => (
-                          <option key={k.id} value={k.key} className="bg-slate-800">
-                            {k.name} ({k.key.slice(0, 12)}...)
-                          </option>
-                        ))}
-                      </select>
-                      {apiKeys.length === 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          No API keys found. Create one in the API Keys tab.
-                        </p>
-                      )}
+                        className="bg-white/5 border-white/10 text-white font-mono text-sm"
+                        data-testid="input-api-key"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Leave empty to use session auth. Create keys in API Keys tab.
+                      </p>
                     </div>
                     <div>
                       <Label className="text-white mb-2 block">Threshold (pass/fail)</Label>
