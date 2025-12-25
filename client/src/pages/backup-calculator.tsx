@@ -468,14 +468,22 @@ Risk Reduction Investment,$${calculations.riskReductionInvestment.toFixed(2)}/mo
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.55 }}
-            className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-12"
+            className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-12 space-y-3"
           >
             <p className="text-xs text-yellow-400/80 leading-relaxed">
-              <strong>Disclaimer:</strong> This calculator provides estimates only and is intended for informational purposes. 
+              <strong>Disclaimer (Last Updated: December 2024):</strong> This calculator provides estimates only and is intended for informational purposes. 
               Actual pricing may vary based on storage providers' current rates, data transfer costs, API call fees, and 
-              additional services. Prices shown are based on publicly available pricing as of the date of use and are subject 
+              additional services. Prices shown are based on publicly available pricing and are subject 
               to change without notice. Contact us for a customized quote tailored to your specific requirements. This tool 
               does not constitute a binding offer or guarantee of service availability.
+            </p>
+            <p className="text-xs text-yellow-400/80 leading-relaxed">
+              <strong>Data Change Considerations:</strong> Estimates assume static data volume. Daily data growth, versioning, and retention policies 
+              will affect actual storage costs. High-change environments may require additional capacity planning for incremental and differential backups.
+            </p>
+            <p className="text-xs text-yellow-400/80 leading-relaxed">
+              <strong>Cost Recovery Strategies:</strong> Reduce backup costs through data deduplication, compression, tiered storage (hot/warm/cold), 
+              lifecycle policies, and archival to glacier-class storage. Consider hybrid approaches combining on-premises and cloud for optimal cost efficiency.
             </p>
           </motion.div>
 
