@@ -100,6 +100,8 @@ export default function ApiPortal() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [testUrl, setTestUrl] = useState("");
   const [testResult, setTestResult] = useState<any>(null);
+  const [testApiKey, setTestApiKey] = useState("");
+  const [testThreshold, setTestThreshold] = useState("70");
 
   const { data: keysData, isLoading: keysLoading, refetch: refetchKeys } = useQuery({
     queryKey: ["/api/user/api-keys"],
@@ -184,16 +186,26 @@ export default function ApiPortal() {
   });
 
   const runGraderMutation = useMutation({
-    mutationFn: async (url: string) => {
-      const res = await fetch("/api/user/run-grader", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ url }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to run test");
-      return data;
+    mutationFn: async ({ url, apiKey, threshold }: { url: string; apiKey?: string; threshold?: string }) => {
+      if (apiKey) {
+        const res = await fetch(`/api/v1/score?url=${encodeURIComponent(url)}&threshold=${threshold || '70'}`, {
+          method: "GET",
+          headers: { "X-API-Key": apiKey },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to run test");
+        return { result: data, quotaRemaining: data.quotaRemaining || "N/A", usedApiKey: true };
+      } else {
+        const res = await fetch("/api/user/run-grader", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ url }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to run test");
+        return data;
+      }
     },
     onSuccess: (data) => {
       setTestResult(data);
@@ -201,7 +213,7 @@ export default function ApiPortal() {
       queryClient.invalidateQueries({ queryKey: ["/api/user/api-usage"] });
       toast({ 
         title: "Test completed", 
-        description: `Used 1 API call. ${data.quotaRemaining} remaining.` 
+        description: data.usedApiKey ? "API key validated successfully" : `Used 1 API call. ${data.quotaRemaining} remaining.`
       });
     },
     onError: (error: Error) => {
@@ -759,49 +771,81 @@ export default function ApiPortal() {
                 )}
               </div>
 
-              <div className="bg-card border border-border rounded-lg p-6">
-                <div className="flex gap-4">
-                  <div className="flex-1">
+              <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
                     <Label htmlFor="testUrl">Website URL</Label>
-                    <div className="flex gap-2 mt-2">
-                      <div className="relative flex-1">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="testUrl"
-                          type="url"
-                          placeholder="https://example.com"
-                          value={testUrl}
-                          onChange={(e) => setTestUrl(e.target.value)}
-                          className="pl-10"
-                          data-testid="input-test-url"
-                        />
-                      </div>
-                      <Button 
-                        onClick={() => runGraderMutation.mutate(testUrl)}
-                        disabled={!testUrl || runGraderMutation.isPending || !!(quota && quota.totalCalls - quota.usedCalls <= 0)}
-                        data-testid="button-run-test"
-                      >
-                        {runGraderMutation.isPending ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Running...
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-4 h-4 mr-2" />
-                            Run Test
-                          </>
-                        )}
-                      </Button>
+                    <div className="relative mt-2">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="testUrl"
+                        type="url"
+                        placeholder="https://example.com"
+                        value={testUrl}
+                        onChange={(e) => setTestUrl(e.target.value)}
+                        className="pl-10"
+                        data-testid="input-test-url"
+                      />
                     </div>
-                    {quota && quota.totalCalls - quota.usedCalls <= 0 && (
-                      <p className="text-sm text-red-400 mt-2 flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4" />
-                        No API calls remaining. Purchase more calls to run tests.
-                      </p>
-                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="testThreshold">Pass Threshold</Label>
+                    <Input
+                      id="testThreshold"
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder="70"
+                      value={testThreshold}
+                      onChange={(e) => setTestThreshold(e.target.value)}
+                      className="mt-2"
+                      data-testid="input-test-threshold"
+                    />
                   </div>
                 </div>
+                <div>
+                  <Label htmlFor="testApiKey">API Key (optional - leave blank to use session auth)</Label>
+                  <div className="relative mt-2">
+                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="testApiKey"
+                      type="password"
+                      placeholder="tf_xxxxxxxx..."
+                      value={testApiKey}
+                      onChange={(e) => setTestApiKey(e.target.value)}
+                      className="pl-10 font-mono"
+                      data-testid="input-test-api-key"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Enter your full API key to test API authentication. Without a key, session auth is used.
+                  </p>
+                </div>
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => runGraderMutation.mutate({ url: testUrl, apiKey: testApiKey || undefined, threshold: testThreshold })}
+                    disabled={!testUrl || runGraderMutation.isPending || (!testApiKey && quota && quota.totalCalls - quota.usedCalls <= 0)}
+                    data-testid="button-run-test"
+                  >
+                    {runGraderMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Running...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 mr-2" />
+                        Run Test
+                      </>
+                    )}
+                  </Button>
+                </div>
+                {!testApiKey && quota && quota.totalCalls - quota.usedCalls <= 0 && (
+                  <p className="text-sm text-red-400 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    No API calls remaining. Enter an API key or purchase more calls.
+                  </p>
+                )}
               </div>
 
               {testResult && (
