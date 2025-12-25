@@ -18,7 +18,7 @@ import {
   Search
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -168,6 +168,19 @@ export default function WebsitesPortal() {
 
   const websites: UserWebsite[] = websitesData?.data || [];
 
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Session Required",
+        description: "Please sign in to access your websites.",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        window.location.href = "/api/login";
+      }, 500);
+    }
+  }, [isAuthenticated, isLoading, toast]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -177,7 +190,6 @@ export default function WebsitesPortal() {
   }
 
   if (!isAuthenticated) {
-    setLocation("/portal/login");
     return null;
   }
 
