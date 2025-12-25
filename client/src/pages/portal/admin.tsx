@@ -36,7 +36,11 @@ import {
   Zap,
   Plus,
   Check,
-  Trash2
+  Trash2,
+  CreditCard,
+  DollarSign,
+  RefreshCw,
+  Receipt
 } from "lucide-react";
 import { FEATURE_FLAGS, type FeatureFlag, type FeatureStatus, type FeatureCategory } from "@shared/feature-flags";
 import { FeatureBadge } from "@/components/ui/feature-badge";
@@ -153,6 +157,48 @@ interface WebsiteGrade {
   createdAt: string;
 }
 
+interface Order {
+  session_id: string;
+  customer: string | null;
+  customer_email: string | null;
+  payment_status: string | null;
+  session_status: string | null;
+  amount_total: number | null;
+  currency: string | null;
+  mode: string | null;
+  metadata: any;
+  created: number | null;
+  customer_name: string | null;
+  payment_intent_id: string | null;
+  charge_id: string | null;
+  receipt_url: string | null;
+  refunded: boolean | null;
+}
+
+interface Subscription {
+  subscription_id: string;
+  customer: string | null;
+  status: string | null;
+  current_period_start: number | null;
+  current_period_end: number | null;
+  cancel_at_period_end: boolean | null;
+  canceled_at: number | null;
+  created: number | null;
+  customer_email: string | null;
+  customer_name: string | null;
+  product_name: string | null;
+  unit_amount: number | null;
+  currency: string | null;
+  recurring: any;
+}
+
+interface CSStats {
+  active_subscriptions: number;
+  total_orders: number;
+  total_customers: number;
+  total_revenue: number;
+}
+
 export default function Admin() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -160,9 +206,18 @@ export default function Admin() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("users");
   const [chatSubTab, setChatSubTab] = useState("leads");
+  const [csSubTab, setCsSubTab] = useState("orders");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab && ["users", "chat", "media", "analytics", "grader", "features", "commerce", "customers"].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, []);
 
   const { data: users, isLoading: usersLoading, error } = useQuery<User[]>({
     queryKey: ['/api/admin/users'],
@@ -263,6 +318,36 @@ export default function Admin() {
       return res.json();
     },
     enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'grader',
+  });
+
+  const { data: csStats } = useQuery<CSStats>({
+    queryKey: ['/api/admin/cs/stats'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/cs/stats', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch CS stats');
+      return res.json();
+    },
+    enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'customers',
+  });
+
+  const { data: ordersData, isLoading: ordersLoading } = useQuery<{ data: Order[] }>({
+    queryKey: ['/api/admin/cs/orders'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/cs/orders', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch orders');
+      return res.json();
+    },
+    enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'customers',
+  });
+
+  const { data: subscriptionsData, isLoading: subsLoading } = useQuery<{ data: Subscription[] }>({
+    queryKey: ['/api/admin/cs/subscriptions'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/cs/subscriptions', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch subscriptions');
+      return res.json();
+    },
+    enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'customers',
   });
 
   const internalStats = {
@@ -604,6 +689,10 @@ export default function Admin() {
             <TabsTrigger value="commerce" className="data-[state=active]:bg-primary" data-testid="tab-commerce">
               <Crown className="w-4 h-4 mr-2" />
               Commerce
+            </TabsTrigger>
+            <TabsTrigger value="customers" className="data-[state=active]:bg-primary" data-testid="tab-customers">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Customers
             </TabsTrigger>
           </TabsList>
 
@@ -1426,6 +1515,223 @@ export default function Admin() {
 
           <TabsContent value="commerce">
             <CommerceTab />
+          </TabsContent>
+
+          <TabsContent value="customers">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-emerald-400" />
+                    Customer Service
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Manage orders, subscriptions, and customer inquiries
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Receipt className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm text-muted-foreground">Total Orders</span>
+                  </div>
+                  <p className="text-2xl font-bold text-white">{csStats?.total_orders || 0}</p>
+                </div>
+                <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <RefreshCw className="w-4 h-4 text-purple-400" />
+                    <span className="text-sm text-muted-foreground">Active Subscriptions</span>
+                  </div>
+                  <p className="text-2xl font-bold text-white">{csStats?.active_subscriptions || 0}</p>
+                </div>
+                <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-4 h-4 text-cyan-400" />
+                    <span className="text-sm text-muted-foreground">Customers</span>
+                  </div>
+                  <p className="text-2xl font-bold text-white">{csStats?.total_customers || 0}</p>
+                </div>
+                <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm text-muted-foreground">Total Revenue</span>
+                  </div>
+                  <p className="text-2xl font-bold text-white">
+                    ${((csStats?.total_revenue || 0) / 100).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              <Tabs value={csSubTab} onValueChange={setCsSubTab} className="space-y-4">
+                <TabsList className="bg-white/5">
+                  <TabsTrigger value="orders" className="data-[state=active]:bg-primary" data-testid="subtab-orders">
+                    Orders
+                  </TabsTrigger>
+                  <TabsTrigger value="subscriptions" className="data-[state=active]:bg-primary" data-testid="subtab-subscriptions">
+                    Subscriptions
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="orders">
+                  {ordersLoading ? (
+                    <div className="py-12 text-center">
+                      <Clock className="w-8 h-8 animate-spin mx-auto text-primary mb-4" />
+                      <p className="text-muted-foreground">Loading orders...</p>
+                    </div>
+                  ) : !ordersData?.data?.length ? (
+                    <div className="py-12 text-center">
+                      <Receipt className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-white text-lg">No orders yet</p>
+                      <p className="text-muted-foreground text-sm mt-2">
+                        Orders will appear here after customers complete checkout
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {ordersData.data.map((order: Order) => (
+                        <div
+                          key={order.session_id}
+                          className="p-4 bg-white/5 rounded-lg border border-white/10"
+                          data-testid={`order-row-${order.session_id}`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3">
+                                <span className="font-medium text-white">
+                                  {order.customer_email || order.customer_name || 'Unknown Customer'}
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded ${
+                                  order.payment_status === 'paid' ? 'bg-green-500/20 text-green-400' :
+                                  order.payment_status === 'unpaid' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  'bg-gray-500/20 text-gray-400'
+                                }`}>
+                                  {order.payment_status || 'Unknown'}
+                                </span>
+                                {order.refunded && (
+                                  <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">
+                                    Refunded
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                <span>
+                                  {order.amount_total ? `$${(order.amount_total / 100).toFixed(2)} ${(order.currency || 'usd').toUpperCase()}` : '-'}
+                                </span>
+                                <span>{order.mode === 'subscription' ? 'Subscription' : 'One-time'}</span>
+                                <span>{order.created ? format(new Date(order.created * 1000), 'MMM d, yyyy h:mm a') : '-'}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {order.receipt_url && (
+                                <a
+                                  href={order.receipt_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                  Receipt
+                                </a>
+                              )}
+                              <span className="text-xs text-muted-foreground font-mono hidden lg:block">
+                                {order.session_id.slice(0, 15)}...
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="subscriptions">
+                  {subsLoading ? (
+                    <div className="py-12 text-center">
+                      <Clock className="w-8 h-8 animate-spin mx-auto text-primary mb-4" />
+                      <p className="text-muted-foreground">Loading subscriptions...</p>
+                    </div>
+                  ) : !subscriptionsData?.data?.length ? (
+                    <div className="py-12 text-center">
+                      <RefreshCw className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-white text-lg">No subscriptions yet</p>
+                      <p className="text-muted-foreground text-sm mt-2">
+                        Subscriptions will appear here when customers subscribe
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {subscriptionsData.data.map((sub: Subscription) => (
+                        <div
+                          key={sub.subscription_id}
+                          className="p-4 bg-white/5 rounded-lg border border-white/10"
+                          data-testid={`subscription-row-${sub.subscription_id}`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3">
+                                <span className="font-medium text-white">
+                                  {sub.customer_email || sub.customer_name || 'Unknown Customer'}
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded ${
+                                  sub.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                                  sub.status === 'canceled' ? 'bg-red-500/20 text-red-400' :
+                                  sub.status === 'past_due' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  'bg-gray-500/20 text-gray-400'
+                                }`}>
+                                  {sub.status || 'Unknown'}
+                                </span>
+                                {sub.cancel_at_period_end && (
+                                  <span className="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400">
+                                    Cancels at period end
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                                <span className="text-white">{sub.product_name || 'Unknown Product'}</span>
+                                <span>
+                                  {sub.unit_amount ? `$${(sub.unit_amount / 100).toFixed(2)}` : '-'}
+                                  {sub.recurring?.interval && ` / ${sub.recurring.interval}`}
+                                </span>
+                                <span>Started: {sub.created ? format(new Date(sub.created * 1000), 'MMM d, yyyy') : '-'}</span>
+                              </div>
+                              {sub.current_period_end && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Current period ends: {format(new Date(sub.current_period_end * 1000), 'MMM d, yyyy')}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={`https://dashboard.stripe.com/subscriptions/${sub.subscription_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                Stripe
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+
+              <div className="mt-8 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                <p className="text-sm text-emerald-400">
+                  <Zap className="w-4 h-4 inline mr-2" />
+                  For refunds, cancellations, and detailed customer management, use the <a href="https://dashboard.stripe.com/customers" target="_blank" rel="noopener noreferrer" className="underline">Stripe Dashboard</a>.
+                </p>
+              </div>
+            </motion.div>
           </TabsContent>
         </Tabs>
       </main>
