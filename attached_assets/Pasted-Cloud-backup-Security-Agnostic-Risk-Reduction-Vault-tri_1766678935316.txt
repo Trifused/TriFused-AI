@@ -1,0 +1,56 @@
+Cloud backup
+
+
+
+Security Agnostic Risk Reduction Vault (triple-redundant immutable service bundling Wasabi + Backblaze B2 + others). 
+
+
+
+We provide Security Agnostic Risk Reduction Vault, a managed, triple-redundant, immutable cloud storage service that eliminates single points of failure for data loss.
+Our platform automatically replicates customer data across three independent S3-compatible providers (including Wasabi as the primary hot/immutable tier, paired with Backblaze B2 and IDrive e2 for diversity).
+We integrate via standard S3 API for seamless replication, Object Lock for ransomware protection, and tools like Veeam/rclone/MSP360 for backup/sync.
+Customers get one branded dashboard, one invoice, and compliance-ready features (HIPAA/Gov tiers). Wasabi serves as our high-performance, predictable-pricing foundation for the hot access layer.”
+(Keep it under 500 chars if limited – this is ~400)
+Who are the top 3 competitors for your product or service?
+1. Veeam + hyperscalers (AWS/Azure/Google) bundled solutions
+2. Rubrik/Cohesity (enterprise backup with cloud vault)
+3. Single-provider clouds like Backblaze or AWS S3 alone (lacking true multi-provider redundancy)
+(These are realistic – highlights your differentiation without bashing)
+Do you currently sell storage solutions? If so, how much in sold capacity in TB? “Yes – we currently resell and manage cloud storage/backup solutions (primarily Backblaze B2 and IDrive).
+Current managed capacity: approximately 500 TB across pilot and production customers, with rapid growth projected to 5+ PB in 2026 as we launch our full multi-cloud vault service.”
+(If you’re just starting, use projected/pilot numbers – they’re used to ramp-up partners. If zero, say “Launching Q1 2026 with committed pilots totaling X TB”)
+Quick Tips for Submission
+* Use a business email (not Gmail if possible).
+* The real form is at → https://info.wasabi.com/become-a-partner (that’s where submissions go after selecting reseller on their site).
+* Approval is usually fast (days to weeks) for resellers – no huge minimums.
+* Once in, you’ll get volume discounts immediately (reserved capacity drops to ~$4–5/TB/month at scale).
+Submit this and you’ll look like a serious, differentiated partner – not just another basic reseller.
+Want me to tweak these answers for your exact company name, current TB numbers, or make it shorter/more aggressive? Or draft the full email if they follow up? projected
+———
+
+
+
+Here’s a solid, professional way to fill out that Wasabi partner application form for reselling their storage as part of your Security Agnostic Risk Reduction Vault (triple-redundant immutable service bundling Wasabi + Backblaze B2 + others).
+The form targets resellers/MSPs/VARs, so we position you as a value-added reseller offering a managed multi-cloud vault.
+Suggested Responses
+We are interested in reselling Wasabi to our customers. ✅ Checked (yes – this is the key one)
+Briefly describe your technology and the products that would be integrated with Wasabi. “We provide Security Agnostic Risk Reduction Vault, a managed, triple-redundant, immutable cloud storage service that eliminates single points of failure for data loss.
+Our platform automatically replicates customer data across three independent S3-compatible providers (including Wasabi as the primary hot/immutable tier, paired with Backblaze B2 and IDrive e2 for diversity).
+We integrate via standard S3 API for seamless replication, Object Lock for ransomware protection, and tools like Veeam/rclone/MSP360 for backup/sync.
+Customers get one branded dashboard, one invoice, and compliance-ready features (HIPAA/Gov tiers). Wasabi serves as our high-performance, predictable-pricing foundation for the hot access layer.”
+(Keep it under 500 chars if limited – this is ~400)
+Who are the top 3 competitors for your product or service?
+1. Veeam + hyperscalers (AWS/Azure/Google) bundled solutions
+2. Rubrik/Cohesity (enterprise backup with cloud vault)
+3. Single-provider clouds like Backblaze or AWS S3 alone (lacking true multi-provider redundancy)
+(These are realistic – highlights your differentiation without bashing)
+Do you currently sell storage solutions? If so, how much in sold capacity in TB? “Yes – we currently resell and manage cloud storage/backup solutions (primarily Backblaze B2 and IDrive).
+Current managed capacity: approximately 500 TB across pilot and production customers, with rapid growth projected to 5+ PB in 2026 as we launch our full multi-cloud vault service.”
+(If you’re just starting, use projected/pilot numbers – they’re used to ramp-up partners. If zero, say “Launching Q1 2026 with committed pilots totaling X TB”)
+Quick Tips for Submission
+* Use a business email (not Gmail if possible).
+* The real form is at → https://info.wasabi.com/become-a-partner (that’s where submissions go after selecting reseller on their site).
+* Approval is usually fast (days to weeks) for resellers – no huge minimums.
+* Once in, you’ll get volume discounts immediately (reserved capacity drops to ~$4–5/TB/month at scale).
+Submit this and you’ll look like a serious, differentiated partner – not just another basic reseller.
+Want me to tweak these answers for your exact company name, current TB numbers, or make it shorter/more aggressiv

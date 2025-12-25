@@ -35,6 +35,7 @@ const Privacy = lazy(() => import("@/pages/legal/privacy"));
 const Terms = lazy(() => import("@/pages/legal/terms"));
 const Cookies = lazy(() => import("@/pages/legal/cookies"));
 const CheckoutSuccess = lazy(() => import("@/pages/checkout-success"));
+const BackupCalculator = lazy(() => import("@/pages/backup-calculator"));
 
 // Loading fallback for lazy components
 const PageLoader = () => (
@@ -72,6 +73,7 @@ function Router() {
         <Route path="/legal/privacy" component={Privacy} />
         <Route path="/legal/terms" component={Terms} />
         <Route path="/legal/cookies" component={Cookies} />
+        <Route path="/backup-calculator" component={BackupCalculator} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
