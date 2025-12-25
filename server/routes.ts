@@ -3516,7 +3516,7 @@ Your primary goal is to help users AND capture their contact information natural
       // Log API usage if authenticated with API key
       if (apiKeyUserId && apiKeyId) {
         const responseTime = Date.now() - startTime;
-        await apiService.recordApiCall(
+        await apiService.consumeApiCall(
           apiKeyUserId,
           apiKeyId,
           "/api/v1/score",
@@ -3590,6 +3590,7 @@ Your primary goal is to help users AND capture their contact information natural
 
   // Test API endpoint - allows testing with API key ID (for portal test console)
   app.post("/api/v1/test-score", async (req: Request, res: Response) => {
+    const startTime = Date.now();
     try {
       const userId = await getEffectiveUserId(req);
       if (!userId) {
@@ -3607,9 +3608,11 @@ Your primary goal is to help users AND capture their contact information natural
         normalizedUrl = "https://" + normalizedUrl;
       }
 
-      // If apiKeyId provided, validate it belongs to user and use it
-      let apiKeyForAuth: string | undefined;
+      // Determine which user to charge for the API call
+      let chargeUserId = userId;
       let apiKeyRecord: any;
+      
+      // If apiKeyId provided, validate it belongs to user and use it
       if (apiKeyId) {
         apiKeyRecord = await apiService.getApiKeyById(apiKeyId);
         // Check if key belongs to current user OR original user (for impersonation)
@@ -3632,9 +3635,14 @@ Your primary goal is to help users AND capture their contact information natural
         if (!apiKeyRecord.isActive) {
           return res.status(403).json({ error: "API key is inactive" });
         }
-        // We need to regenerate the key from the hash - but we can't do that
-        // So we'll make the call without API key auth (session auth will work)
-        // and just indicate which key was "used" in the response
+        // Use the API key owner for charging
+        chargeUserId = apiKeyRecord.userId;
+      }
+
+      // Check quota before making the call
+      const quota = await apiService.getOrCreateQuota(chargeUserId);
+      if (quota.usedCalls >= quota.totalCalls) {
+        return res.status(429).json({ error: "API quota exceeded", remaining: 0 });
       }
 
       // Call the internal score endpoint with session auth
@@ -3648,10 +3656,27 @@ Your primary goal is to help users AND capture their contact information natural
       const response = await fetch(internalUrl, { headers });
       const data = await response.json();
       
+      // Log usage and deduct from quota
+      const responseTime = Date.now() - startTime;
+      await apiService.consumeApiCall(
+        chargeUserId,
+        apiKeyId || null,
+        "/api/v1/test-score",
+        "POST",
+        response.status,
+        responseTime,
+        req.ip || null,
+        req.headers["user-agent"] || null
+      );
+      
+      // Get updated quota for response
+      const updatedQuota = await apiService.getOrCreateQuota(chargeUserId);
+      
       return res.status(response.status).json({
         ...data,
         _testedWithApiKey: !!apiKeyId,
-        _apiKeyName: apiKeyRecord?.name
+        _apiKeyName: apiKeyRecord?.name,
+        _quotaRemaining: updatedQuota.totalCalls - updatedQuota.usedCalls
       });
     } catch (error) {
       console.error("Test score error:", error);
