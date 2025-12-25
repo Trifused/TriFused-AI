@@ -3385,7 +3385,7 @@ Your primary goal is to help users AND capture their contact information natural
     try {
       const { url, threshold } = req.query;
       
-      // API Key authentication
+      // API Key authentication (allow negative balance - don't block)
       const apiKeyHeader = req.headers["x-api-key"] as string;
       if (apiKeyHeader) {
         const validatedKey = await apiService.validateApiKey(apiKeyHeader);
@@ -3394,12 +3394,6 @@ Your primary goal is to help users AND capture their contact information natural
         }
         apiKeyUserId = validatedKey.userId;
         apiKeyId = validatedKey.id;
-        
-        // Check quota
-        const quota = await apiService.getOrCreateQuota(apiKeyUserId);
-        if (quota.usedCalls >= quota.totalCalls) {
-          return res.status(429).json({ error: "API quota exceeded", remaining: 0 });
-        }
       }
       
       if (!url || typeof url !== "string") {
@@ -3637,12 +3631,6 @@ Your primary goal is to help users AND capture their contact information natural
         }
         // Use the API key owner for charging
         chargeUserId = apiKeyRecord.userId;
-      }
-
-      // Check quota before making the call
-      const quota = await apiService.getOrCreateQuota(chargeUserId);
-      if (quota.usedCalls >= quota.totalCalls) {
-        return res.status(429).json({ error: "API quota exceeded", remaining: 0 });
       }
 
       // Call the internal score endpoint with session auth

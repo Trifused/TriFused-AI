@@ -162,14 +162,14 @@ class ApiService {
     const quota = await this.getOrCreateQuota(userId);
     const remaining = quota.totalCalls - quota.usedCalls;
     
-    if (remaining <= 0) {
-      return { success: false, error: 'API quota exceeded' };
-    }
+    // Allow accounts to go negative - don't block on quota exceeded
+    // Just track usage and deduct from packs if available
 
     const subscriptionRemaining = quota.subscriptionCalls - quota.usedCalls;
     const useFromPack = subscriptionRemaining <= 0;
 
     if (useFromPack) {
+      // Try to deduct from packs if available
       const packs = await db.select().from(apiCallPacks)
         .where(and(
           eq(apiCallPacks.userId, userId),
@@ -191,7 +191,13 @@ class ApiService {
           })
           .where(eq(apiQuotas.userId, userId));
       } else {
-        return { success: false, error: 'No available call packs' };
+        // No packs available - still allow call but track negative balance
+        await db.update(apiQuotas)
+          .set({
+            usedCalls: quota.usedCalls + 1,
+            updatedAt: new Date(),
+          })
+          .where(eq(apiQuotas.userId, userId));
       }
     } else {
       await db.update(apiQuotas)
@@ -202,6 +208,7 @@ class ApiService {
         .where(eq(apiQuotas.userId, userId));
     }
 
+    // Always log the API call
     await db.insert(apiUsageLogs).values({
       userId,
       apiKeyId,
