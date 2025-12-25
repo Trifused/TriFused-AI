@@ -17,7 +17,10 @@ import {
   FileText,
   History,
   Copy,
-  Code
+  Code,
+  Play,
+  Terminal,
+  AlertTriangle
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
@@ -102,6 +105,9 @@ export default function WebsitesPortal() {
   const [newName, setNewName] = useState("");
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("websites");
+  const [testUrl, setTestUrl] = useState("");
+  const [testResult, setTestResult] = useState<any>(null);
+  const [testError, setTestError] = useState<string | null>(null);
 
   const { data: websitesData, isLoading: websitesLoading, refetch: refetchWebsites } = useQuery({
     queryKey: ["/api/user/websites"],
@@ -185,6 +191,25 @@ export default function WebsitesPortal() {
     onError: () => {
       setScanningId(null);
       toast({ title: "Error", description: "Failed to scan website", variant: "destructive" });
+    },
+  });
+
+  const testApiMutation = useMutation({
+    mutationFn: async ({ url, threshold }: { url: string; threshold: number }) => {
+      setTestResult(null);
+      setTestError(null);
+      const res = await fetch(`/api/v1/score?url=${encodeURIComponent(url)}&threshold=${threshold}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      const data = await res.json();
+      return { data, status: res.status, ok: res.ok };
+    },
+    onSuccess: ({ data, status, ok }) => {
+      setTestResult({ ...data, _httpStatus: status, _passed: ok });
+    },
+    onError: (error: Error) => {
+      setTestError(error.message || "Failed to run API test");
     },
   });
 
@@ -277,7 +302,7 @@ export default function WebsitesPortal() {
           className="space-y-6"
         >
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-white/5 border border-white/10">
+            <TabsList className="grid w-full grid-cols-5 bg-white/5 border border-white/10">
               <TabsTrigger value="websites" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
                 <Globe className="w-4 h-4 mr-2" />
                 Websites
@@ -293,6 +318,10 @@ export default function WebsitesPortal() {
               <TabsTrigger value="api-docs" className="data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
                 <FileText className="w-4 h-4 mr-2" />
                 API Docs
+              </TabsTrigger>
+              <TabsTrigger value="test-api" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
+                <Terminal className="w-4 h-4 mr-2" />
+                Test API
               </TabsTrigger>
             </TabsList>
 
@@ -814,6 +843,157 @@ pipeline {
                   All API requests require authentication. Use the <code className="text-white">Authorization: Bearer</code> header with your API key.
                 </p>
               </div>
+            </TabsContent>
+
+            <TabsContent value="test-api" className="mt-6 space-y-6">
+              <div className="p-6 bg-gradient-to-r from-purple-500/10 to-cyan-500/10 rounded-xl border border-purple-500/30">
+                <div className="flex items-center gap-3 mb-4">
+                  <Terminal className="w-6 h-6 text-purple-400" />
+                  <div>
+                    <h2 className="text-xl font-bold text-white">API Test Console</h2>
+                    <p className="text-sm text-muted-foreground">Test the scoring API live. Each test consumes 1 API credit.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor="test-url" className="text-white mb-2 block">Website URL</Label>
+                      <Input
+                        id="test-url"
+                        placeholder="https://example.com"
+                        value={testUrl}
+                        onChange={(e) => setTestUrl(e.target.value)}
+                        className="bg-white/5 border-white/10 text-white"
+                        data-testid="input-test-url"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        onClick={() => {
+                          let url = testUrl.trim();
+                          if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                            url = "https://" + url;
+                          }
+                          testApiMutation.mutate({ url, threshold: 70 });
+                        }}
+                        disabled={!testUrl || testApiMutation.isPending}
+                        className="bg-purple-500 hover:bg-purple-600"
+                        data-testid="btn-run-test"
+                      >
+                        {testApiMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Play className="w-4 h-4 mr-2" />
+                        )}
+                        Run Test
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-muted-foreground flex items-center gap-2">
+                    <AlertTriangle className="w-3 h-3 text-yellow-400" />
+                    Running a test will consume 1 API credit from your account.
+                  </div>
+                </div>
+              </div>
+
+              {testApiMutation.isPending && (
+                <div className="p-6 bg-white/5 rounded-xl border border-white/10">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                    <span className="text-white">Running API test...</span>
+                  </div>
+                </div>
+              )}
+
+              {testError && (
+                <div className="p-6 bg-red-500/10 rounded-xl border border-red-500/30">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="w-5 h-5 text-red-400" />
+                    <span className="text-red-400">{testError}</span>
+                  </div>
+                </div>
+              )}
+
+              {testResult && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Code className="w-5 h-5 text-cyan-400" />
+                      API Response
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 rounded-full text-sm font-mono ${
+                        testResult._passed 
+                          ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                          : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                      }`}>
+                        HTTP {testResult._httpStatus} - {testResult._passed ? 'PASS' : 'FAIL'}
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => {
+                          const { _httpStatus, _passed, ...cleanResult } = testResult;
+                          copyToClipboard(JSON.stringify(cleanResult, null, 2));
+                        }}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy JSON
+                      </Button>
+                    </div>
+                  </div>
+
+                  {testResult.overallScore !== undefined && (
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-center">
+                        <div className={`text-4xl font-bold ${getGradeColor(testResult.overallScore)}`}>
+                          {getGradeLetter(testResult.overallScore)}
+                        </div>
+                        <div className="text-muted-foreground text-sm mt-1">Grade</div>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-center">
+                        <div className="text-4xl font-bold text-white">{testResult.overallScore}</div>
+                        <div className="text-muted-foreground text-sm mt-1">Score</div>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-center">
+                        <div className={`text-4xl font-bold ${testResult.passed ? 'text-green-400' : 'text-red-400'}`}>
+                          {testResult.passed ? 'PASS' : 'FAIL'}
+                        </div>
+                        <div className="text-muted-foreground text-sm mt-1">Status</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-slate-800 rounded-xl p-4 overflow-hidden">
+                    <pre className="text-xs text-gray-300 overflow-x-auto max-h-96 overflow-y-auto">
+                      {JSON.stringify(
+                        (() => {
+                          const { _httpStatus, _passed, ...cleanResult } = testResult;
+                          return cleanResult;
+                        })(),
+                        null,
+                        2
+                      )}
+                    </pre>
+                  </div>
+
+                  <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                    <p className="text-sm text-purple-400">
+                      <CheckCircle className="w-4 h-4 inline mr-2" />
+                      1 API credit consumed. Use <code className="text-white">threshold</code> parameter to customize pass/fail threshold (default: 70).
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {!testResult && !testError && !testApiMutation.isPending && (
+                <div className="p-8 bg-white/5 rounded-xl border border-white/10 text-center">
+                  <Terminal className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Enter a URL and click "Run Test" to see the API response.</p>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
 
