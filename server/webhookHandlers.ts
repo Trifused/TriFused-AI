@@ -1,5 +1,6 @@
 import { getStripeSync, getUncachableStripeClient } from './stripeClient';
 import { storage } from './storage';
+import { apiService } from './apiService';
 import Stripe from 'stripe';
 
 export class WebhookHandlers {
@@ -32,8 +33,43 @@ export class WebhookHandlers {
       if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
         await WebhookHandlers.handleSubscriptionEvent(event.data.object as Stripe.Subscription);
       }
+      
+      if (event.type === 'checkout.session.completed') {
+        await WebhookHandlers.handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+      }
     } catch (error) {
       console.error('Custom webhook logic error:', error);
+    }
+  }
+
+  static async handleCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
+    if (session.payment_status !== 'paid') return;
+
+    const stripe = await getUncachableStripeClient();
+    const customerId = session.customer as string;
+
+    // Find user by stripeCustomerId
+    const user = await storage.getUserByStripeCustomerId(customerId);
+    if (!user) {
+      console.log('No user found for customer:', customerId);
+      return;
+    }
+
+    // Get line items to check for call packs
+    const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { expand: ['data.price.product'] });
+    
+    for (const item of lineItems.data) {
+      const product = item.price?.product as Stripe.Product;
+      if (!product || typeof product === 'string') continue;
+
+      if (product.metadata?.product_type === 'call_pack') {
+        const calls = parseInt(product.metadata?.calls || '0');
+        if (calls > 0) {
+          // Create call pack record
+          await apiService.addCallPack(user.id, calls, session.id);
+          console.log(`Added ${calls} API calls to user ${user.id} from call pack purchase`);
+        }
+      }
     }
   }
 

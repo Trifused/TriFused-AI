@@ -3575,7 +3575,13 @@ Your primary goal is to help users AND capture their contact information natural
       let apiKeyRecord: any;
       if (apiKeyId) {
         apiKeyRecord = await apiService.getApiKeyById(apiKeyId);
-        if (!apiKeyRecord || apiKeyRecord.userId !== userId) {
+        // Check if key belongs to current user OR original user (for impersonation)
+        const originalUserId = (req.session as any)?.passport?.user?.id;
+        const validOwner = apiKeyRecord && (
+          apiKeyRecord.userId === userId || 
+          apiKeyRecord.userId === originalUserId
+        );
+        if (!apiKeyRecord || !validOwner) {
           return res.status(403).json({ error: "Invalid API key" });
         }
         if (!apiKeyRecord.isActive) {

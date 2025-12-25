@@ -247,6 +247,16 @@ class ApiService {
       .orderBy(desc(apiCallPacks.purchasedAt));
   }
 
+  async addCallPack(userId: string, packSize: number, stripeSessionId: string) {
+    const [pack] = await db.insert(apiCallPacks).values({
+      userId,
+      packSize,
+      callsRemaining: packSize,
+      stripeSessionId,
+    }).returning();
+    return pack;
+  }
+
   async getUserDiscount(userId: string): Promise<number> {
     const result = await db.execute(sql`
       SELECT p.metadata->>'discount_percent' as discount
