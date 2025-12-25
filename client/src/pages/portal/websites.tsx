@@ -106,6 +106,8 @@ export default function WebsitesPortal() {
   const [scanningId, setScanningId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("websites");
   const [testUrl, setTestUrl] = useState("");
+  const [testApiKey, setTestApiKey] = useState("");
+  const [testThreshold, setTestThreshold] = useState("70");
   const [testResult, setTestResult] = useState<any>(null);
   const [testError, setTestError] = useState<string | null>(null);
 
@@ -128,6 +130,18 @@ export default function WebsitesPortal() {
     },
     enabled: isAuthenticated && activeTab === "history",
   });
+
+  const { data: apiKeysData } = useQuery({
+    queryKey: ["/api/user/api-keys"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/api-keys", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch API keys");
+      return res.json();
+    },
+    enabled: isAuthenticated && activeTab === "test-api",
+  });
+
+  const apiKeys = apiKeysData?.data || [];
 
   const addWebsiteMutation = useMutation({
     mutationFn: async ({ url, name }: { url: string; name: string }) => {
@@ -195,18 +209,23 @@ export default function WebsitesPortal() {
   });
 
   const testApiMutation = useMutation({
-    mutationFn: async ({ url, threshold }: { url: string; threshold: number }) => {
+    mutationFn: async ({ url, threshold, apiKey }: { url: string; threshold: number; apiKey?: string }) => {
       setTestResult(null);
       setTestError(null);
+      const headers: Record<string, string> = {};
+      if (apiKey) {
+        headers["Authorization"] = `Bearer ${apiKey}`;
+      }
       const res = await fetch(`/api/v1/score?url=${encodeURIComponent(url)}&threshold=${threshold}`, {
         method: "GET",
         credentials: "include",
+        headers,
       });
       const data = await res.json();
-      return { data, status: res.status, ok: res.ok };
+      return { data, status: res.status, ok: res.ok, usedApiKey: !!apiKey };
     },
-    onSuccess: ({ data, status, ok }) => {
-      setTestResult({ ...data, _httpStatus: status, _passed: ok });
+    onSuccess: ({ data, status, ok, usedApiKey }) => {
+      setTestResult({ ...data, _httpStatus: status, _passed: ok, _usedApiKey: usedApiKey });
     },
     onError: (error: Error) => {
       setTestError(error.message || "Failed to run API test");
@@ -856,11 +875,26 @@ pipeline {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex gap-4">
-                    <div className="flex-1">
-                      <Label htmlFor="test-url" className="text-white mb-2 block">Website URL</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-white mb-2 block">Select Website</Label>
+                      <select
+                        value={testUrl}
+                        onChange={(e) => setTestUrl(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 text-white rounded-md px-3 py-2 text-sm"
+                        data-testid="select-test-website"
+                      >
+                        <option value="" className="bg-slate-800">-- Select a website --</option>
+                        {websites.map((w) => (
+                          <option key={w.id} value={w.url} className="bg-slate-800">
+                            {w.name || w.url}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="text-white mb-2 block">Or Enter URL</Label>
                       <Input
-                        id="test-url"
                         placeholder="https://example.com"
                         value={testUrl}
                         onChange={(e) => setTestUrl(e.target.value)}
@@ -868,32 +902,75 @@ pipeline {
                         data-testid="input-test-url"
                       />
                     </div>
-                    <div className="flex items-end">
-                      <Button
-                        onClick={() => {
-                          let url = testUrl.trim();
-                          if (!url.startsWith("http://") && !url.startsWith("https://")) {
-                            url = "https://" + url;
-                          }
-                          testApiMutation.mutate({ url, threshold: 70 });
-                        }}
-                        disabled={!testUrl || testApiMutation.isPending}
-                        className="bg-purple-500 hover:bg-purple-600"
-                        data-testid="btn-run-test"
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-white mb-2 block">
+                        <Key className="w-3 h-3 inline mr-1" />
+                        API Key
+                      </Label>
+                      <select
+                        value={testApiKey}
+                        onChange={(e) => setTestApiKey(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 text-white rounded-md px-3 py-2 text-sm"
+                        data-testid="select-api-key"
                       >
-                        {testApiMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Play className="w-4 h-4 mr-2" />
-                        )}
-                        Run Test
-                      </Button>
+                        <option value="" className="bg-slate-800">-- Use session (no API key) --</option>
+                        {apiKeys.map((k: any) => (
+                          <option key={k.id} value={k.key} className="bg-slate-800">
+                            {k.name} ({k.key.slice(0, 12)}...)
+                          </option>
+                        ))}
+                      </select>
+                      {apiKeys.length === 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          No API keys found. Create one in the API Keys tab.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-white mb-2 block">Threshold (pass/fail)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={testThreshold}
+                        onChange={(e) => setTestThreshold(e.target.value)}
+                        className="bg-white/5 border-white/10 text-white"
+                        data-testid="input-threshold"
+                      />
                     </div>
                   </div>
 
-                  <div className="text-xs text-muted-foreground flex items-center gap-2">
-                    <AlertTriangle className="w-3 h-3 text-yellow-400" />
-                    Running a test will consume 1 API credit from your account.
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="text-xs text-muted-foreground flex items-center gap-2">
+                      <AlertTriangle className="w-3 h-3 text-yellow-400" />
+                      Running a test will consume 1 API credit from your account.
+                    </div>
+                    <Button
+                      onClick={() => {
+                        let url = testUrl.trim();
+                        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                          url = "https://" + url;
+                        }
+                        testApiMutation.mutate({ 
+                          url, 
+                          threshold: parseInt(testThreshold) || 70,
+                          apiKey: testApiKey || undefined 
+                        });
+                      }}
+                      disabled={!testUrl || testApiMutation.isPending}
+                      className="bg-purple-500 hover:bg-purple-600"
+                      data-testid="btn-run-test"
+                    >
+                      {testApiMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Play className="w-4 h-4 mr-2" />
+                      )}
+                      Run Test
+                    </Button>
                   </div>
                 </div>
               </div>
