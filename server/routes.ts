@@ -4096,11 +4096,122 @@ Your primary goal is to help users AND capture their contact information natural
   // List all customers
   app.get("/api/admin/cs/customers", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
     try {
-      const customers = await stripeService.listAllCustomers();
-      res.json({ data: customers });
+      const { search } = req.query;
+      if (search && typeof search === 'string') {
+        const customers = await stripeService.searchCustomers(search);
+        res.json({ data: customers });
+      } else {
+        const customers = await stripeService.listAllCustomers();
+        res.json({ data: customers });
+      }
     } catch (error) {
       console.error("List customers error:", error);
       res.status(500).json({ error: "Failed to list customers" });
+    }
+  });
+
+  // Get customer details
+  app.get("/api/admin/cs/customers/:customerId", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const customer = await stripeService.getCustomer(req.params.customerId);
+      if (!customer) {
+        return res.status(404).json({ error: "Customer not found" });
+      }
+      res.json(customer);
+    } catch (error) {
+      console.error("Get customer error:", error);
+      res.status(500).json({ error: "Failed to get customer" });
+    }
+  });
+
+  // Create customer
+  app.post("/api/admin/cs/customers", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { email, name, metadata } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      const customer = await stripeService.createCustomer(email, name, metadata);
+      
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+      
+      res.json({ success: true, customer });
+    } catch (error) {
+      console.error("Create customer error:", error);
+      res.status(500).json({ error: "Failed to create customer" });
+    }
+  });
+
+  // Update customer
+  app.patch("/api/admin/cs/customers/:customerId", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { email, name, metadata } = req.body;
+      const updates: { email?: string; name?: string; metadata?: Record<string, string> } = {};
+      if (email !== undefined) updates.email = email;
+      if (name !== undefined) updates.name = name;
+      if (metadata !== undefined) updates.metadata = metadata;
+      
+      await stripeService.updateCustomer(req.params.customerId, updates);
+      
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update customer error:", error);
+      res.status(500).json({ error: "Failed to update customer" });
+    }
+  });
+
+  // Delete customer
+  app.delete("/api/admin/cs/customers/:customerId", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      await stripeService.deleteCustomer(req.params.customerId);
+      
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete customer error:", error);
+      res.status(500).json({ error: "Failed to delete customer" });
+    }
+  });
+
+  // Import customers from CSV
+  app.post("/api/admin/cs/customers/import", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { customers } = req.body;
+      if (!Array.isArray(customers) || customers.length === 0) {
+        return res.status(400).json({ error: "No customers to import" });
+      }
+      
+      const results = await stripeService.importCustomers(customers);
+      
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Import customers error:", error);
+      res.status(500).json({ error: "Failed to import customers" });
+    }
+  });
+
+  // Export customers to CSV
+  app.get("/api/admin/cs/customers/export", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const customers = await stripeService.exportCustomers();
+      res.json({ data: customers });
+    } catch (error) {
+      console.error("Export customers error:", error);
+      res.status(500).json({ error: "Failed to export customers" });
     }
   });
 

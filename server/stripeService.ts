@@ -3,13 +3,6 @@ import { db } from '../db';
 import { sql } from 'drizzle-orm';
 
 export class StripeService {
-  async createCustomer(email: string, userId: string) {
-    const stripe = await getUncachableStripeClient();
-    return await stripe.customers.create({
-      email,
-      metadata: { userId },
-    });
-  }
 
   async createCheckoutSession(
     customerId: string,
@@ -388,6 +381,95 @@ export class StripeService {
         WHERE s.customer = ${customerId}
         ORDER BY s.created DESC
         LIMIT ${limit} OFFSET ${offset}
+      `
+    );
+    return result.rows;
+  }
+  async createCustomer(email: string, name?: string, metadata?: Record<string, string>) {
+    const stripe = await getUncachableStripeClient();
+    return await stripe.customers.create({
+      email,
+      name,
+      metadata,
+    });
+  }
+
+  async updateCustomer(customerId: string, updates: { email?: string; name?: string; metadata?: Record<string, string> }) {
+    const stripe = await getUncachableStripeClient();
+    return await stripe.customers.update(customerId, updates);
+  }
+
+  async deleteCustomer(customerId: string) {
+    const stripe = await getUncachableStripeClient();
+    return await stripe.customers.del(customerId);
+  }
+
+  async getCustomer(customerId: string) {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          c.*,
+          (SELECT COUNT(*) FROM stripe.subscriptions s WHERE s.customer = c.id AND s.status = 'active') as active_subscriptions,
+          (SELECT COUNT(*) FROM stripe.checkout_sessions cs WHERE cs.customer = c.id AND cs.payment_status = 'paid') as total_orders,
+          (SELECT COALESCE(SUM(cs.amount_total), 0) FROM stripe.checkout_sessions cs WHERE cs.customer = c.id AND cs.payment_status = 'paid') as total_spent
+        FROM stripe.customers c
+        WHERE c.id = ${customerId}
+      `
+    );
+    return result.rows[0] || null;
+  }
+
+  async searchCustomers(query: string, limit = 50) {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          c.*,
+          (SELECT COUNT(*) FROM stripe.subscriptions s WHERE s.customer = c.id AND s.status = 'active') as active_subscriptions,
+          (SELECT COUNT(*) FROM stripe.checkout_sessions cs WHERE cs.customer = c.id AND cs.payment_status = 'paid') as total_orders
+        FROM stripe.customers c
+        WHERE c.email ILIKE ${'%' + query + '%'} OR c.name ILIKE ${'%' + query + '%'}
+        ORDER BY c.created DESC
+        LIMIT ${limit}
+      `
+    );
+    return result.rows;
+  }
+
+  async importCustomers(customers: { email: string; name?: string; metadata?: Record<string, string> }[]) {
+    const stripe = await getUncachableStripeClient();
+    const results = { created: 0, errors: [] as string[] };
+    
+    for (const customer of customers) {
+      try {
+        await stripe.customers.create({
+          email: customer.email,
+          name: customer.name,
+          metadata: customer.metadata,
+        });
+        results.created++;
+      } catch (error: any) {
+        results.errors.push(`${customer.email}: ${error.message}`);
+      }
+    }
+    
+    return results;
+  }
+
+  async exportCustomers() {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          c.id,
+          c.email,
+          c.name,
+          c.phone,
+          c.created,
+          c.metadata,
+          (SELECT COUNT(*) FROM stripe.subscriptions s WHERE s.customer = c.id AND s.status = 'active') as active_subscriptions,
+          (SELECT COUNT(*) FROM stripe.checkout_sessions cs WHERE cs.customer = c.id AND cs.payment_status = 'paid') as total_orders,
+          (SELECT COALESCE(SUM(cs.amount_total), 0) FROM stripe.checkout_sessions cs WHERE cs.customer = c.id AND cs.payment_status = 'paid') as total_spent
+        FROM stripe.customers c
+        ORDER BY c.created DESC
       `
     );
     return result.rows;

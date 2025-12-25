@@ -42,7 +42,9 @@ import {
   RefreshCw,
   Receipt,
   Edit,
-  Save
+  Save,
+  Upload,
+  Download
 } from "lucide-react";
 import { FEATURE_FLAGS, type FeatureFlag, type FeatureStatus, type FeatureCategory } from "@shared/feature-flags";
 import { FeatureBadge } from "@/components/ui/feature-badge";
@@ -350,6 +352,115 @@ export default function Admin() {
     },
     enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'customers',
   });
+
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importData, setImportData] = useState("");
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ email: '', name: '' });
+
+  const { data: customersData, isLoading: customersLoading, refetch: refetchCustomers } = useQuery<{ data: any[] }>({
+    queryKey: ['/api/admin/cs/customers', customerSearch],
+    queryFn: async () => {
+      const url = customerSearch ? `/api/admin/cs/customers?search=${encodeURIComponent(customerSearch)}` : '/api/admin/cs/customers';
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch customers');
+      return res.json();
+    },
+    enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'customers',
+  });
+
+  const createCustomerMutation = useMutation({
+    mutationFn: async (data: { email: string; name: string }) => {
+      const res = await fetch('/api/admin/cs/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Failed to create customer');
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'Customer created' });
+      refetchCustomers();
+      setShowAddCustomer(false);
+      setNewCustomer({ email: '', name: '' });
+    },
+    onError: () => {
+      toast({ title: 'Failed to create customer', variant: 'destructive' });
+    },
+  });
+
+  const importCustomersMutation = useMutation({
+    mutationFn: async (customers: { email: string; name?: string }[]) => {
+      const res = await fetch('/api/admin/cs/customers/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ customers }),
+      });
+      if (!res.ok) throw new Error('Failed to import customers');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: `Import complete`, description: `${data.created} customers created${data.errors?.length ? `, ${data.errors.length} errors` : ''}` });
+      refetchCustomers();
+      setShowImportDialog(false);
+      setImportData("");
+    },
+    onError: () => {
+      toast({ title: 'Import failed', variant: 'destructive' });
+    },
+  });
+
+  const handleExportCustomers = async () => {
+    try {
+      const res = await fetch('/api/admin/cs/customers/export', { credentials: 'include' });
+      if (!res.ok) throw new Error('Export failed');
+      const data = await res.json();
+      
+      const csv = [
+        ['ID', 'Email', 'Name', 'Phone', 'Created', 'Active Subs', 'Orders', 'Total Spent'].join(','),
+        ...data.data.map((c: any) => [
+          c.id,
+          c.email || '',
+          c.name || '',
+          c.phone || '',
+          c.created ? new Date(c.created * 1000).toISOString() : '',
+          c.active_subscriptions || 0,
+          c.total_orders || 0,
+          ((c.total_spent || 0) / 100).toFixed(2)
+        ].join(','))
+      ].join('\n');
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `customers-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: 'Export complete' });
+    } catch (error) {
+      toast({ title: 'Export failed', variant: 'destructive' });
+    }
+  };
+
+  const handleImportCSV = () => {
+    const lines = importData.trim().split('\n').slice(1);
+    const customers = lines.map(line => {
+      const [email, name] = line.split(',').map(s => s.trim());
+      return { email, name };
+    }).filter(c => c.email);
+    
+    if (customers.length === 0) {
+      toast({ title: 'No valid customers found', variant: 'destructive' });
+      return;
+    }
+    
+    importCustomersMutation.mutate(customers);
+  };
 
   const internalStats = {
     totalVisitors: diagnostics.length,
@@ -1577,6 +1688,9 @@ export default function Admin() {
                   <TabsTrigger value="subscriptions" className="data-[state=active]:bg-primary" data-testid="subtab-subscriptions">
                     Subscriptions
                   </TabsTrigger>
+                  <TabsTrigger value="customers" className="data-[state=active]:bg-primary" data-testid="subtab-customers">
+                    Customers
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="orders">
@@ -1719,6 +1833,167 @@ export default function Admin() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="customers">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3 flex-1">
+                      <input
+                        type="text"
+                        placeholder="Search by email or name..."
+                        className="flex-1 max-w-md bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                        value={customerSearch}
+                        onChange={(e) => setCustomerSearch(e.target.value)}
+                        data-testid="input-customer-search"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setShowAddCustomer(true)} data-testid="btn-add-customer">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Customer
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setShowImportDialog(true)} data-testid="btn-import-customers">
+                        <Upload className="w-4 h-4 mr-2" />
+                        Import
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleExportCustomers} data-testid="btn-export-customers">
+                        <Download className="w-4 h-4 mr-2" />
+                        Export
+                      </Button>
+                    </div>
+                  </div>
+
+                  {customersLoading ? (
+                    <div className="py-12 text-center">
+                      <Clock className="w-8 h-8 animate-spin mx-auto text-primary mb-4" />
+                      <p className="text-muted-foreground">Loading customers...</p>
+                    </div>
+                  ) : !customersData?.data?.length ? (
+                    <div className="py-12 text-center">
+                      <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-white text-lg">No customers yet</p>
+                      <p className="text-muted-foreground text-sm mt-2">
+                        Customers will appear here after checkout or import
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {customersData.data.map((customer: any) => (
+                        <div
+                          key={customer.id}
+                          className="p-4 bg-white/5 rounded-lg border border-white/10"
+                          data-testid={`customer-row-${customer.id}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3">
+                                <span className="font-medium text-white">{customer.email}</span>
+                                {customer.name && (
+                                  <span className="text-muted-foreground">({customer.name})</span>
+                                )}
+                                {Number(customer.active_subscriptions) > 0 && (
+                                  <span className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">
+                                    {customer.active_subscriptions} active sub{Number(customer.active_subscriptions) > 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                                <span>{customer.total_orders || 0} orders</span>
+                                <span>Created: {customer.created ? format(new Date(customer.created * 1000), 'MMM d, yyyy') : '-'}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={`https://dashboard.stripe.com/customers/${customer.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                Stripe
+                              </a>
+                              <span className="text-xs text-muted-foreground font-mono hidden lg:block">
+                                {customer.id.slice(0, 15)}...
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add Customer Dialog */}
+                  {showAddCustomer && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                      <div className="bg-slate-900 border border-white/10 rounded-xl p-6 max-w-md w-full">
+                        <h3 className="text-lg font-semibold text-white mb-4">Add Customer</h3>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-sm text-muted-foreground block mb-1">Email *</label>
+                            <input
+                              type="email"
+                              className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                              value={newCustomer.email}
+                              onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                              placeholder="customer@example.com"
+                              data-testid="input-new-customer-email"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm text-muted-foreground block mb-1">Name</label>
+                            <input
+                              type="text"
+                              className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                              value={newCustomer.name}
+                              onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                              placeholder="John Doe"
+                              data-testid="input-new-customer-name"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                          <Button
+                            onClick={() => createCustomerMutation.mutate(newCustomer)}
+                            disabled={!newCustomer.email || createCustomerMutation.isPending}
+                            data-testid="btn-confirm-add-customer"
+                          >
+                            {createCustomerMutation.isPending ? 'Creating...' : 'Add Customer'}
+                          </Button>
+                          <Button variant="ghost" onClick={() => setShowAddCustomer(false)}>Cancel</Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Import Dialog */}
+                  {showImportDialog && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                      <div className="bg-slate-900 border border-white/10 rounded-xl p-6 max-w-lg w-full">
+                        <h3 className="text-lg font-semibold text-white mb-4">Import Customers</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Paste CSV data with headers: email,name (one customer per line)
+                        </p>
+                        <textarea
+                          className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white font-mono text-sm"
+                          rows={8}
+                          value={importData}
+                          onChange={(e) => setImportData(e.target.value)}
+                          placeholder="email,name&#10;john@example.com,John Doe&#10;jane@example.com,Jane Smith"
+                          data-testid="textarea-import-csv"
+                        />
+                        <div className="flex gap-3 mt-4">
+                          <Button
+                            onClick={handleImportCSV}
+                            disabled={!importData.trim() || importCustomersMutation.isPending}
+                            data-testid="btn-confirm-import"
+                          >
+                            {importCustomersMutation.isPending ? 'Importing...' : 'Import'}
+                          </Button>
+                          <Button variant="ghost" onClick={() => setShowImportDialog(false)}>Cancel</Button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </TabsContent>
