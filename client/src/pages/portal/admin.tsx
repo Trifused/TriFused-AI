@@ -790,33 +790,33 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-white/5">
-        <div className="container mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
+        <div className="container mx-auto px-3 md:px-6">
+          <div className="flex items-center justify-between h-14 md:h-16">
+            <div className="flex items-center gap-2 md:gap-4 shrink-0">
               <button 
                 onClick={() => setLocation("/")}
-                className="text-xl font-bold font-heading text-white"
+                className="text-lg md:text-xl font-bold font-heading text-white"
               >
                 TriFused
               </button>
-              <span className="text-muted-foreground">/</span>
-              <span className="text-muted-foreground flex items-center gap-2">
+              <span className="text-muted-foreground hidden md:inline">/</span>
+              <span className="text-muted-foreground hidden md:flex items-center gap-2">
                 <Shield className="w-4 h-4" />
                 Admin
               </span>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={() => setLocation("/portal/dashboard")}
-                className="text-muted-foreground hover:text-white"
+                className="text-muted-foreground hover:text-white px-2 md:px-3"
               >
-                <ChevronLeft className="w-4 h-4 mr-2" />
-                Dashboard
+                <ChevronLeft className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Dashboard</span>
               </Button>
-              <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+              <div className="flex items-center gap-2 md:gap-3 pl-2 md:pl-4 border-l border-white/10">
                 {user?.profileImageUrl && (
                   <img 
                     src={user.profileImageUrl} 
@@ -824,7 +824,7 @@ export default function Admin() {
                     className="w-8 h-8 rounded-full object-cover border border-yellow-500/30"
                   />
                 )}
-                <div className="text-sm">
+                <div className="text-sm hidden md:block">
                   <div className="text-white font-medium flex items-center gap-2">
                     {user?.firstName || user?.email?.split('@')[0] || 'Admin'}
                     <Crown className="w-3 h-3 text-yellow-500" />
@@ -836,6 +836,7 @@ export default function Admin() {
                   size="icon"
                   onClick={() => window.location.href = "/api/logout"}
                   data-testid="button-logout"
+                  className="shrink-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"
                 >
                   <LogOut className="w-4 h-4" />
                 </Button>
@@ -845,60 +846,54 @@ export default function Admin() {
         </div>
       </header>
 
-      <main id="main-content" className="container mx-auto px-6 py-12">
+      <main id="main-content" className="container mx-auto px-3 md:px-6 py-6 md:py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 md:mb-8"
         >
-          <h1 className="text-3xl font-bold font-heading text-white mb-2 flex items-center gap-3">
-            <Shield className="w-8 h-8 text-primary" />
+          <h1 className="text-2xl md:text-3xl font-bold font-heading text-white mb-2 flex items-center gap-2 md:gap-3">
+            <Shield className="w-6 h-6 md:w-8 md:h-8 text-primary" />
             Admin Panel
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm md:text-base text-muted-foreground">
             Manage users, chat leads, and view conversation analytics.
           </p>
         </motion.div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-white/5 border border-white/10">
-            <TabsTrigger value="users" className="data-[state=active]:bg-primary" data-testid="tab-users">
-              <Users className="w-4 h-4 mr-2" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="chat" className="data-[state=active]:bg-primary" data-testid="tab-chat">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Chat Intelligence
-            </TabsTrigger>
-            <TabsTrigger value="media" className="data-[state=active]:bg-primary" data-testid="tab-media">
-              <Video className="w-4 h-4 mr-2" />
-              Media ({pendingMedia.length})
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-primary" data-testid="tab-analytics">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="grader" className="data-[state=active]:bg-primary" data-testid="tab-grader">
-              <Globe className="w-4 h-4 mr-2" />
-              Grader Leads
-            </TabsTrigger>
-            <TabsTrigger value="features" className="data-[state=active]:bg-primary" data-testid="tab-features">
-              <Settings className="w-4 h-4 mr-2" />
-              Features
-            </TabsTrigger>
-            <TabsTrigger value="commerce" className="data-[state=active]:bg-primary" data-testid="tab-commerce">
-              <Crown className="w-4 h-4 mr-2" />
-              Commerce
-            </TabsTrigger>
-            <TabsTrigger value="customers" className="data-[state=active]:bg-primary" data-testid="tab-customers">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Customers
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="data-[state=active]:bg-primary" data-testid="tab-reports">
-              <FileText className="w-4 h-4 mr-2" />
-              Reports
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+          <div className="overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0">
+            <TabsList className="bg-white/5 border border-white/10 w-max md:w-auto">
+              <TabsTrigger value="users" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-users">
+                <Users className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Users</span>
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-chat">
+                <MessageSquare className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Chat</span>
+              </TabsTrigger>
+              <TabsTrigger value="media" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-media">
+                <Video className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Media ({pendingMedia.length})</span>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-analytics">
+                <BarChart3 className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Analytics</span>
+              </TabsTrigger>
+              <TabsTrigger value="grader" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-grader">
+                <Globe className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Grader Leads</span>
+              </TabsTrigger>
+              <TabsTrigger value="features" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-features">
+                <Settings className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Features</span>
+              </TabsTrigger>
+              <TabsTrigger value="commerce" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-commerce">
+                <CreditCard className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Commerce</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="users">
             <motion.div
