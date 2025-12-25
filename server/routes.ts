@@ -4111,16 +4111,19 @@ Your primary goal is to help users AND capture their contact information natural
   // Create product with price (admin only)
   app.post("/api/admin/stripe/products", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
     try {
-      const { name, description, price, type, interval, features } = req.body;
+      const { name, description, price, type, interval, features, product_type, tier, calls_included, discount_percent, parent_product } = req.body;
       
       if (!name || !price || !type) {
         return res.status(400).json({ error: "Name, price, and type are required" });
       }
 
       const metadata: Record<string, string> = {};
-      if (features) {
-        metadata.features = features;
-      }
+      if (features) metadata.features = features;
+      if (product_type) metadata.product_type = product_type;
+      if (tier) metadata.tier = tier;
+      if (calls_included) metadata.calls_included = String(calls_included);
+      if (discount_percent) metadata.discount_percent = String(discount_percent);
+      if (parent_product) metadata.parent_product = parent_product;
 
       const product = await stripeService.createProduct(name, description || '', metadata);
       

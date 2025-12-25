@@ -15,6 +15,7 @@ import {
   mediaShares,
   websiteGrades,
   reportEvents,
+  reportSubscriptions,
   InsertContactSubmission, 
   InsertDiagnosticScan, 
   ContactSubmission, 
@@ -45,7 +46,9 @@ import {
   InsertWebsiteGrade,
   ReportEvent,
   InsertReportEvent,
-  ReportEventType
+  ReportEventType,
+  ReportSubscription,
+  InsertReportSubscription
 } from "@shared/schema";
 
 export interface IStorage {
@@ -133,6 +136,16 @@ export interface IStorage {
   incrementReportViewCount(shareToken: string): Promise<void>;
   incrementReportDownloadCount(shareToken: string): Promise<void>;
   getReportEvents(shareToken: string): Promise<ReportEvent[]>;
+  
+  // Report subscription methods
+  getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
+  createReportSubscription(data: InsertReportSubscription): Promise<ReportSubscription>;
+  getReportSubscription(id: string): Promise<ReportSubscription | undefined>;
+  getReportSubscriptionBySlug(slug: string): Promise<ReportSubscription | undefined>;
+  getReportSubscriptionByStripeSubscriptionId(subscriptionId: string): Promise<ReportSubscription | undefined>;
+  getReportSubscriptionsByUser(userId: string): Promise<ReportSubscription[]>;
+  getAllReportSubscriptions(): Promise<ReportSubscription[]>;
+  updateReportSubscription(id: string, data: Partial<InsertReportSubscription>): Promise<ReportSubscription | undefined>;
 }
 
 class Storage implements IStorage {
@@ -554,6 +567,49 @@ class Storage implements IStorage {
   }): Promise<User | undefined> {
     const [user] = await db.update(users).set(stripeInfo).where(eq(users.id, userId)).returning();
     return user;
+  }
+
+  // Report subscription methods
+  async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.stripeCustomerId, customerId));
+    return user;
+  }
+
+  async createReportSubscription(data: InsertReportSubscription): Promise<ReportSubscription> {
+    const [subscription] = await db.insert(reportSubscriptions).values(data).returning();
+    return subscription;
+  }
+
+  async getReportSubscription(id: string): Promise<ReportSubscription | undefined> {
+    const [subscription] = await db.select().from(reportSubscriptions).where(eq(reportSubscriptions.id, id));
+    return subscription;
+  }
+
+  async getReportSubscriptionBySlug(slug: string): Promise<ReportSubscription | undefined> {
+    const [subscription] = await db.select().from(reportSubscriptions).where(eq(reportSubscriptions.slug, slug));
+    return subscription;
+  }
+
+  async getReportSubscriptionByStripeSubscriptionId(subscriptionId: string): Promise<ReportSubscription | undefined> {
+    const [subscription] = await db.select().from(reportSubscriptions).where(eq(reportSubscriptions.stripeSubscriptionId, subscriptionId));
+    return subscription;
+  }
+
+  async getReportSubscriptionsByUser(userId: string): Promise<ReportSubscription[]> {
+    return await db.select().from(reportSubscriptions).where(eq(reportSubscriptions.userId, userId)).orderBy(desc(reportSubscriptions.createdAt));
+  }
+
+  async getAllReportSubscriptions(): Promise<ReportSubscription[]> {
+    return await db.select().from(reportSubscriptions).orderBy(desc(reportSubscriptions.createdAt));
+  }
+
+  async updateReportSubscription(id: string, data: Partial<InsertReportSubscription>): Promise<ReportSubscription | undefined> {
+    const [subscription] = await db
+      .update(reportSubscriptions)
+      .set(data)
+      .where(eq(reportSubscriptions.id, id))
+      .returning();
+    return subscription;
   }
 }
 
