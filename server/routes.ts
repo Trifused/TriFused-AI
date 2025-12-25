@@ -3378,8 +3378,29 @@ Your primary goal is to help users AND capture their contact information natural
   // CI/CD Pipeline JSON Report Card
   // Returns structured data with pass/fail thresholds for pipeline integration
   app.get("/api/v1/score", async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    let apiKeyUserId: string | null = null;
+    let apiKeyId: string | null = null;
+    
     try {
       const { url, threshold } = req.query;
+      
+      // API Key authentication
+      const apiKey = req.headers["x-api-key"] as string;
+      if (apiKey) {
+        const keyValidation = await apiService.validateApiKey(apiKey);
+        if (!keyValidation.valid) {
+          return res.status(401).json({ error: "Invalid API key" });
+        }
+        apiKeyUserId = keyValidation.userId!;
+        apiKeyId = keyValidation.keyId!;
+        
+        // Check quota
+        const quotaCheck = await apiService.checkQuota(apiKeyUserId);
+        if (!quotaCheck.hasQuota) {
+          return res.status(429).json({ error: "API quota exceeded", remaining: 0 });
+        }
+      }
       
       if (!url || typeof url !== "string") {
         return res.status(400).json({
@@ -3491,6 +3512,22 @@ Your primary goal is to help users AND capture their contact information natural
 
       // Set appropriate status code for CI/CD
       const statusCode = grade.overallScore >= passThreshold ? 200 : 422;
+      
+      // Log API usage if authenticated with API key
+      if (apiKeyUserId && apiKeyId) {
+        const responseTime = Date.now() - startTime;
+        await apiService.recordApiCall(
+          apiKeyUserId,
+          apiKeyId,
+          "/api/v1/score",
+          "GET",
+          statusCode,
+          responseTime,
+          req.ip || null,
+          req.headers["user-agent"] || null
+        );
+      }
+      
       res.status(statusCode).json(report);
     } catch (error) {
       console.error("CI/CD score endpoint error:", error);
