@@ -3746,6 +3746,52 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Get user's order history
+  app.get("/api/stripe/orders", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user?.stripeCustomerId) {
+        return res.json({ data: [] });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const orders = await stripeService.getUserOrders(user.stripeCustomerId, limit, offset);
+      res.json({ data: orders });
+    } catch (error) {
+      console.error("Get user orders error:", error);
+      res.status(500).json({ error: "Failed to get orders" });
+    }
+  });
+
+  // Get user's subscriptions
+  app.get("/api/stripe/subscriptions", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user?.stripeCustomerId) {
+        return res.json({ data: [] });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const subscriptions = await stripeService.getUserSubscriptions(user.stripeCustomerId, limit, offset);
+      res.json({ data: subscriptions });
+    } catch (error) {
+      console.error("Get user subscriptions error:", error);
+      res.status(500).json({ error: "Failed to get subscriptions" });
+    }
+  });
+
   // ========== ADMIN COMMERCE ROUTES ==========
 
   // Get all products including inactive (admin only)

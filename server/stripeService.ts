@@ -339,6 +339,59 @@ export class StripeService {
       ...(reason ? { reason: reason as any } : {}),
     });
   }
+
+  // User-facing methods (for portal users to view their own data)
+  async getUserOrders(customerId: string, limit = 50, offset = 0) {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          cs.id as session_id,
+          cs.payment_status,
+          cs.status as session_status,
+          cs.amount_total,
+          cs.currency,
+          cs.mode,
+          cs.created,
+          pi.status as payment_status_detail,
+          ch.refunded
+        FROM stripe.checkout_sessions cs
+        LEFT JOIN stripe.payment_intents pi ON cs.payment_intent = pi.id
+        LEFT JOIN stripe.charges ch ON ch.payment_intent = pi.id
+        WHERE cs.customer = ${customerId} AND cs.payment_status IS NOT NULL
+        ORDER BY cs.created DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `
+    );
+    return result.rows;
+  }
+
+  async getUserSubscriptions(customerId: string, limit = 50, offset = 0) {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          s.id as subscription_id,
+          s.status,
+          s.current_period_start,
+          s.current_period_end,
+          s.cancel_at_period_end,
+          s.canceled_at,
+          s.created,
+          p.name as product_name,
+          p.description as product_description,
+          pr.unit_amount,
+          pr.currency,
+          pr.recurring
+        FROM stripe.subscriptions s
+        LEFT JOIN stripe.subscription_items si ON si.subscription = s.id
+        LEFT JOIN stripe.prices pr ON si.price = pr.id
+        LEFT JOIN stripe.products p ON pr.product = p.id
+        WHERE s.customer = ${customerId}
+        ORDER BY s.created DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `
+    );
+    return result.rows;
+  }
 }
 
 export const stripeService = new StripeService();
