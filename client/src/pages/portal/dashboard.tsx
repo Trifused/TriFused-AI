@@ -284,7 +284,35 @@ export default function Dashboard() {
     secureConnections: diagnosticScans.filter(d => d.isSecure === 1).length,
   } : null;
 
+  // Calculate grader stats
+  const graderAvgScore = graderLeads && graderLeads.length > 0 
+    ? Math.round(graderLeads.reduce((sum, g) => sum + g.overallScore, 0) / graderLeads.length) 
+    : 0;
+  const graderRecentCount = graderLeads?.filter(g => {
+    const date = new Date(g.createdAt);
+    const now = new Date();
+    return (now.getTime() - date.getTime()) < 24 * 60 * 60 * 1000; // last 24h
+  }).length || 0;
+  const graderWithEmail = graderLeads?.filter(g => g.companyName || g.domain).length || 0;
+
   const quickActions = isSuperuser ? [
+    { 
+      icon: Globe, 
+      label: "Website Grader", 
+      description: `${graderLeads?.length || 0} sites • Avg ${graderAvgScore}/100 • ${graderRecentCount} today`, 
+      status: (graderLeads?.length || 0) > 0 ? "cyan" : "gray",
+      count: graderLeads?.length || 0,
+      onClick: () => setShowGraderModal(true),
+      featured: true
+    },
+    { 
+      icon: CreditCard, 
+      label: "Customer Service", 
+      description: `${csStats?.total_orders || 0} orders, ${csStats?.active_subscriptions || 0} subs`, 
+      status: (csStats?.total_orders || 0) > 0 ? "emerald" : "gray",
+      count: csStats?.total_orders || 0,
+      onClick: () => setLocation("/portal/admin?tab=customers")
+    },
     { 
       icon: MessageSquare, 
       label: "Chat Leads", 
@@ -302,14 +330,6 @@ export default function Dashboard() {
       onClick: () => setShowSubscribersModal(true)
     },
     { 
-      icon: BarChart3, 
-      label: "Diagnostic Scans", 
-      description: `${stats?.diagnostics || 0} scans run`, 
-      status: (stats?.diagnostics || 0) > 0 ? "purple" : "gray",
-      count: stats?.diagnostics || 0,
-      onClick: () => setShowDiagnosticsModal(true)
-    },
-    { 
       icon: Contact, 
       label: "Contact Submissions", 
       description: `${stats?.contacts || 0} messages`, 
@@ -318,20 +338,12 @@ export default function Dashboard() {
       onClick: () => setShowContactsModal(true)
     },
     { 
-      icon: Globe, 
-      label: "Website Grader", 
-      description: `${graderLeads?.length || 0} sites analyzed`, 
-      status: (graderLeads?.length || 0) > 0 ? "orange" : "gray",
-      count: graderLeads?.length || 0,
-      onClick: () => setShowGraderModal(true)
-    },
-    { 
-      icon: CreditCard, 
-      label: "Customer Service", 
-      description: `${csStats?.total_orders || 0} orders, ${csStats?.active_subscriptions || 0} subs`, 
-      status: (csStats?.total_orders || 0) > 0 ? "emerald" : "gray",
-      count: csStats?.total_orders || 0,
-      onClick: () => setLocation("/portal/admin?tab=customers")
+      icon: BarChart3, 
+      label: "Diagnostic Scans", 
+      description: `${stats?.diagnostics || 0} scans run`, 
+      status: (stats?.diagnostics || 0) > 0 ? "purple" : "gray",
+      count: stats?.diagnostics || 0,
+      onClick: () => setShowDiagnosticsModal(true)
     },
   ] : [
     { icon: CreditCard, label: "Billing & Purchases", description: "View orders and subscriptions", status: "emerald", onClick: () => setLocation("/portal/billing") },
@@ -525,7 +537,11 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="glass-panel rounded-xl p-6 hover:border-primary/30 transition-colors cursor-pointer group"
+              className={`rounded-xl p-6 transition-colors cursor-pointer group ${
+                'featured' in action && action.featured 
+                  ? 'bg-gradient-to-br from-cyan-500/20 via-primary/10 to-purple-500/20 border-2 border-cyan-500/50 hover:border-cyan-400' 
+                  : 'glass-panel hover:border-primary/30'
+              }`}
               data-testid={`card-stat-${action.label.toLowerCase().replace(/\s+/g, '-')}`}
               onClick={'onClick' in action ? action.onClick : undefined}
             >
@@ -534,12 +550,17 @@ export default function Dashboard() {
                 action.status === 'blue' ? 'bg-blue-500/10 text-blue-500' :
                 action.status === 'purple' ? 'bg-purple-500/10 text-purple-500' :
                 action.status === 'cyan' ? 'bg-cyan-500/10 text-cyan-500' :
+                action.status === 'emerald' ? 'bg-emerald-500/10 text-emerald-500' :
+                action.status === 'orange' ? 'bg-orange-500/10 text-orange-500' :
                 'bg-white/5 text-muted-foreground'
               }`}>
                 <action.icon className="w-5 h-5" />
               </div>
-              <h3 className="text-white font-medium mb-1 flex items-center gap-2">
+              <h3 className={`font-medium mb-1 flex items-center gap-2 ${
+                'featured' in action && action.featured ? 'text-cyan-400 text-lg' : 'text-white'
+              }`}>
                 {action.label}
+                {'featured' in action && action.featured && <Crown className="w-4 h-4 text-yellow-400" />}
                 <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
               </h3>
               <p className="text-sm text-muted-foreground">{action.description}</p>
