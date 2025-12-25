@@ -3725,6 +3725,83 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Run grader test using API quota
+  app.post("/api/user/run-grader", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const { url } = req.body;
+      if (!url) return res.status(400).json({ error: "URL is required" });
+
+      // Check if user has quota
+      const quota = await apiService.getUserQuota(userId);
+      const remaining = quota.totalCalls - quota.usedCalls;
+      if (remaining <= 0) {
+        return res.status(403).json({ error: "API quota exceeded. Please purchase more calls.", quotaExceeded: true });
+      }
+
+      // Get or create a test API key for this user (for tracking purposes)
+      let keys = await apiService.getApiKeysByUser(userId);
+      let apiKeyId: string;
+      if (keys.length === 0) {
+        // Create a default test key
+        const newKey = await apiService.createApiKey(userId, "Portal Test Key");
+        apiKeyId = newKey.id;
+      } else {
+        apiKeyId = keys[0].id;
+      }
+
+      const startTime = Date.now();
+      
+      // Validate URL
+      const urlValidation = await validateUrl(url);
+      if (!urlValidation.valid) {
+        return res.status(400).json({ error: urlValidation.error });
+      }
+
+      // Make internal request to the grader endpoint
+      const gradeResponse = await fetch(`http://localhost:${process.env.PORT || 5000}/api/grade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+
+      const responseTime = Date.now() - startTime;
+      const gradeResult = await gradeResponse.json();
+
+      // Consume API call
+      const consumeResult = await apiService.consumeApiCall(
+        userId,
+        apiKeyId,
+        '/api/v1/score',
+        'POST',
+        gradeResponse.status,
+        responseTime,
+        req.ip,
+        req.headers['user-agent']
+      );
+
+      if (!consumeResult.success) {
+        return res.status(403).json({ error: consumeResult.error, quotaExceeded: true });
+      }
+
+      // Get updated quota
+      const updatedQuota = await apiService.getUserQuota(userId);
+
+      res.json({
+        success: true,
+        result: gradeResult,
+        quotaUsed: 1,
+        quotaRemaining: consumeResult.remaining,
+        quota: updatedQuota,
+      });
+    } catch (error) {
+      console.error("Run grader error:", error);
+      res.status(500).json({ error: "Failed to run grader test" });
+    }
+  });
+
   // ========== STRIPE PAYMENT ROUTES ==========
 
   // Get Stripe publishable key

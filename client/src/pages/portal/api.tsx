@@ -16,7 +16,12 @@ import {
   Shield,
   ArrowLeft,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Play,
+  Globe,
+  CheckCircle,
+  XCircle,
+  Loader2
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -93,6 +98,8 @@ export default function ApiPortal() {
   const [newKeyName, setNewKeyName] = useState("");
   const [showNewKey, setShowNewKey] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [testUrl, setTestUrl] = useState("");
+  const [testResult, setTestResult] = useState<any>(null);
 
   const { data: keysData, isLoading: keysLoading, refetch: refetchKeys } = useQuery({
     queryKey: ["/api/user/api-keys"],
@@ -173,6 +180,36 @@ export default function ApiPortal() {
     onSuccess: () => {
       refetchKeys();
       toast({ title: "Key deleted" });
+    },
+  });
+
+  const runGraderMutation = useMutation({
+    mutationFn: async (url: string) => {
+      const res = await fetch("/api/user/run-grader", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to run test");
+      return data;
+    },
+    onSuccess: (data) => {
+      setTestResult(data);
+      refetchQuota();
+      queryClient.invalidateQueries({ queryKey: ["/api/user/api-usage"] });
+      toast({ 
+        title: "Test completed", 
+        description: `Used 1 API call. ${data.quotaRemaining} remaining.` 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Test failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -366,6 +403,10 @@ export default function ApiPortal() {
               <TabsTrigger value="packs" className="data-[state=active]:bg-background">
                 <Package className="w-4 h-4 mr-2" />
                 Call Packs
+              </TabsTrigger>
+              <TabsTrigger value="test" className="data-[state=active]:bg-background">
+                <Play className="w-4 h-4 mr-2" />
+                Test API
               </TabsTrigger>
             </TabsList>
 
@@ -685,6 +726,144 @@ export default function ApiPortal() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Test API Tab */}
+            <TabsContent value="test" className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-lg font-semibold">Test Grader API</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Run a website grader test. Each test uses 1 API call from your quota.
+                  </p>
+                </div>
+                {quota && (
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Quota</p>
+                    <p className={`font-mono text-lg ${
+                      quota.usedCalls / quota.totalCalls > 0.9 ? 'text-red-400' :
+                      quota.usedCalls / quota.totalCalls > 0.7 ? 'text-orange-400' :
+                      'text-cyan-400'
+                    }`}>
+                      {quota.usedCalls} / {quota.totalCalls >= 1000 ? `${(quota.totalCalls / 1000).toFixed(0)}K` : quota.totalCalls}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-card border border-border rounded-lg p-6">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <Label htmlFor="testUrl">Website URL</Label>
+                    <div className="flex gap-2 mt-2">
+                      <div className="relative flex-1">
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          id="testUrl"
+                          type="url"
+                          placeholder="https://example.com"
+                          value={testUrl}
+                          onChange={(e) => setTestUrl(e.target.value)}
+                          className="pl-10"
+                          data-testid="input-test-url"
+                        />
+                      </div>
+                      <Button 
+                        onClick={() => runGraderMutation.mutate(testUrl)}
+                        disabled={!testUrl || runGraderMutation.isPending || !!(quota && quota.totalCalls - quota.usedCalls <= 0)}
+                        data-testid="button-run-test"
+                      >
+                        {runGraderMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Running...
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-4 h-4 mr-2" />
+                            Run Test
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    {quota && quota.totalCalls - quota.usedCalls <= 0 && (
+                      <p className="text-sm text-red-400 mt-2 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        No API calls remaining. Purchase more calls to run tests.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {testResult && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-card border border-border rounded-lg overflow-hidden"
+                >
+                  <div className="bg-muted/50 px-6 py-4 border-b border-border flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-400" />
+                      <div>
+                        <h3 className="font-medium">Test Complete</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {testResult.result?.url || testUrl}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-3xl font-bold text-white">{testResult.result?.overallScore || 0}</p>
+                      <p className="text-xs text-muted-foreground">Overall Score</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      <div className="bg-muted/30 rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-blue-400">{testResult.result?.seoScore || 0}</p>
+                        <p className="text-xs text-muted-foreground">SEO</p>
+                      </div>
+                      <div className="bg-muted/30 rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-green-400">{testResult.result?.securityScore || 0}</p>
+                        <p className="text-xs text-muted-foreground">Security</p>
+                      </div>
+                      <div className="bg-muted/30 rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-purple-400">{testResult.result?.accessibilityScore || 0}</p>
+                        <p className="text-xs text-muted-foreground">Accessibility</p>
+                      </div>
+                      <div className="bg-muted/30 rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-orange-400">{testResult.result?.performanceScore || 0}</p>
+                        <p className="text-xs text-muted-foreground">Performance</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-4 text-muted-foreground">
+                        <span>API Call Used: <span className="text-white">1</span></span>
+                        <span>Remaining: <span className="text-cyan-400">{testResult.quotaRemaining}</span></span>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setTestResult(null)}
+                      >
+                        Clear Result
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {!testResult && (
+                <div className="bg-muted/30 rounded-lg p-8 text-center">
+                  <Globe className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Enter a URL above to test the grader API</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Results will appear here after running a test
+                  </p>
                 </div>
               )}
             </TabsContent>
