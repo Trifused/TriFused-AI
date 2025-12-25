@@ -430,3 +430,39 @@ export const insertApiCallPackSchema = createInsertSchema(apiCallPacks).omit({
 
 export type InsertApiCallPack = z.infer<typeof insertApiCallPackSchema>;
 export type ApiCallPack = typeof apiCallPacks.$inferSelect;
+
+// Report subscription visibility types
+export const reportVisibilities = ["public", "private"] as const;
+export type ReportVisibility = typeof reportVisibilities[number];
+
+// Report subscription statuses
+export const reportSubscriptionStatuses = ["active", "pending", "expired", "cancelled"] as const;
+export type ReportSubscriptionStatus = typeof reportSubscriptionStatuses[number];
+
+// Report subscriptions - tracks companies who purchased the Website Grade Report product
+export const reportSubscriptions = pgTable("report_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  slug: varchar("slug").notNull().unique(),
+  targetUrl: text("target_url"),
+  companyName: text("company_name"),
+  brandColor: varchar("brand_color", { length: 7 }).default("#00d4ff"),
+  logoUrl: text("logo_url"),
+  visibility: varchar("visibility").default("public").notNull(),
+  status: varchar("status").default("pending").notNull(),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  lastScannedAt: timestamp("last_scanned_at"),
+  cachedGradeId: varchar("cached_grade_id"),
+  embedEnabled: integer("embed_enabled").default(1).notNull(),
+  apiEnabled: integer("api_enabled").default(1).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+});
+
+export const insertReportSubscriptionSchema = createInsertSchema(reportSubscriptions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertReportSubscription = z.infer<typeof insertReportSubscriptionSchema>;
+export type ReportSubscription = typeof reportSubscriptions.$inferSelect;
