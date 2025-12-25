@@ -362,6 +362,7 @@ export default function Dashboard() {
       onClick: () => setShowDiagnosticsModal(true)
     },
   ] : [
+    { icon: ExternalLink, label: "TriFused Website", description: "Visit trifused.com", status: "cyan", onClick: () => window.open("https://trifused.com", "_blank"), featured: true },
     { icon: CreditCard, label: "Billing & Purchases", description: "View orders and subscriptions", status: "emerald", onClick: () => setLocation("/portal/billing") },
     { icon: Globe, label: "Website Grader", description: "Analyze your website", status: "cyan", onClick: () => setLocation("/portal/websites") },
     { icon: HardDrive, label: "Media Library", description: "Manage your files", status: "purple", onClick: () => setLocation("/portal/media") },
