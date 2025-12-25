@@ -150,6 +150,18 @@ export function GuidedTour({ steps, onComplete, tourId }: GuidedTourProps) {
     }
   }, [isNewUser, isDismissed]);
 
+  const updateTargetRect = () => {
+    if (isActive && steps[currentStep]) {
+      const target = document.querySelector(steps[currentStep].target);
+      if (target) {
+        const rect = target.getBoundingClientRect();
+        setTargetRect(rect);
+      } else {
+        setTargetRect(null);
+      }
+    }
+  };
+
   useEffect(() => {
     if (isActive && steps[currentStep]) {
       const target = document.querySelector(steps[currentStep].target);
@@ -157,8 +169,31 @@ export function GuidedTour({ steps, onComplete, tourId }: GuidedTourProps) {
         const rect = target.getBoundingClientRect();
         setTargetRect(rect);
         target.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(updateTargetRect, 500);
+      } else {
+        if (currentStep < steps.length - 1) {
+          setCurrentStep(currentStep + 1);
+        } else {
+          setIsActive(false);
+          dismissTip(`tour_${tourId}`);
+        }
       }
     }
+  }, [isActive, currentStep, steps]);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    const handleResize = () => updateTargetRect();
+    const handleScroll = () => updateTargetRect();
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("scroll", handleScroll, true);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
   }, [isActive, currentStep, steps]);
 
   const handleNext = () => {
