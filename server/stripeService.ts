@@ -181,6 +181,167 @@ export class StripeService {
     const stripe = await getUncachableStripeClient();
     return await stripe.products.update(productId, { active: false });
   }
+
+  // Customer Service Methods
+  async listOrders(limit = 50, offset = 0) {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          cs.id as session_id,
+          cs.customer,
+          cs.customer_email,
+          cs.payment_status,
+          cs.status as session_status,
+          cs.amount_total,
+          cs.currency,
+          cs.mode,
+          cs.metadata,
+          cs.created,
+          c.id as customer_id,
+          c.email as customer_email_stripe,
+          c.name as customer_name,
+          pi.id as payment_intent_id,
+          pi.status as payment_status_detail,
+          ch.id as charge_id,
+          ch.receipt_url,
+          ch.refunded
+        FROM stripe.checkout_sessions cs
+        LEFT JOIN stripe.customers c ON cs.customer = c.id
+        LEFT JOIN stripe.payment_intents pi ON cs.payment_intent = pi.id
+        LEFT JOIN stripe.charges ch ON pi.latest_charge = ch.id
+        WHERE cs.payment_status IS NOT NULL
+        ORDER BY cs.created DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `
+    );
+    return result.rows;
+  }
+
+  async getOrderDetails(sessionId: string) {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          cs.*,
+          c.email as customer_email_stripe,
+          c.name as customer_name,
+          c.phone as customer_phone,
+          pi.id as payment_intent_id,
+          pi.status as payment_status_detail,
+          pi.amount as payment_amount,
+          ch.id as charge_id,
+          ch.receipt_url,
+          ch.refunded,
+          ch.amount_refunded
+        FROM stripe.checkout_sessions cs
+        LEFT JOIN stripe.customers c ON cs.customer = c.id
+        LEFT JOIN stripe.payment_intents pi ON cs.payment_intent = pi.id
+        LEFT JOIN stripe.charges ch ON pi.latest_charge = ch.id
+        WHERE cs.id = ${sessionId}
+      `
+    );
+    return result.rows[0] || null;
+  }
+
+  async listAllSubscriptions(limit = 50, offset = 0) {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          s.id as subscription_id,
+          s.customer,
+          s.status,
+          s.current_period_start,
+          s.current_period_end,
+          s.cancel_at_period_end,
+          s.canceled_at,
+          s.created,
+          s.metadata,
+          c.email as customer_email,
+          c.name as customer_name,
+          p.name as product_name,
+          pr.unit_amount,
+          pr.currency,
+          pr.recurring
+        FROM stripe.subscriptions s
+        LEFT JOIN stripe.customers c ON s.customer = c.id
+        LEFT JOIN stripe.subscription_items si ON si.subscription = s.id
+        LEFT JOIN stripe.prices pr ON si.price = pr.id
+        LEFT JOIN stripe.products p ON pr.product = p.id
+        ORDER BY s.created DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `
+    );
+    return result.rows;
+  }
+
+  async getSubscriptionDetails(subscriptionId: string) {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          s.*,
+          c.email as customer_email,
+          c.name as customer_name,
+          c.phone as customer_phone,
+          p.name as product_name,
+          p.description as product_description,
+          pr.unit_amount,
+          pr.currency,
+          pr.recurring
+        FROM stripe.subscriptions s
+        LEFT JOIN stripe.customers c ON s.customer = c.id
+        LEFT JOIN stripe.subscription_items si ON si.subscription = s.id
+        LEFT JOIN stripe.prices pr ON si.price = pr.id
+        LEFT JOIN stripe.products p ON pr.product = p.id
+        WHERE s.id = ${subscriptionId}
+      `
+    );
+    return result.rows[0] || null;
+  }
+
+  async listAllCustomers(limit = 50, offset = 0) {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          c.*,
+          (SELECT COUNT(*) FROM stripe.subscriptions s WHERE s.customer = c.id AND s.status = 'active') as active_subscriptions,
+          (SELECT COUNT(*) FROM stripe.checkout_sessions cs WHERE cs.customer = c.id AND cs.payment_status = 'paid') as total_orders
+        FROM stripe.customers c
+        ORDER BY c.created DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `
+    );
+    return result.rows;
+  }
+
+  async getCustomerServiceStats() {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          (SELECT COUNT(*) FROM stripe.subscriptions WHERE status = 'active') as active_subscriptions,
+          (SELECT COUNT(*) FROM stripe.checkout_sessions WHERE payment_status = 'paid') as total_orders,
+          (SELECT COUNT(*) FROM stripe.customers) as total_customers,
+          (SELECT COALESCE(SUM(amount_total), 0) FROM stripe.checkout_sessions WHERE payment_status = 'paid') as total_revenue
+      `
+    );
+    return result.rows[0] || { active_subscriptions: 0, total_orders: 0, total_customers: 0, total_revenue: 0 };
+  }
+
+  async cancelSubscription(subscriptionId: string, cancelAtPeriodEnd = true) {
+    const stripe = await getUncachableStripeClient();
+    if (cancelAtPeriodEnd) {
+      return await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: true });
+    } else {
+      return await stripe.subscriptions.cancel(subscriptionId);
+    }
+  }
+
+  async createRefund(chargeId: string, amount?: number, reason?: string) {
+    const stripe = await getUncachableStripeClient();
+    return await stripe.refunds.create({
+      charge: chargeId,
+      ...(amount ? { amount } : {}),
+      ...(reason ? { reason: reason as any } : {}),
+    });
+  }
 }
 
 export const stripeService = new StripeService();

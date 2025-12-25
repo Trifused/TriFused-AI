@@ -3844,6 +3844,117 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // ========== CUSTOMER SERVICE ROUTES ==========
+
+  // Get customer service stats
+  app.get("/api/admin/cs/stats", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const stats = await stripeService.getCustomerServiceStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("CS stats error:", error);
+      res.status(500).json({ error: "Failed to get stats" });
+    }
+  });
+
+  // List all orders
+  app.get("/api/admin/cs/orders", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const orders = await stripeService.listOrders();
+      res.json({ data: orders });
+    } catch (error) {
+      console.error("List orders error:", error);
+      res.status(500).json({ error: "Failed to list orders" });
+    }
+  });
+
+  // Get order details
+  app.get("/api/admin/cs/orders/:sessionId", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const order = await stripeService.getOrderDetails(req.params.sessionId);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      console.error("Get order error:", error);
+      res.status(500).json({ error: "Failed to get order" });
+    }
+  });
+
+  // List all subscriptions
+  app.get("/api/admin/cs/subscriptions", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const subs = await stripeService.listAllSubscriptions();
+      res.json({ data: subs });
+    } catch (error) {
+      console.error("List subscriptions error:", error);
+      res.status(500).json({ error: "Failed to list subscriptions" });
+    }
+  });
+
+  // Get subscription details
+  app.get("/api/admin/cs/subscriptions/:subId", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const sub = await stripeService.getSubscriptionDetails(req.params.subId);
+      if (!sub) {
+        return res.status(404).json({ error: "Subscription not found" });
+      }
+      res.json(sub);
+    } catch (error) {
+      console.error("Get subscription error:", error);
+      res.status(500).json({ error: "Failed to get subscription" });
+    }
+  });
+
+  // List all customers
+  app.get("/api/admin/cs/customers", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const customers = await stripeService.listAllCustomers();
+      res.json({ data: customers });
+    } catch (error) {
+      console.error("List customers error:", error);
+      res.status(500).json({ error: "Failed to list customers" });
+    }
+  });
+
+  // Cancel subscription
+  app.post("/api/admin/cs/subscriptions/:subId/cancel", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { immediate } = req.body;
+      const result = await stripeService.cancelSubscription(req.params.subId, !immediate);
+      
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+      
+      res.json({ success: true, subscription: result });
+    } catch (error) {
+      console.error("Cancel subscription error:", error);
+      res.status(500).json({ error: "Failed to cancel subscription" });
+    }
+  });
+
+  // Create refund
+  app.post("/api/admin/cs/refund", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { chargeId, amount, reason } = req.body;
+      if (!chargeId) {
+        return res.status(400).json({ error: "Charge ID required" });
+      }
+      const refund = await stripeService.createRefund(chargeId, amount, reason);
+      
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+      
+      res.json({ success: true, refund });
+    } catch (error) {
+      console.error("Refund error:", error);
+      res.status(500).json({ error: "Failed to create refund" });
+    }
+  });
+
   // Seed sample products (admin only)
   app.post("/api/admin/stripe/seed", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
     try {

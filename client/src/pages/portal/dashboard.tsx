@@ -31,7 +31,8 @@ import {
   Check,
   QrCode,
   Eye,
-  Download
+  Download,
+  CreditCard
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -53,6 +54,13 @@ interface AdminStats {
   leads: number;
   chatSessions: number;
   users: number;
+}
+
+interface CSStats {
+  active_subscriptions: number;
+  total_orders: number;
+  total_customers: number;
+  total_revenue: number;
 }
 
 interface ChatLead {
@@ -204,6 +212,16 @@ export default function Dashboard() {
     enabled: isAuthenticated && isSuperuser,
   });
 
+  const { data: csStats } = useQuery<CSStats>({
+    queryKey: ['/api/admin/cs/stats'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/cs/stats', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch CS stats');
+      return res.json();
+    },
+    enabled: isAuthenticated && isSuperuser,
+  });
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
@@ -306,6 +324,14 @@ export default function Dashboard() {
       status: (graderLeads?.length || 0) > 0 ? "orange" : "gray",
       count: graderLeads?.length || 0,
       onClick: () => setShowGraderModal(true)
+    },
+    { 
+      icon: CreditCard, 
+      label: "Customer Service", 
+      description: `${csStats?.total_orders || 0} orders, ${csStats?.active_subscriptions || 0} subs`, 
+      status: (csStats?.total_orders || 0) > 0 ? "emerald" : "gray",
+      count: csStats?.total_orders || 0,
+      onClick: () => setLocation("/portal/admin?tab=customers")
     },
   ] : [
     { icon: Shield, label: "Security Status", description: "All systems operational", status: "green" },
