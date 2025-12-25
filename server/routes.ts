@@ -3518,7 +3518,13 @@ Your primary goal is to help users AND capture their contact information natural
           statusCode,
           responseTime,
           req.ip || null,
-          req.headers["user-agent"] || null
+          req.headers["user-agent"] || null,
+          {
+            gradeId: grade.id,
+            shareToken: grade.shareToken || undefined,
+            url: normalizedUrl,
+            score: grade.overallScore,
+          }
         );
       }
       
@@ -3654,7 +3660,13 @@ Your primary goal is to help users AND capture their contact information natural
         response.status,
         responseTime,
         req.ip || null,
-        req.headers["user-agent"] || null
+        req.headers["user-agent"] || null,
+        {
+          gradeId: data.meta?.scanId,
+          shareToken: data.meta?.shareToken,
+          url: normalizedUrl,
+          score: data.overall?.score,
+        }
       );
       
       // Get updated quota for response

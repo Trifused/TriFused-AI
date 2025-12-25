@@ -158,7 +158,7 @@ class ApiService {
       .where(eq(apiQuotas.userId, userId));
   }
 
-  async consumeApiCall(userId: string, apiKeyId: string, endpoint: string, method: string, statusCode: number, responseTimeMs: number, ipAddress?: string, userAgent?: string) {
+  async consumeApiCall(userId: string, apiKeyId: string, endpoint: string, method: string, statusCode: number, responseTimeMs: number, ipAddress?: string, userAgent?: string, metadata?: { gradeId?: string; shareToken?: string; url?: string; score?: number }) {
     const quota = await this.getOrCreateQuota(userId);
     const remaining = quota.totalCalls - quota.usedCalls;
     
@@ -218,6 +218,7 @@ class ApiService {
       responseTimeMs,
       ipAddress,
       userAgent,
+      metadata: metadata || null,
     });
 
     return { success: true, remaining: remaining - 1 };

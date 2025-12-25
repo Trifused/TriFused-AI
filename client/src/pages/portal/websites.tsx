@@ -269,13 +269,14 @@ export default function WebsitesPortal() {
     ...apiUsageLogs.map(log => ({
       id: log.id,
       type: 'api_call' as const,
-      url: log.endpoint,
-      score: null,
-      shareToken: null,
+      url: log.metadata?.url || log.endpoint,
+      score: log.metadata?.score || null,
+      shareToken: log.metadata?.shareToken || null,
       createdAt: new Date(log.calledAt),
       statusCode: log.statusCode,
       responseTime: log.responseTimeMs,
       method: log.method,
+      endpoint: log.endpoint,
     })),
   ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
@@ -582,6 +583,10 @@ export default function WebsitesPortal() {
                           <span className={`px-3 py-1 rounded-full text-sm font-bold ${getGradeBg(item.score!)} ${getGradeColor(item.score!)}`}>
                             {getGradeLetter(item.score!)}
                           </span>
+                        ) : item.score ? (
+                          <span className={`px-3 py-1 rounded-full text-sm font-bold ${getGradeBg(item.score)} ${getGradeColor(item.score)}`}>
+                            {getGradeLetter(item.score)}
+                          </span>
                         ) : (
                           <span className={`px-3 py-1 rounded-full text-sm font-bold ${item.statusCode === 200 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                             API
@@ -597,15 +602,18 @@ export default function WebsitesPortal() {
                             </>
                           ) : (
                             <>
-                              <p className="text-white font-medium font-mono text-sm">{item.method} {item.url}</p>
+                              <p className="text-white font-medium">
+                                {item.url?.startsWith('http') ? new URL(item.url).hostname : item.url}
+                                <span className="text-xs text-muted-foreground ml-2 font-mono">{item.endpoint}</span>
+                              </p>
                               <p className="text-sm text-muted-foreground">
-                                Status: {item.statusCode} • {item.responseTime}ms • {format(item.createdAt, "MMM d, yyyy h:mm a")}
+                                {item.score ? `Score: ${item.score}/100 • ` : ''}Status: {item.statusCode} • {item.responseTime}ms • {format(item.createdAt, "MMM d, yyyy h:mm a")}
                               </p>
                             </>
                           )}
                         </div>
                       </div>
-                      {item.type === 'scan' && item.shareToken && (
+                      {item.shareToken && (
                         <Button
                           variant="outline"
                           size="sm"
