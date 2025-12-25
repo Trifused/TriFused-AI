@@ -209,23 +209,20 @@ export default function WebsitesPortal() {
   });
 
   const testApiMutation = useMutation({
-    mutationFn: async ({ url, threshold, apiKey }: { url: string; threshold: number; apiKey?: string }) => {
+    mutationFn: async ({ url, threshold, apiKeyId }: { url: string; threshold: number; apiKeyId?: string }) => {
       setTestResult(null);
       setTestError(null);
-      const headers: Record<string, string> = {};
-      if (apiKey) {
-        headers["Authorization"] = `Bearer ${apiKey}`;
-      }
-      const res = await fetch(`/api/v1/score?url=${encodeURIComponent(url)}&threshold=${threshold}`, {
-        method: "GET",
+      const res = await fetch("/api/v1/test-score", {
+        method: "POST",
         credentials: "include",
-        headers,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, threshold, apiKeyId: apiKeyId || undefined }),
       });
       const data = await res.json();
-      return { data, status: res.status, ok: res.ok, usedApiKey: !!apiKey };
+      return { data, status: res.status, ok: res.ok };
     },
-    onSuccess: ({ data, status, ok, usedApiKey }) => {
-      setTestResult({ ...data, _httpStatus: status, _passed: ok, _usedApiKey: usedApiKey });
+    onSuccess: ({ data, status, ok }) => {
+      setTestResult({ ...data, _httpStatus: status, _passed: ok });
     },
     onError: (error: Error) => {
       setTestError(error.message || "Failed to run API test");
@@ -908,18 +905,26 @@ pipeline {
                     <div>
                       <Label className="text-white mb-2 block">
                         <Key className="w-3 h-3 inline mr-1" />
-                        API Key (paste full key)
+                        API Key
                       </Label>
-                      <Input
-                        placeholder="tf_..."
+                      <select
                         value={testApiKey}
                         onChange={(e) => setTestApiKey(e.target.value)}
-                        className="bg-white/5 border-white/10 text-white font-mono text-sm"
-                        data-testid="input-api-key"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Leave empty to use session auth. Create keys in API Keys tab.
-                      </p>
+                        className="w-full bg-white/5 border border-white/10 text-white rounded-md px-3 py-2 text-sm"
+                        data-testid="select-api-key"
+                      >
+                        <option value="" className="bg-slate-800">-- Use session auth --</option>
+                        {apiKeys.map((k: any) => (
+                          <option key={k.id} value={k.id} className="bg-slate-800">
+                            {k.name} ({k.keyPrefix}...)
+                          </option>
+                        ))}
+                      </select>
+                      {apiKeys.length === 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          No API keys. Create one in API Keys tab.
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label className="text-white mb-2 block">Threshold (pass/fail)</Label>
@@ -949,7 +954,7 @@ pipeline {
                         testApiMutation.mutate({ 
                           url, 
                           threshold: parseInt(testThreshold) || 70,
-                          apiKey: testApiKey || undefined 
+                          apiKeyId: testApiKey || undefined 
                         });
                       }}
                       disabled={!testUrl || testApiMutation.isPending}

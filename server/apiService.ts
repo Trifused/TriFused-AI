@@ -54,6 +54,12 @@ class ApiService {
       .orderBy(desc(apiKeys.createdAt));
   }
 
+  async getApiKeyById(keyId: string) {
+    const [apiKey] = await db.select().from(apiKeys)
+      .where(eq(apiKeys.id, keyId));
+    return apiKey;
+  }
+
   async validateApiKey(key: string) {
     const hash = crypto.createHash('sha256').update(key).digest('hex');
     const [apiKey] = await db.select().from(apiKeys)
