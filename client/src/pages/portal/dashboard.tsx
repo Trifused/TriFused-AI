@@ -498,17 +498,17 @@ export default function Dashboard() {
                     {user?.role === 'superuser' ? 'Superuser' : user?.role === 'validated' ? 'Validated' : 'Guest'}
                   </div>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => window.location.href = "/api/logout"}
-                  data-testid="button-logout"
-                  className="shrink-0"
-                  aria-label="Sign out"
-                >
-                  <LogOut className="w-4 h-4" aria-hidden="true" />
-                </Button>
               </div>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => window.location.href = "/api/logout"}
+                data-testid="button-logout"
+                className="shrink-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                aria-label="Sign out"
+              >
+                <LogOut className="w-4 h-4" aria-hidden="true" />
+              </Button>
             </div>
           </div>
         </div>
