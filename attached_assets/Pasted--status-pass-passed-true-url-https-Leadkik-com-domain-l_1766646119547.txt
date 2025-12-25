@@ -1,0 +1,129 @@
+{
+  "status": "pass",
+  "passed": true,
+  "url": "https://Leadkik.com",
+  "domain": "leadkik.com",
+  "overallScore": 84,
+  "grade": "B",
+  "threshold": 70,
+  "scores": {
+    "seo": {
+      "score": 90,
+      "grade": "A",
+      "status": "pass"
+    },
+    "security": {
+      "score": 65,
+      "grade": "D",
+      "status": "warn"
+    },
+    "performance": {
+      "score": 70,
+      "grade": "C",
+      "status": "pass"
+    },
+    "accessibility": {
+      "score": 95,
+      "grade": "A",
+      "status": "pass"
+    },
+    "mobile": {
+      "score": 90,
+      "grade": "A",
+      "status": "pass"
+    },
+    "emailSecurity": {
+      "score": 100,
+      "grade": "A",
+      "status": "pass"
+    }
+  },
+  "compliance": {
+    "fdic": null,
+    "sec": null,
+    "ada": null,
+    "pci": null,
+    "fca": null,
+    "gdpr": null
+  },
+  "issues": {
+    "critical": 1,
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "total": 8
+  },
+  "findings": [
+    {
+      "category": "seo",
+      "issue": "Missing H1 heading",
+      "impact": "H1 tags help search engines understand your page's main topic",
+      "priority": "critical",
+      "howToFix": "Add an <h1> tag with your main page heading. Each page should have exactly one H1"
+    },
+    {
+      "category": "security",
+      "issue": "Missing Content-Security-Policy header",
+      "impact": "CSP helps prevent XSS attacks and data injection",
+      "priority": "important",
+      "howToFix": "Add a Content-Security-Policy header to your server configuration. Start with: Content-Security-Policy: default-src 'self'"
+    },
+    {
+      "category": "security",
+      "issue": "Missing X-Frame-Options header",
+      "impact": "Your site could be embedded in iframes, enabling clickjacking attacks",
+      "priority": "important",
+      "howToFix": "Add header: X-Frame-Options: DENY (or SAMEORIGIN if you need iframes from your own domain)"
+    },
+    {
+      "category": "security",
+      "issue": "Missing X-Content-Type-Options header",
+      "impact": "Browsers might MIME-sniff content, leading to security issues",
+      "priority": "important",
+      "howToFix": "Add header: X-Content-Type-Options: nosniff"
+    },
+    {
+      "category": "accessibility",
+      "issue": "No skip navigation link found",
+      "impact": "Keyboard users must tab through all navigation on every page",
+      "priority": "optional",
+      "howToFix": "Add a 'Skip to main content' link at the top of your page"
+    },
+    {
+      "category": "keywords",
+      "issue": "No significant keywords found",
+      "impact": "Your page may lack focused content",
+      "priority": "important",
+      "howToFix": "Add more meaningful content with keywords relevant to your topic"
+    },
+    {
+      "category": "mobile",
+      "issue": "JavaScript files may not be minified",
+      "impact": "Unminified JS can slow down mobile page loads on cellular networks",
+      "priority": "optional",
+      "howToFix": "Minify your JavaScript files to reduce file size and improve load times"
+    },
+    {
+      "category": "mobile",
+      "issue": "CSS files may not be minified",
+      "impact": "Unminified CSS can slow down mobile page loads on cellular networks",
+      "priority": "optional",
+      "howToFix": "Minify your CSS files to reduce file size and improve load times"
+    }
+  ],
+  "meta": {
+    "scanId": "f9de0b08-c76d-4a45-85d8-c005395d4859",
+    "shareToken": "daf366ed-ed9e-44bb-b37d-9b24bc606838",
+    "reportUrl": "https://d05ee48a-aff6-4f9f-8e67-15ca10765ca9-00-v6kvhf94kx05.riker.replit.dev/report/daf366ed-ed9e-44bb-b37d-9b24bc606838",
+    "scannedAt": "2025-12-25T04:47:35.718Z",
+    "hostInfo": {
+      "ip": "34.111.179.208",
+      "country": "United States",
+      "provider": "Google LLC"
+    }
+  },
+  "exitCode": 0,
+  "_testedWithApiKey": true,
+  "_apiKeyName": "Leadkik.com",
+  "_quotaRemaining": 80
+}

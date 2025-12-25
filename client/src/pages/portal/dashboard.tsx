@@ -46,6 +46,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Zap, Clock, CheckCircle2, XCircle, TrendingUp } from "lucide-react";
 
 interface AdminStats {
   subscribers: number;
@@ -217,6 +219,20 @@ export default function Dashboard() {
     queryFn: async () => {
       const res = await fetch('/api/admin/cs/stats', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch CS stats');
+      return res.json();
+    },
+    enabled: isAuthenticated && isSuperuser,
+  });
+
+  const { data: productionAnalytics, isLoading: productionAnalyticsLoading } = useQuery<{
+    summary: { total_requests: string; avg_duration: string; success_count: string; error_count: string };
+    httpStatusesByHour: { hour: string; status_code: number; count: string }[];
+    durationDistribution: { bucket: string; count: string }[];
+  }>({
+    queryKey: ['/api/admin/production-analytics'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/production-analytics', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch production analytics');
       return res.json();
     },
     enabled: isAuthenticated && isSuperuser,
@@ -567,6 +583,158 @@ export default function Dashboard() {
             </motion.div>
           ))}
         </div>
+
+        {/* Production Analytics Charts - Prominent on Dashboard */}
+        {isSuperuser && productionAnalytics && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mb-12"
+          >
+            <h2 className="text-xl font-bold font-heading text-white mb-6 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-orange-400" />
+              API Analytics (24h)
+            </h2>
+
+            {/* Summary Stats Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="glass-panel rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <Globe className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <span className="text-2xl font-bold text-white">
+                    {parseInt(productionAnalytics.summary.total_requests || '0').toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">Total Requests</p>
+              </div>
+              <div className="glass-panel rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-cyan-500" />
+                  </div>
+                  <span className="text-2xl font-bold text-white">
+                    {Math.round(parseFloat(productionAnalytics.summary.avg_duration || '0'))}ms
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">Avg Response</p>
+              </div>
+              <div className="glass-panel rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                  </div>
+                  <span className="text-2xl font-bold text-green-400">
+                    {parseInt(productionAnalytics.summary.success_count || '0').toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">Success (2xx)</p>
+              </div>
+              <div className="glass-panel rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                    <XCircle className="w-4 h-4 text-red-500" />
+                  </div>
+                  <span className="text-2xl font-bold text-red-400">
+                    {parseInt(productionAnalytics.summary.error_count || '0').toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">Errors (4xx/5xx)</p>
+              </div>
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* HTTP Statuses Line Chart */}
+              {productionAnalytics.httpStatusesByHour.length > 0 && (
+                <div className="glass-panel rounded-xl overflow-hidden">
+                  <div className="p-4 border-b border-white/5 bg-white/5">
+                    <h3 className="text-white font-medium flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-green-400" />
+                      HTTP Statuses
+                    </h3>
+                  </div>
+                  <div className="p-4">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <LineChart
+                        data={(() => {
+                          const hourlyData: Record<string, any> = {};
+                          productionAnalytics.httpStatusesByHour.forEach((item) => {
+                            const hour = format(new Date(item.hour), 'HH:mm');
+                            if (!hourlyData[hour]) {
+                              hourlyData[hour] = { hour, '2xx': 0, '4xx': 0, '5xx': 0 };
+                            }
+                            const status = item.status_code;
+                            if (status >= 200 && status < 300) hourlyData[hour]['2xx'] += parseInt(item.count);
+                            else if (status >= 400 && status < 500) hourlyData[hour]['4xx'] += parseInt(item.count);
+                            else if (status >= 500) hourlyData[hour]['5xx'] += parseInt(item.count);
+                          });
+                          return Object.values(hourlyData).sort((a, b) => a.hour.localeCompare(b.hour));
+                        })()}
+                        margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                        <XAxis dataKey="hour" stroke="#888" fontSize={10} />
+                        <YAxis stroke="#888" fontSize={10} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(0,0,0,0.8)', 
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '8px',
+                            fontSize: '12px'
+                          }} 
+                        />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                        <Line type="monotone" dataKey="2xx" stroke="#22c55e" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="4xx" stroke="#f97316" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="5xx" stroke="#ef4444" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Request Duration Bar Chart */}
+              {productionAnalytics.durationDistribution.length > 0 && (
+                <div className="glass-panel rounded-xl overflow-hidden">
+                  <div className="p-4 border-b border-white/5 bg-white/5">
+                    <h3 className="text-white font-medium flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-cyan-400" />
+                      Response Times
+                    </h3>
+                  </div>
+                  <div className="p-4">
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart
+                        data={productionAnalytics.durationDistribution.map(item => ({
+                          bucket: item.bucket.replace('< ', '<'),
+                          count: parseInt(item.count)
+                        }))}
+                        margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                        <XAxis dataKey="bucket" stroke="#888" fontSize={9} />
+                        <YAxis stroke="#888" fontSize={10} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(0,0,0,0.8)', 
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '8px',
+                            fontSize: '12px'
+                          }}
+                          formatter={(value: number) => [value.toLocaleString(), 'Requests']}
+                        />
+                        <Bar dataKey="count" fill="#22d3ee" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {isSuperuser && internalStats && (
           <motion.div
