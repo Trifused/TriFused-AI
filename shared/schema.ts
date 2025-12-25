@@ -492,3 +492,19 @@ export const insertUserWebsiteSchema = createInsertSchema(userWebsites).omit({
 
 export type InsertUserWebsite = z.infer<typeof insertUserWebsiteSchema>;
 export type UserWebsite = typeof userWebsites.$inferSelect;
+
+// User website scans - links user websites to their scan results (ownership tracking)
+export const userWebsiteScans = pgTable("user_website_scans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userWebsiteId: varchar("user_website_id").notNull(),
+  gradeId: varchar("grade_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserWebsiteScanSchema = createInsertSchema(userWebsiteScans).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertUserWebsiteScan = z.infer<typeof insertUserWebsiteScanSchema>;
+export type UserWebsiteScan = typeof userWebsiteScans.$inferSelect;

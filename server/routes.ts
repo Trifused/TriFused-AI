@@ -3986,6 +3986,12 @@ Your primary goal is to help users AND capture their contact information natural
         gradeResult.overallScore
       );
       
+      // Record scan ownership for user asset tracking
+      await storage.createUserWebsiteScan({
+        userWebsiteId: req.params.id,
+        gradeId: gradeResult.id
+      });
+      
       res.json({ data: gradeResult });
     } catch (error) {
       console.error("Scan user website error:", error);
@@ -3993,7 +3999,7 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
-  // Get scan history for a specific user website
+  // Get scan history for a specific user website (ownership-scoped)
   app.get("/api/user/websites/:id/scans", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user?.claims?.sub;
@@ -4007,7 +4013,7 @@ Your primary goal is to help users AND capture their contact information natural
       }
       
       const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
-      const scans = await storage.getGradesForUrl(website.url, limit);
+      const scans = await storage.getUserWebsiteScans(website.id, limit);
       res.json({ data: scans });
     } catch (error) {
       console.error("Get website scans error:", error);
@@ -4015,7 +4021,7 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
-  // Get all user's scans across all tracked websites
+  // Get all user's scans across all tracked websites (ownership-scoped)
   app.get("/api/user/scans", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user?.claims?.sub;
@@ -4024,9 +4030,9 @@ Your primary goal is to help users AND capture their contact information natural
       }
       
       const websites = await storage.getUserWebsites(userId);
-      const urls = websites.map(w => w.url);
+      const websiteIds = websites.map(w => w.id);
       const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
-      const scans = await storage.getGradesForUrls(urls, limit);
+      const scans = await storage.getUserScansForWebsites(websiteIds, limit);
       res.json({ data: scans, totalWebsites: websites.length });
     } catch (error) {
       console.error("Get user scans error:", error);
@@ -4034,7 +4040,7 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
-  // Get user assets summary
+  // Get user assets summary (ownership-scoped)
   app.get("/api/user/assets", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user?.claims?.sub;
@@ -4043,8 +4049,8 @@ Your primary goal is to help users AND capture their contact information natural
       }
       
       const websites = await storage.getUserWebsites(userId);
-      const urls = websites.map(w => w.url);
-      const recentScans = await storage.getGradesForUrls(urls, 10);
+      const websiteIds = websites.map(w => w.id);
+      const recentScans = await storage.getUserScansForWebsites(websiteIds, 10);
       
       res.json({ 
         data: {

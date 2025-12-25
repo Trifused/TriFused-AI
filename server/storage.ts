@@ -51,7 +51,10 @@ import {
   ReportSubscription,
   InsertReportSubscription,
   UserWebsite,
-  InsertUserWebsite
+  InsertUserWebsite,
+  userWebsiteScans,
+  InsertUserWebsiteScan,
+  UserWebsiteScan
 } from "@shared/schema";
 
 export interface IStorage {
@@ -158,9 +161,10 @@ export interface IStorage {
   deleteUserWebsite(id: string): Promise<void>;
   updateUserWebsiteScan(id: string, gradeId: string, score: number): Promise<UserWebsite | undefined>;
   
-  // User assets methods
-  getGradesForUrl(url: string, limit?: number): Promise<WebsiteGrade[]>;
-  getGradesForUrls(urls: string[], limit?: number): Promise<WebsiteGrade[]>;
+  // User website scans methods (ownership tracking)
+  createUserWebsiteScan(data: InsertUserWebsiteScan): Promise<UserWebsiteScan>;
+  getUserWebsiteScans(userWebsiteId: string, limit?: number): Promise<WebsiteGrade[]>;
+  getUserScansForWebsites(userWebsiteIds: string[], limit?: number): Promise<WebsiteGrade[]>;
 }
 
 class Storage implements IStorage {
@@ -665,24 +669,48 @@ class Storage implements IStorage {
     return website;
   }
 
-  // User assets methods
-  async getGradesForUrl(url: string, limit: number = 10): Promise<WebsiteGrade[]> {
-    return await db
-      .select()
-      .from(websiteGrades)
-      .where(eq(websiteGrades.url, url))
-      .orderBy(desc(websiteGrades.createdAt))
-      .limit(limit);
+  // User website scans methods (ownership tracking)
+  async createUserWebsiteScan(data: InsertUserWebsiteScan): Promise<UserWebsiteScan> {
+    const [scan] = await db.insert(userWebsiteScans).values(data).returning();
+    return scan;
   }
 
-  async getGradesForUrls(urls: string[], limit: number = 50): Promise<WebsiteGrade[]> {
-    if (urls.length === 0) return [];
+  async getUserWebsiteScans(userWebsiteId: string, limit: number = 10): Promise<WebsiteGrade[]> {
+    const scans = await db
+      .select({ gradeId: userWebsiteScans.gradeId })
+      .from(userWebsiteScans)
+      .where(eq(userWebsiteScans.userWebsiteId, userWebsiteId))
+      .orderBy(desc(userWebsiteScans.createdAt))
+      .limit(limit);
+    
+    if (scans.length === 0) return [];
+    
+    const gradeIds = scans.map(s => s.gradeId);
     return await db
       .select()
       .from(websiteGrades)
-      .where(inArray(websiteGrades.url, urls))
-      .orderBy(desc(websiteGrades.createdAt))
+      .where(inArray(websiteGrades.id, gradeIds))
+      .orderBy(desc(websiteGrades.createdAt));
+  }
+
+  async getUserScansForWebsites(userWebsiteIds: string[], limit: number = 50): Promise<WebsiteGrade[]> {
+    if (userWebsiteIds.length === 0) return [];
+    
+    const scans = await db
+      .select({ gradeId: userWebsiteScans.gradeId })
+      .from(userWebsiteScans)
+      .where(inArray(userWebsiteScans.userWebsiteId, userWebsiteIds))
+      .orderBy(desc(userWebsiteScans.createdAt))
       .limit(limit);
+    
+    if (scans.length === 0) return [];
+    
+    const gradeIds = scans.map(s => s.gradeId);
+    return await db
+      .select()
+      .from(websiteGrades)
+      .where(inArray(websiteGrades.id, gradeIds))
+      .orderBy(desc(websiteGrades.createdAt));
   }
 }
 
