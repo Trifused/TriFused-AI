@@ -967,6 +967,35 @@ export async function registerRoutes(
     }
   });
 
+  // Admin: Get all report subscriptions
+  app.get('/api/admin/report-subscriptions', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const subscriptions = await storage.getAllReportSubscriptions();
+      res.json({ data: subscriptions });
+    } catch (error: any) {
+      console.error("Admin report subscriptions error:", error);
+      res.status(500).json({ error: "Failed to fetch report subscriptions" });
+    }
+  });
+
+  // Admin: Update report subscription status
+  app.patch('/api/admin/report-subscriptions/:id', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      const subscription = await storage.updateReportSubscription(id, { status });
+      if (!subscription) {
+        return res.status(404).json({ error: "Subscription not found" });
+      }
+      
+      res.json({ data: subscription });
+    } catch (error: any) {
+      console.error("Admin update report subscription error:", error);
+      res.status(500).json({ error: "Failed to update subscription" });
+    }
+  });
+
   function detectSpam(messageCount: number, messages?: { role: string; content: string; createdAt: Date }[]): { isSpam: boolean; reasons: string[] } {
     const reasons: string[] = [];
     
@@ -3866,6 +3895,117 @@ Your primary goal is to help users AND capture their contact information natural
     } catch (error) {
       console.error("Run grader error:", error);
       res.status(500).json({ error: "Failed to run grader test" });
+    }
+  });
+
+  // ========== REPORT SUBSCRIPTION ROUTES ==========
+
+  // Get user's report subscriptions
+  app.get("/api/user/report-subscriptions", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const subscriptions = await storage.getReportSubscriptionsByUser(userId);
+      res.json({ data: subscriptions });
+    } catch (error) {
+      console.error("Get report subscriptions error:", error);
+      res.status(500).json({ error: "Failed to get report subscriptions" });
+    }
+  });
+
+  // Get single report subscription by ID
+  app.get("/api/user/report-subscriptions/:id", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { id } = req.params;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const subscription = await storage.getReportSubscription(id);
+      if (!subscription || subscription.userId !== userId) {
+        return res.status(404).json({ error: "Subscription not found" });
+      }
+      res.json({ data: subscription });
+    } catch (error) {
+      console.error("Get report subscription error:", error);
+      res.status(500).json({ error: "Failed to get report subscription" });
+    }
+  });
+
+  // Update report subscription settings
+  app.patch("/api/user/report-subscriptions/:id", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { id } = req.params;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const existing = await storage.getReportSubscription(id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ error: "Subscription not found" });
+      }
+
+      const { targetUrl, companyName, brandColor, logoUrl, visibility, slug, embedEnabled, apiEnabled } = req.body;
+      
+      // Validate slug if being changed
+      if (slug && slug !== existing.slug) {
+        const slugExists = await storage.getReportSubscriptionBySlug(slug);
+        if (slugExists) {
+          return res.status(400).json({ error: "Slug already in use" });
+        }
+      }
+
+      const updated = await storage.updateReportSubscription(id, {
+        targetUrl: targetUrl !== undefined ? targetUrl : existing.targetUrl,
+        companyName: companyName !== undefined ? companyName : existing.companyName,
+        brandColor: brandColor !== undefined ? brandColor : existing.brandColor,
+        logoUrl: logoUrl !== undefined ? logoUrl : existing.logoUrl,
+        visibility: visibility !== undefined ? visibility : existing.visibility,
+        slug: slug !== undefined ? slug : existing.slug,
+        embedEnabled: embedEnabled !== undefined ? (embedEnabled ? 1 : 0) : existing.embedEnabled,
+        apiEnabled: apiEnabled !== undefined ? (apiEnabled ? 1 : 0) : existing.apiEnabled,
+      });
+
+      res.json({ data: updated });
+    } catch (error) {
+      console.error("Update report subscription error:", error);
+      res.status(500).json({ error: "Failed to update report subscription" });
+    }
+  });
+
+  // Public: Get report subscription by slug (for embed/public display)
+  app.get("/api/reports/:slug", async (req: Request, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const subscription = await storage.getReportSubscriptionBySlug(slug);
+      
+      if (!subscription) {
+        return res.status(404).json({ error: "Report not found" });
+      }
+
+      if (subscription.status !== 'active') {
+        return res.status(403).json({ error: "Report subscription is not active" });
+      }
+
+      // Return public info only
+      res.json({
+        data: {
+          slug: subscription.slug,
+          targetUrl: subscription.targetUrl,
+          companyName: subscription.companyName,
+          brandColor: subscription.brandColor,
+          logoUrl: subscription.logoUrl,
+          visibility: subscription.visibility,
+          embedEnabled: subscription.embedEnabled,
+          apiEnabled: subscription.apiEnabled,
+        }
+      });
+    } catch (error) {
+      console.error("Get public report error:", error);
+      res.status(500).json({ error: "Failed to get report" });
     }
   });
 

@@ -27,6 +27,7 @@ import {
   Play,
   BarChart3,
   Globe,
+  Link2,
   Monitor,
   Smartphone,
   Tablet,
@@ -45,7 +46,8 @@ import {
   Save,
   Upload,
   Download,
-  UserCog
+  UserCog,
+  FileText
 } from "lucide-react";
 import { FEATURE_FLAGS, type FeatureFlag, type FeatureStatus, type FeatureCategory } from "@shared/feature-flags";
 import { FeatureBadge } from "@/components/ui/feature-badge";
@@ -218,7 +220,7 @@ export default function Admin() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tab && ["users", "chat", "media", "analytics", "grader", "features", "commerce", "customers"].includes(tab)) {
+    if (tab && ["users", "chat", "media", "analytics", "grader", "features", "commerce", "customers", "reports"].includes(tab)) {
       setActiveTab(tab);
     }
   }, []);
@@ -370,6 +372,32 @@ export default function Admin() {
     },
     enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'customers',
   });
+
+  interface ReportSubscription {
+    id: string;
+    userId: string;
+    slug: string;
+    targetUrl: string | null;
+    companyName: string | null;
+    brandColor: string;
+    status: string;
+    visibility: string;
+    embedEnabled: number;
+    apiEnabled: number;
+    createdAt: string;
+  }
+
+  const { data: reportSubsData, isLoading: reportSubsLoading } = useQuery<{ data: ReportSubscription[] }>({
+    queryKey: ['/api/admin/report-subscriptions'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/report-subscriptions', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch report subscriptions');
+      return res.json();
+    },
+    enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'reports',
+  });
+
+  const reportSubscriptions = reportSubsData?.data || [];
 
   const createCustomerMutation = useMutation({
     mutationFn: async (data: { email: string; name: string }) => {
@@ -835,6 +863,10 @@ export default function Admin() {
             <TabsTrigger value="customers" className="data-[state=active]:bg-primary" data-testid="tab-customers">
               <CreditCard className="w-4 h-4 mr-2" />
               Customers
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="data-[state=active]:bg-primary" data-testid="tab-reports">
+              <FileText className="w-4 h-4 mr-2" />
+              Reports
             </TabsTrigger>
           </TabsList>
 
@@ -2047,6 +2079,122 @@ export default function Admin() {
                 <p className="text-sm text-emerald-400">
                   <Zap className="w-4 h-4 inline mr-2" />
                   For refunds, cancellations, and detailed customer management, use the <a href="https://dashboard.stripe.com/customers" target="_blank" rel="noopener noreferrer" className="underline">Stripe Dashboard</a>.
+                </p>
+              </div>
+            </motion.div>
+          </TabsContent>
+
+          {/* Reports Tab - White Label Report Subscriptions */}
+          <TabsContent value="reports">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">Website Grade Report Subscriptions</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Manage white-label grader subscriptions ($495.67/year product)
+                  </p>
+                </div>
+                <Badge variant="secondary" className="bg-purple-500/20 text-purple-400">
+                  {reportSubscriptions.length} Active
+                </Badge>
+              </div>
+
+              {reportSubsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-6 h-6 animate-spin text-cyan-400" />
+                </div>
+              ) : reportSubscriptions.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No report subscriptions yet</p>
+                  <p className="text-sm mt-2">Subscriptions are created when customers purchase the Website Grade Report product</p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {reportSubscriptions.map((sub: ReportSubscription) => (
+                    <div 
+                      key={sub.id}
+                      className="p-4 bg-white/5 border border-white/10 rounded-lg hover:border-purple-500/30 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <span 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: sub.brandColor }}
+                            />
+                            <h3 className="font-medium text-white">
+                              {sub.companyName || 'Unnamed Company'}
+                            </h3>
+                            <Badge 
+                              variant={sub.status === 'active' ? 'default' : 'secondary'}
+                              className={sub.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' : ''}
+                            >
+                              {sub.status}
+                            </Badge>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Globe className="w-4 h-4" />
+                              Slug: <code className="text-cyan-400">{sub.slug}</code>
+                            </span>
+                            {sub.targetUrl && (
+                              <span className="flex items-center gap-1">
+                                <Link2 className="w-4 h-4" />
+                                {sub.targetUrl}
+                              </span>
+                            )}
+                            <span>
+                              User: <code className="text-yellow-400">{sub.userId.slice(0, 8)}...</code>
+                            </span>
+                          </div>
+
+                          <div className="flex gap-2 mt-2">
+                            {sub.embedEnabled === 1 && (
+                              <Badge variant="outline" className="text-xs">
+                                Embed Enabled
+                              </Badge>
+                            )}
+                            {sub.apiEnabled === 1 && (
+                              <Badge variant="outline" className="text-xs">
+                                API Enabled
+                              </Badge>
+                            )}
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${sub.visibility === 'public' ? 'text-emerald-400' : 'text-yellow-400'}`}
+                            >
+                              {sub.visibility}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(`/grade/${sub.slug}`, '_blank')}
+                            data-testid={`btn-view-embed-${sub.id}`}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                <p className="text-sm text-purple-400">
+                  <FileText className="w-4 h-4 inline mr-2" />
+                  Report subscriptions are automatically created via Stripe webhook when customers purchase the Website Grade Report product. Customers can configure their branding and settings in the Portal → Reports section.
                 </p>
               </div>
             </motion.div>
