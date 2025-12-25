@@ -19,6 +19,7 @@ import * as crypto from "crypto";
 import QRCode from "qrcode";
 import puppeteer from "puppeteer";
 import { stripeService } from "./stripeService";
+import { apiService } from "./apiService";
 import { getStripePublishableKey } from "./stripeClient";
 
 // AI Vision helper for FDIC badge detection
@@ -3604,6 +3605,118 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // ========== API KEY MANAGEMENT ROUTES ==========
+
+  // Get user's API keys
+  app.get("/api/user/api-keys", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const keys = await apiService.getApiKeysByUser(userId);
+      res.json({ data: keys });
+    } catch (error) {
+      console.error("Get API keys error:", error);
+      res.status(500).json({ error: "Failed to get API keys" });
+    }
+  });
+
+  // Create new API key
+  app.post("/api/user/api-keys", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const { name, expiresAt } = req.body;
+      if (!name) return res.status(400).json({ error: "Key name is required" });
+
+      const result = await apiService.createApiKey(userId, name, expiresAt ? new Date(expiresAt) : undefined);
+      res.json({ 
+        success: true, 
+        apiKey: {
+          id: result.id,
+          name: result.name,
+          keyPrefix: result.keyPrefix,
+          fullKey: result.fullKey,
+          expiresAt: result.expiresAt,
+          createdAt: result.createdAt
+        },
+        message: "Save this key now - you won't be able to see it again!"
+      });
+    } catch (error) {
+      console.error("Create API key error:", error);
+      res.status(500).json({ error: "Failed to create API key" });
+    }
+  });
+
+  // Revoke API key
+  app.post("/api/user/api-keys/:keyId/revoke", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const result = await apiService.revokeApiKey(req.params.keyId, userId);
+      if (!result) return res.status(404).json({ error: "Key not found" });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Revoke API key error:", error);
+      res.status(500).json({ error: "Failed to revoke API key" });
+    }
+  });
+
+  // Delete API key
+  app.delete("/api/user/api-keys/:keyId", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      await apiService.deleteApiKey(req.params.keyId, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete API key error:", error);
+      res.status(500).json({ error: "Failed to delete API key" });
+    }
+  });
+
+  // Get user's API quota and usage
+  app.get("/api/user/api-quota", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const quota = await apiService.getUserQuota(userId);
+      const discount = await apiService.getUserDiscount(userId);
+      const callPacks = await apiService.getCallPacks(userId);
+
+      res.json({ 
+        quota,
+        discount,
+        callPacks
+      });
+    } catch (error) {
+      console.error("Get API quota error:", error);
+      res.status(500).json({ error: "Failed to get API quota" });
+    }
+  });
+
+  // Get usage statistics
+  app.get("/api/user/api-usage", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const days = parseInt(req.query.days as string) || 30;
+      const stats = await apiService.getUsageStats(userId, days);
+      const recent = await apiService.getRecentUsage(userId, 20);
+
+      res.json({ stats, recent });
+    } catch (error) {
+      console.error("Get API usage error:", error);
+      res.status(500).json({ error: "Failed to get API usage" });
+    }
+  });
+
   // ========== STRIPE PAYMENT ROUTES ==========
 
   // Get Stripe publishable key
@@ -4012,44 +4125,79 @@ Your primary goal is to help users AND capture their contact information natural
           description: 'AI-powered visual compliance analysis for your website',
           price: 999,
           type: 'one_time',
-          features: 'AI Analysis, Visual Badge Detection, Detailed Recommendations'
+          features: 'AI Analysis, Visual Badge Detection, Detailed Recommendations',
+          metadata: { product_type: 'report' }
         },
         {
-          name: 'Pro Plan',
+          name: 'Pro Plan - Monthly',
           description: 'Multi-site monitoring and scheduled scans',
           price: 1999,
           type: 'subscription',
           interval: 'month',
-          features: 'Unlimited Scans, Multi-Site Dashboard, Scheduled Scans, Priority Support'
+          features: 'Unlimited Scans, Multi-Site Dashboard, Scheduled Scans, Priority Support',
+          metadata: { product_type: 'plan', tier: 'pro' }
         },
         {
-          name: 'TrifusedAI API Access',
-          description: 'Programmatic access to website scoring via REST API',
-          price: 2567,
+          name: 'API Master Subscription - 1 Year',
+          description: 'Annual API access with 12K calls (1K/month) and 25% discount on call packs',
+          price: 29999,
           type: 'subscription',
           interval: 'year',
-          features: '1000 API Calls/Month, CI/CD Integrations, JSON Reports, Webhook Notifications'
+          features: '12000 API Calls/Year, 25% Off Call Packs, CI/CD Integrations, JSON Reports, Priority Support, Auto-Renewal',
+          metadata: { product_type: 'api_subscription', calls_included: '12000', discount_percent: '25', tier: 'master' }
         },
         {
-          name: 'Website Report Card API - 1K Calls',
-          description: 'Monthly API subscription for automated website health scoring',
+          name: 'API Starter - Monthly',
+          description: 'Monthly API subscription with 1K calls',
           price: 2999,
           type: 'subscription',
           interval: 'month',
-          features: '1000 API Calls/Month, Website Report Cards, JSON/PDF Reports, Webhook Alerts, REST API Access'
+          features: '1000 API Calls/Month, Website Report Cards, JSON Reports, REST API Access',
+          metadata: { product_type: 'api_subscription', calls_included: '1000', tier: 'starter' }
+        },
+        {
+          name: 'API Professional - Monthly',
+          description: 'Monthly API subscription with 5K calls and 10% pack discount',
+          price: 9999,
+          type: 'subscription',
+          interval: 'month',
+          features: '5000 API Calls/Month, 10% Off Call Packs, Priority Support, Webhook Alerts',
+          metadata: { product_type: 'api_subscription', calls_included: '5000', discount_percent: '10', tier: 'professional' }
         },
         {
           name: '1K API Call Pack',
-          description: 'Additional API calls for your Website Report Card subscription',
+          description: 'Add 1,000 API calls to your account',
           price: 1499,
           type: 'one_time',
-          features: '1000 Additional API Calls, No Expiration, Stackable, Use with Any Plan'
+          features: '1000 API Calls, No Expiration, Stackable',
+          metadata: { product_type: 'call_pack', calls: '1000' }
+        },
+        {
+          name: '5K API Call Pack',
+          description: 'Add 5,000 API calls to your account (Save 10%)',
+          price: 6749,
+          type: 'one_time',
+          features: '5000 API Calls, No Expiration, Stackable, 10% Savings',
+          metadata: { product_type: 'call_pack', calls: '5000' }
+        },
+        {
+          name: '10K API Call Pack',
+          description: 'Add 10,000 API calls to your account (Save 20%)',
+          price: 11999,
+          type: 'one_time',
+          features: '10000 API Calls, No Expiration, Stackable, 20% Savings',
+          metadata: { product_type: 'call_pack', calls: '10000' }
         }
       ];
 
       const created = [];
       for (const p of products) {
-        const product = await stripeService.createProduct(p.name, p.description, { features: p.features });
+        const rawMetadata = { features: p.features, ...(p.metadata || {}) };
+        const productMetadata: Record<string, string> = {};
+        for (const [key, value] of Object.entries(rawMetadata)) {
+          if (value !== undefined) productMetadata[key] = String(value);
+        }
+        const product = await stripeService.createProduct(p.name, p.description, productMetadata);
         const recurring = p.type === 'subscription' ? { interval: (p.interval || 'month') as 'month' | 'year' } : undefined;
         await stripeService.createPrice(product.id, p.price, 'usd', recurring);
         created.push(product.name);
