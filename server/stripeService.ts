@@ -53,34 +53,64 @@ export class StripeService {
     return result.rows;
   }
 
-  async listProductsWithPrices(active = true, limit = 20, offset = 0) {
-    const result = await db.execute(
-      sql`
-        WITH paginated_products AS (
-          SELECT id, name, description, metadata, active
-          FROM stripe.products
-          WHERE active = ${active}
-          ORDER BY id
-          LIMIT ${limit} OFFSET ${offset}
-        )
-        SELECT 
-          p.id as product_id,
-          p.name as product_name,
-          p.description as product_description,
-          p.active as product_active,
-          p.metadata as product_metadata,
-          pr.id as price_id,
-          pr.unit_amount,
-          pr.currency,
-          pr.recurring,
-          pr.active as price_active,
-          pr.metadata as price_metadata
-        FROM paginated_products p
-        LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
-        ORDER BY p.id, pr.unit_amount
-      `
-    );
-    return result.rows;
+  async listProductsWithPrices(activeOnly = true, limit = 20, offset = 0) {
+    if (activeOnly) {
+      const result = await db.execute(
+        sql`
+          WITH paginated_products AS (
+            SELECT id, name, description, metadata, active
+            FROM stripe.products
+            WHERE active = true
+            ORDER BY id
+            LIMIT ${limit} OFFSET ${offset}
+          )
+          SELECT 
+            p.id as product_id,
+            p.name as product_name,
+            p.description as product_description,
+            p.active as product_active,
+            p.metadata as product_metadata,
+            pr.id as price_id,
+            pr.unit_amount,
+            pr.currency,
+            pr.recurring,
+            pr.active as price_active,
+            pr.metadata as price_metadata
+          FROM paginated_products p
+          LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
+          ORDER BY p.id, pr.unit_amount
+        `
+      );
+      return result.rows;
+    } else {
+      // Return ALL products (both active and inactive) for admin
+      const result = await db.execute(
+        sql`
+          WITH paginated_products AS (
+            SELECT id, name, description, metadata, active
+            FROM stripe.products
+            ORDER BY active DESC, id
+            LIMIT ${limit} OFFSET ${offset}
+          )
+          SELECT 
+            p.id as product_id,
+            p.name as product_name,
+            p.description as product_description,
+            p.active as product_active,
+            p.metadata as product_metadata,
+            pr.id as price_id,
+            pr.unit_amount,
+            pr.currency,
+            pr.recurring,
+            pr.active as price_active,
+            pr.metadata as price_metadata
+          FROM paginated_products p
+          LEFT JOIN stripe.prices pr ON pr.product = p.id
+          ORDER BY p.active DESC, p.id, pr.unit_amount
+        `
+      );
+      return result.rows;
+    }
   }
 
   async getPrice(priceId: string) {
