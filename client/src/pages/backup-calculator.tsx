@@ -53,7 +53,7 @@ const SERVICE_OPTIONS = [
 
 export default function BackupCalculator() {
   const { toast } = useToast();
-  const [logicalDataTB, setLogicalDataTB] = useState(140);
+  const [logicalDataTB, setLogicalDataTB] = useState(100);
   const [selectedServices, setSelectedServices] = useState<string[]>(["cloud-systems"]);
   const [needHelpAsap, setNeedHelpAsap] = useState(false);
   const [email, setEmail] = useState("");
