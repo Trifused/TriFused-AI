@@ -72,6 +72,18 @@ export default function Billing() {
     enabled: isAuthenticated,
   });
 
+  const { data: quotaData } = useQuery({
+    queryKey: ["/api/user/api-quota"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/api-quota", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch quota");
+      return res.json();
+    },
+    enabled: isAuthenticated,
+  });
+
+  const quota = quotaData?.quota || null;
+
   const portalMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/stripe/portal", {
@@ -367,6 +379,32 @@ export default function Billing() {
                               </span>
                             )}
                           </div>
+                          {quota && quota.totalCalls > 0 && sub.status === 'active' && (
+                            <div className="mt-3 flex items-center gap-3">
+                              <div className="flex-1 max-w-xs">
+                                <div className="flex items-center justify-between text-xs mb-1">
+                                  <span className="text-muted-foreground">API Usage</span>
+                                  <span className={`font-mono ${
+                                    quota.usedCalls / quota.totalCalls > 0.9 ? 'text-red-400' :
+                                    quota.usedCalls / quota.totalCalls > 0.7 ? 'text-orange-400' :
+                                    'text-cyan-400'
+                                  }`}>
+                                    {quota.usedCalls.toLocaleString()} / {quota.totalCalls >= 1000 ? `${(quota.totalCalls / 1000).toFixed(0)}K` : quota.totalCalls}
+                                  </span>
+                                </div>
+                                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full rounded-full transition-all ${
+                                      quota.usedCalls / quota.totalCalls > 0.9 ? 'bg-red-500' :
+                                      quota.usedCalls / quota.totalCalls > 0.7 ? 'bg-orange-500' :
+                                      'bg-cyan-500'
+                                    }`}
+                                    style={{ width: `${Math.min((quota.usedCalls / quota.totalCalls) * 100, 100)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                         {sub.status === 'active' && hasStripeCustomer && (
                           <Button
