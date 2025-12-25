@@ -334,10 +334,10 @@ export default function Dashboard() {
       onClick: () => setLocation("/portal/admin?tab=customers")
     },
   ] : [
-    { icon: Shield, label: "Security Status", description: "All systems operational", status: "green" },
-    { icon: Activity, label: "Active Projects", description: "3 projects in progress", status: "blue" },
-    { icon: FileText, label: "Reports", description: "2 new reports available", status: "purple" },
-    { icon: MessageSquare, label: "Messages", description: "No unread messages", status: "gray" },
+    { icon: CreditCard, label: "Billing & Purchases", description: "View orders and subscriptions", status: "emerald", onClick: () => setLocation("/portal/billing") },
+    { icon: Globe, label: "Website Grader", description: "Analyze your website", status: "cyan", onClick: () => setLocation("/grader") },
+    { icon: HardDrive, label: "Media Library", description: "Manage your files", status: "purple", onClick: () => setLocation("/portal/media") },
+    { icon: Plug, label: "Integrations", description: "Connect your services", status: "blue", onClick: () => setLocation("/portal/integrations") },
   ];
 
   const recentActivity: ActivityItem[] = [];

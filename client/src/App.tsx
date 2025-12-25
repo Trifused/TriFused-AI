@@ -24,6 +24,7 @@ const Admin = lazy(() => import("@/pages/portal/admin"));
 const MFT = lazy(() => import("@/pages/portal/mft"));
 const Media = lazy(() => import("@/pages/portal/media"));
 const Integrations = lazy(() => import("@/pages/portal/integrations"));
+const Billing = lazy(() => import("@/pages/portal/billing"));
 const PublicMedia = lazy(() => import("@/pages/public-media"));
 const Privacy = lazy(() => import("@/pages/legal/privacy"));
 const Terms = lazy(() => import("@/pages/legal/terms"));
@@ -56,6 +57,7 @@ function Router() {
         <Route path="/portal/mft" component={MFT} />
         <Route path="/portal/media" component={Media} />
         <Route path="/portal/integrations" component={Integrations} />
+        <Route path="/portal/billing" component={Billing} />
         <Route path="/media" component={PublicMedia} />
         <Route path="/legal/privacy" component={Privacy} />
         <Route path="/legal/terms" component={Terms} />
