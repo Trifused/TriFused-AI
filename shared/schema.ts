@@ -466,3 +466,29 @@ export const insertReportSubscriptionSchema = createInsertSchema(reportSubscript
 
 export type InsertReportSubscription = z.infer<typeof insertReportSubscriptionSchema>;
 export type ReportSubscription = typeof reportSubscriptions.$inferSelect;
+
+// User websites - tracks websites users have added for scanning
+export const userWebsites = pgTable("user_websites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  url: text("url").notNull(),
+  name: text("name"),
+  lastScannedAt: timestamp("last_scanned_at"),
+  lastGradeId: varchar("last_grade_id"),
+  lastScore: integer("last_score"),
+  scanCount: integer("scan_count").default(0).notNull(),
+  isActive: integer("is_active").default(1).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserWebsiteSchema = createInsertSchema(userWebsites).omit({
+  id: true,
+  createdAt: true,
+  lastScannedAt: true,
+  lastGradeId: true,
+  lastScore: true,
+  scanCount: true,
+});
+
+export type InsertUserWebsite = z.infer<typeof insertUserWebsiteSchema>;
+export type UserWebsite = typeof userWebsites.$inferSelect;
