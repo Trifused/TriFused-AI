@@ -1910,26 +1910,26 @@ function CommerceTab() {
               <div>
                 <label className="text-sm text-muted-foreground block mb-1">Type *</label>
                 <select
-                  className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                  className="w-full bg-slate-800 border border-white/10 rounded px-3 py-2 text-white"
                   value={newProduct.type}
                   onChange={(e) => setNewProduct({ ...newProduct, type: e.target.value as 'one_time' | 'subscription' })}
                   data-testid="select-product-type"
                 >
-                  <option value="one_time">One-time Purchase</option>
-                  <option value="subscription">Subscription</option>
+                  <option value="one_time" className="bg-slate-800 text-white">One-time Purchase</option>
+                  <option value="subscription" className="bg-slate-800 text-white">Subscription</option>
                 </select>
               </div>
               {newProduct.type === 'subscription' && (
                 <div>
                   <label className="text-sm text-muted-foreground block mb-1">Billing Interval</label>
                   <select
-                    className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white"
+                    className="w-full bg-slate-800 border border-white/10 rounded px-3 py-2 text-white"
                     value={newProduct.interval}
                     onChange={(e) => setNewProduct({ ...newProduct, interval: e.target.value as 'month' | 'year' })}
                     data-testid="select-product-interval"
                   >
-                    <option value="month">Monthly</option>
-                    <option value="year">Yearly</option>
+                    <option value="month" className="bg-slate-800 text-white">Monthly</option>
+                    <option value="year" className="bg-slate-800 text-white">Yearly</option>
                   </select>
                 </div>
               )}
