@@ -1560,19 +1560,27 @@ Your primary goal is to help users AND capture their contact information natural
   });
 
   // Google Calendar integration endpoints
+  // Note: Currently uses app-level service account, only accessible by superusers
   app.get("/api/integrations/status", isAuthenticated, async (req: any, res) => {
     try {
+      const user = req.user;
+      // Only show as connected for superusers who can access the service account
+      if (user?.role !== 'superuser') {
+        return res.json({ calendar: false, gmail: false, requiresSetup: true });
+      }
+      
       const [calendarConnected, gmailConnected] = await Promise.all([
         isCalendarConnected(),
         isGmailConnected()
       ]);
       res.json({ 
         calendar: calendarConnected, 
-        gmail: gmailConnected 
+        gmail: gmailConnected,
+        requiresSetup: false
       });
     } catch (error: any) {
       console.error("Integration status error:", error);
-      res.json({ calendar: false, gmail: false });
+      res.json({ calendar: false, gmail: false, requiresSetup: true });
     }
   });
 

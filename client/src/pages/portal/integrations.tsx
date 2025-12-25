@@ -27,6 +27,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface IntegrationStatus {
   calendar: boolean;
   gmail: boolean;
+  requiresSetup?: boolean;
 }
 
 interface CalendarEvent {
@@ -250,12 +251,19 @@ export default function Integrations() {
               <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
                 integrationStatus?.calendar 
                   ? 'bg-green-500/10 text-green-500' 
+                  : integrationStatus?.requiresSetup
+                  ? 'bg-cyan-500/10 text-cyan-400'
                   : 'bg-yellow-500/10 text-yellow-500'
               }`}>
                 {integrationStatus?.calendar ? (
                   <>
                     <Check className="w-4 h-4" />
                     Connected
+                  </>
+                ) : integrationStatus?.requiresSetup ? (
+                  <>
+                    <Clock className="w-4 h-4" />
+                    Coming Soon
                   </>
                 ) : (
                   <>
@@ -289,12 +297,19 @@ export default function Integrations() {
               <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
                 integrationStatus?.gmail 
                   ? 'bg-green-500/10 text-green-500' 
+                  : integrationStatus?.requiresSetup
+                  ? 'bg-cyan-500/10 text-cyan-400'
                   : 'bg-yellow-500/10 text-yellow-500'
               }`}>
                 {integrationStatus?.gmail ? (
                   <>
                     <Check className="w-4 h-4" />
                     Connected
+                  </>
+                ) : integrationStatus?.requiresSetup ? (
+                  <>
+                    <Clock className="w-4 h-4" />
+                    Coming Soon
                   </>
                 ) : (
                   <>
