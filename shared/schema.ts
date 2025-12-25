@@ -346,3 +346,87 @@ export const insertReportEventSchema = createInsertSchema(reportEvents).omit({
 
 export type InsertReportEvent = z.infer<typeof insertReportEventSchema>;
 export type ReportEvent = typeof reportEvents.$inferSelect;
+
+// API Keys for users
+export const apiKeys = pgTable("api_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
+  keyHash: text("key_hash").notNull(),
+  keyPrefix: varchar("key_prefix", { length: 12 }).notNull(),
+  lastUsedAt: timestamp("last_used_at"),
+  expiresAt: timestamp("expires_at"),
+  isActive: integer("is_active").default(1).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
+  id: true,
+  createdAt: true,
+  lastUsedAt: true,
+});
+
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+export type ApiKey = typeof apiKeys.$inferSelect;
+
+// API Quotas - tracks available calls per user
+export const apiQuotas = pgTable("api_quotas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
+  totalCalls: integer("total_calls").default(0).notNull(),
+  usedCalls: integer("used_calls").default(0).notNull(),
+  subscriptionCalls: integer("subscription_calls").default(0).notNull(),
+  packCalls: integer("pack_calls").default(0).notNull(),
+  resetAt: timestamp("reset_at"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertApiQuotaSchema = createInsertSchema(apiQuotas).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type InsertApiQuota = z.infer<typeof insertApiQuotaSchema>;
+export type ApiQuota = typeof apiQuotas.$inferSelect;
+
+// API Usage logs - detailed call history
+export const apiUsageLogs = pgTable("api_usage_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  apiKeyId: varchar("api_key_id").notNull(),
+  endpoint: text("endpoint").notNull(),
+  method: text("method").notNull(),
+  statusCode: integer("status_code"),
+  responseTimeMs: integer("response_time_ms"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  metadata: jsonb("metadata"),
+  calledAt: timestamp("called_at").defaultNow().notNull(),
+});
+
+export const insertApiUsageLogSchema = createInsertSchema(apiUsageLogs).omit({
+  id: true,
+  calledAt: true,
+});
+
+export type InsertApiUsageLog = z.infer<typeof insertApiUsageLogSchema>;
+export type ApiUsageLog = typeof apiUsageLogs.$inferSelect;
+
+// API Call Pack purchases - tracks one-time pack purchases
+export const apiCallPacks = pgTable("api_call_packs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  packSize: integer("pack_size").notNull(),
+  callsRemaining: integer("calls_remaining").notNull(),
+  stripeSessionId: varchar("stripe_session_id"),
+  purchasedAt: timestamp("purchased_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+});
+
+export const insertApiCallPackSchema = createInsertSchema(apiCallPacks).omit({
+  id: true,
+  purchasedAt: true,
+});
+
+export type InsertApiCallPack = z.infer<typeof insertApiCallPackSchema>;
+export type ApiCallPack = typeof apiCallPacks.$inferSelect;
