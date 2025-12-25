@@ -458,9 +458,24 @@ Risk Reduction Investment,$${calculations.riskReductionInvestment.toFixed(2)}/mo
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.5 }}
-            className="text-center text-sm text-muted-foreground mb-12"
+            className="text-center text-sm text-muted-foreground mb-6"
           >
             Triple-redundant storage ensures your data survives provider outages, ransomware, and regional disasters.
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.55 }}
+            className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-12"
+          >
+            <p className="text-xs text-yellow-400/80 leading-relaxed">
+              <strong>Disclaimer:</strong> This calculator provides estimates only and is intended for informational purposes. 
+              Actual pricing may vary based on storage providers' current rates, data transfer costs, API call fees, and 
+              additional services. Prices shown are based on publicly available pricing as of the date of use and are subject 
+              to change without notice. Contact us for a customized quote tailored to your specific requirements. This tool 
+              does not constitute a binding offer or guarantee of service availability.
+            </p>
           </motion.div>
 
           <motion.div
