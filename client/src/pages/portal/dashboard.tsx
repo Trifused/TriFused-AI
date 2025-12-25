@@ -425,17 +425,17 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-white/5">
-        <div className="container mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
+        <div className="container mx-auto px-3 md:px-6">
+          <div className="flex items-center justify-between h-14 md:h-16">
+            <div className="flex items-center gap-2 md:gap-4 shrink-0">
               <button 
                 onClick={() => setLocation("/")}
-                className="text-xl font-bold font-heading text-white"
+                className="text-lg md:text-xl font-bold font-heading text-white"
               >
                 TriFused
               </button>
-              <span className="text-muted-foreground">/</span>
-              <span className="text-muted-foreground flex items-center gap-2">
+              <span className="text-muted-foreground hidden md:inline">/</span>
+              <span className="text-muted-foreground hidden md:flex items-center gap-2">
                 <LayoutDashboard className="w-4 h-4" />
                 Dashboard
               </span>
@@ -530,30 +530,30 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main id="main-content" className="container mx-auto px-6 py-12">
+      <main id="main-content" className="container mx-auto px-3 md:px-6 py-6 md:py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
+          className="mb-8 md:mb-12"
         >
-          <h1 className="text-3xl font-bold font-heading text-white mb-2">
+          <h1 className="text-2xl md:text-3xl font-bold font-heading text-white mb-2">
             Welcome back{user?.firstName ? `, ${user.firstName}` : ''}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm md:text-base text-muted-foreground">
             {isSuperuser 
               ? "Here's your admin overview with real-time stats and recent activity."
               : "Here's an overview of your account and recent activity."}
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
           {quickActions.map((action, index) => (
             <motion.div
               key={action.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`rounded-xl p-6 transition-colors cursor-pointer group ${
+              className={`rounded-xl p-4 md:p-6 transition-colors cursor-pointer group ${
                 'featured' in action && action.featured 
                   ? 'bg-gradient-to-br from-cyan-500/20 via-primary/10 to-purple-500/20 border-2 border-cyan-500/50 hover:border-cyan-400' 
                   : 'glass-panel hover:border-primary/30'
