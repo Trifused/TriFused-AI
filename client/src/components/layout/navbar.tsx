@@ -17,6 +17,7 @@ export function Navbar() {
     { label: "Services", href: "/#services" },
     { label: "Ventures", href: "/#ventures" },
     { label: "Website Grader", href: "/grader", highlight: true },
+    { label: "Backup Calculator", href: "/backup-calculator" },
     { label: "Intelligence Logs", href: "/blog" },
     { label: "About", href: "/#about" },
   ];
