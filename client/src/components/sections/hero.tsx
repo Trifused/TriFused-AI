@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Terminal, Search } from "lucide-react";
+import { ArrowRight, Terminal, Search, Calculator } from "lucide-react";
 import heroBg from "@assets/generated_images/hero_background_with_neural_network_fusion.png";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -123,6 +123,16 @@ export function Hero() {
             >
               <Terminal className="mr-2 w-5 h-5" />
               Run Diagnostics
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="h-14 px-8 text-base border-emerald-500/30 hover:bg-emerald-500/10 hover:border-emerald-500/50 rounded-full font-mono text-emerald-400"
+              onClick={() => setLocation('/backup-calculator')}
+              data-testid="button-hero-backup-calculator"
+            >
+              <Calculator className="mr-2 w-5 h-5" />
+              Backup Calculator
             </Button>
           </div>
         </motion.div>
