@@ -3993,6 +3993,77 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Get scan history for a specific user website
+  app.get("/api/user/websites/:id/scans", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const website = await storage.getUserWebsite(req.params.id);
+      if (!website || website.userId !== userId) {
+        return res.status(404).json({ error: "Website not found" });
+      }
+      
+      const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
+      const scans = await storage.getGradesForUrl(website.url, limit);
+      res.json({ data: scans });
+    } catch (error) {
+      console.error("Get website scans error:", error);
+      res.status(500).json({ error: "Failed to get scan history" });
+    }
+  });
+
+  // Get all user's scans across all tracked websites
+  app.get("/api/user/scans", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const websites = await storage.getUserWebsites(userId);
+      const urls = websites.map(w => w.url);
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      const scans = await storage.getGradesForUrls(urls, limit);
+      res.json({ data: scans, totalWebsites: websites.length });
+    } catch (error) {
+      console.error("Get user scans error:", error);
+      res.status(500).json({ error: "Failed to get scans" });
+    }
+  });
+
+  // Get user assets summary
+  app.get("/api/user/assets", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const websites = await storage.getUserWebsites(userId);
+      const urls = websites.map(w => w.url);
+      const recentScans = await storage.getGradesForUrls(urls, 10);
+      
+      res.json({ 
+        data: {
+          websites: {
+            count: websites.length,
+            items: websites
+          },
+          recentScans: {
+            count: recentScans.length,
+            items: recentScans
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Get user assets error:", error);
+      res.status(500).json({ error: "Failed to get assets" });
+    }
+  });
+
   // ========== REPORT SUBSCRIPTION ROUTES ==========
 
   // Get user's report subscriptions

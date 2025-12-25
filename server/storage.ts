@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { eq, desc, sql, count } from "drizzle-orm";
+import { eq, desc, sql, count, inArray } from "drizzle-orm";
 import { 
   contactSubmissions, 
   diagnosticScans, 
@@ -157,6 +157,10 @@ export interface IStorage {
   updateUserWebsite(id: string, data: Partial<UserWebsite>): Promise<UserWebsite | undefined>;
   deleteUserWebsite(id: string): Promise<void>;
   updateUserWebsiteScan(id: string, gradeId: string, score: number): Promise<UserWebsite | undefined>;
+  
+  // User assets methods
+  getGradesForUrl(url: string, limit?: number): Promise<WebsiteGrade[]>;
+  getGradesForUrls(urls: string[], limit?: number): Promise<WebsiteGrade[]>;
 }
 
 class Storage implements IStorage {
@@ -659,6 +663,26 @@ class Storage implements IStorage {
       .where(eq(userWebsites.id, id))
       .returning();
     return website;
+  }
+
+  // User assets methods
+  async getGradesForUrl(url: string, limit: number = 10): Promise<WebsiteGrade[]> {
+    return await db
+      .select()
+      .from(websiteGrades)
+      .where(eq(websiteGrades.url, url))
+      .orderBy(desc(websiteGrades.createdAt))
+      .limit(limit);
+  }
+
+  async getGradesForUrls(urls: string[], limit: number = 50): Promise<WebsiteGrade[]> {
+    if (urls.length === 0) return [];
+    return await db
+      .select()
+      .from(websiteGrades)
+      .where(inArray(websiteGrades.url, urls))
+      .orderBy(desc(websiteGrades.createdAt))
+      .limit(limit);
   }
 }
 
