@@ -3375,6 +3375,182 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // CI/CD Pipeline JSON Report Card
+  // Returns structured data with pass/fail thresholds for pipeline integration
+  app.get("/api/v1/score", async (req: Request, res: Response) => {
+    try {
+      const { url, threshold } = req.query;
+      
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({
+          error: "Missing required parameter: url",
+          usage: "GET /api/v1/score?url=https://example.com&threshold=70"
+        });
+      }
+
+      // Validate URL
+      let normalizedUrl = url.trim();
+      if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+        normalizedUrl = "https://" + normalizedUrl;
+      }
+
+      // Get latest grade for this URL
+      const grades = await storage.getWebsiteGradesByUrl(normalizedUrl);
+      if (!grades || grades.length === 0) {
+        return res.status(404).json({
+          error: "No scan found for this URL",
+          url: normalizedUrl,
+          suggestion: "Run a scan first using POST /api/grade with { url: '...' }"
+        });
+      }
+
+      const grade = grades[0]; // Most recent
+      const passThreshold = threshold ? parseInt(threshold as string, 10) : 70;
+
+      const getGradeLetter = (score: number): string => {
+        if (score >= 90) return "A";
+        if (score >= 80) return "B";
+        if (score >= 70) return "C";
+        if (score >= 60) return "D";
+        return "F";
+      };
+
+      const getStatus = (score: number): "pass" | "warn" | "fail" => {
+        if (score >= passThreshold) return "pass";
+        if (score >= passThreshold - 10) return "warn";
+        return "fail";
+      };
+
+      // Build CI/CD-friendly response
+      const report = {
+        // Summary for quick CI/CD check
+        status: getStatus(grade.overallScore),
+        passed: grade.overallScore >= passThreshold,
+        
+        // Core metrics
+        url: grade.url,
+        domain: grade.domain,
+        overallScore: grade.overallScore,
+        grade: getGradeLetter(grade.overallScore),
+        threshold: passThreshold,
+        
+        // Category scores
+        scores: {
+          seo: { score: grade.seoScore, grade: getGradeLetter(grade.seoScore), status: getStatus(grade.seoScore) },
+          security: { score: grade.securityScore, grade: getGradeLetter(grade.securityScore), status: getStatus(grade.securityScore) },
+          performance: { score: grade.performanceScore, grade: getGradeLetter(grade.performanceScore), status: getStatus(grade.performanceScore) },
+          accessibility: { score: grade.accessibilityScore || 0, grade: getGradeLetter(grade.accessibilityScore || 0), status: getStatus(grade.accessibilityScore || 0) },
+          mobile: { score: grade.mobileScore || 0, grade: getGradeLetter(grade.mobileScore || 0), status: getStatus(grade.mobileScore || 0) },
+          emailSecurity: { score: grade.emailSecurityScore || 0, grade: getGradeLetter(grade.emailSecurityScore || 0), status: getStatus(grade.emailSecurityScore || 0) },
+        },
+        
+        // Compliance scores (if available)
+        compliance: {
+          fdic: grade.fdicScore !== null ? { score: grade.fdicScore, status: getStatus(grade.fdicScore) } : null,
+          sec: grade.secScore !== null ? { score: grade.secScore, status: getStatus(grade.secScore) } : null,
+          ada: grade.adaScore !== null ? { score: grade.adaScore, status: getStatus(grade.adaScore) } : null,
+          pci: grade.pciScore !== null ? { score: grade.pciScore, status: getStatus(grade.pciScore) } : null,
+          fca: grade.fcaScore !== null ? { score: grade.fcaScore, status: getStatus(grade.fcaScore) } : null,
+          gdpr: grade.gdprScore !== null ? { score: grade.gdprScore, status: getStatus(grade.gdprScore) } : null,
+        },
+        
+        // Issue summary for CI logs
+        issues: {
+          critical: (grade.findings as any[])?.filter((f: any) => f.priority === "critical" && !f.passed).length || 0,
+          high: (grade.findings as any[])?.filter((f: any) => f.priority === "high" && !f.passed).length || 0,
+          medium: (grade.findings as any[])?.filter((f: any) => f.priority === "medium" && !f.passed).length || 0,
+          low: (grade.findings as any[])?.filter((f: any) => f.priority === "low" && !f.passed).length || 0,
+          total: (grade.findings as any[])?.filter((f: any) => !f.passed).length || 0,
+        },
+        
+        // Detailed findings for verbose mode
+        findings: (grade.findings as any[])?.filter((f: any) => !f.passed).map((f: any) => ({
+          category: f.category,
+          issue: f.issue,
+          impact: f.impact,
+          priority: f.priority,
+          howToFix: f.howToFix,
+        })) || [],
+        
+        // Metadata
+        meta: {
+          scanId: grade.id,
+          shareToken: grade.shareToken,
+          reportUrl: grade.shareToken ? `${req.protocol}://${req.get("host")}/report/${grade.shareToken}` : null,
+          scannedAt: grade.createdAt,
+          hostInfo: {
+            ip: grade.hostIp,
+            country: grade.hostCountry,
+            provider: grade.hostProvider,
+          },
+        },
+        
+        // CI/CD exit code suggestion
+        exitCode: grade.overallScore >= passThreshold ? 0 : 1,
+      };
+
+      // Set appropriate status code for CI/CD
+      const statusCode = grade.overallScore >= passThreshold ? 200 : 422;
+      res.status(statusCode).json(report);
+    } catch (error) {
+      console.error("CI/CD score endpoint error:", error);
+      res.status(500).json({ error: "Failed to fetch score", status: "error" });
+    }
+  });
+
+  // POST endpoint to run a scan and get CI/CD response
+  app.post("/api/v1/score", async (req: Request, res: Response) => {
+    try {
+      const { url, threshold, forceRefresh } = req.body;
+      
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({
+          error: "Missing required parameter: url",
+          usage: { url: "https://example.com", threshold: 70, forceRefresh: true }
+        });
+      }
+
+      // Validate URL
+      let normalizedUrl = url.trim();
+      if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+        normalizedUrl = "https://" + normalizedUrl;
+      }
+
+      // Check for existing grade first (unless forceRefresh)
+      if (!forceRefresh) {
+        const existingGrades = await storage.getWebsiteGradesByUrl(normalizedUrl);
+        if (existingGrades && existingGrades.length > 0) {
+          const recent = existingGrades[0];
+          const hoursSinceLastScan = (Date.now() - new Date(recent.createdAt).getTime()) / (1000 * 60 * 60);
+          if (hoursSinceLastScan < 24) {
+            // Redirect to GET endpoint for cached result
+            const redirectUrl = `/api/v1/score?url=${encodeURIComponent(normalizedUrl)}${threshold ? `&threshold=${threshold}` : ""}`;
+            return res.redirect(307, redirectUrl);
+          }
+        }
+      }
+
+      // Run a new scan
+      const gradeResponse = await fetch(`${req.protocol}://${req.get("host")}/api/grade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: normalizedUrl, forceRefresh: true }),
+      });
+
+      if (!gradeResponse.ok) {
+        const error = await gradeResponse.json();
+        return res.status(gradeResponse.status).json({ error: error.error || "Scan failed", status: "error" });
+      }
+
+      // Now redirect to GET for the structured response
+      const redirectUrl = `/api/v1/score?url=${encodeURIComponent(normalizedUrl)}${threshold ? `&threshold=${threshold}` : ""}`;
+      return res.redirect(307, redirectUrl);
+    } catch (error) {
+      console.error("CI/CD score POST error:", error);
+      res.status(500).json({ error: "Failed to run scan", status: "error" });
+    }
+  });
+
   // Track report events (views, downloads)
   app.post("/api/report/:shareToken/events", async (req: Request, res: Response) => {
     try {

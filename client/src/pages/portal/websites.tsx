@@ -636,6 +636,77 @@ export default function WebsitesPortal() {
                   </div>
                   <p className="text-muted-foreground text-sm mb-3">Run a new scan on a tracked website.</p>
                 </div>
+
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Code className="w-5 h-5 text-cyan-400" />
+                    CI/CD Pipeline Integration
+                  </h3>
+                </div>
+
+                <div className="p-6 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 rounded-xl border border-cyan-500/30">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-mono rounded">GET</span>
+                    <code className="text-cyan-400 font-mono">/api/v1/score?url=...&threshold=70</code>
+                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard("/api/v1/score?url=https://example.com&threshold=70")}>
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <p className="text-muted-foreground text-sm mb-3">Get a CI/CD-friendly JSON report card with pass/fail status based on threshold.</p>
+                  <div className="bg-slate-800 rounded p-3 mb-3">
+                    <pre className="text-xs text-gray-300 overflow-x-auto">{`{
+  "status": "pass",
+  "passed": true,
+  "url": "https://example.com",
+  "overallScore": 85,
+  "grade": "B",
+  "threshold": 70,
+  "scores": {
+    "seo": { "score": 90, "grade": "A", "status": "pass" },
+    "security": { "score": 85, "grade": "B", "status": "pass" },
+    "performance": { "score": 80, "grade": "B", "status": "pass" },
+    "accessibility": { "score": 88, "grade": "B", "status": "pass" }
+  },
+  "compliance": {
+    "fdic": { "score": 75, "status": "pass" },
+    "gdpr": { "score": 90, "status": "pass" }
+  },
+  "issues": {
+    "critical": 0, "high": 2, "medium": 5, "low": 3, "total": 10
+  },
+  "exitCode": 0,
+  "meta": {
+    "scanId": "uuid",
+    "shareToken": "abc123",
+    "reportUrl": "https://example.com/report/abc123"
+  }
+}`}</pre>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Returns HTTP 200 if score &gt;= threshold (pass), HTTP 422 if below (fail). Use <code className="text-cyan-400">exitCode</code> in shell scripts.</p>
+                </div>
+
+                <div className="p-6 bg-white/5 rounded-xl border border-white/10 mt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs font-mono rounded">POST</span>
+                    <code className="text-cyan-400 font-mono">/api/v1/score</code>
+                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard("curl -X POST -H 'Content-Type: application/json' -d '{\"url\":\"https://example.com\",\"threshold\":70,\"forceRefresh\":true}' https://your-domain/api/v1/score")}>
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <p className="text-muted-foreground text-sm mb-3">Run a fresh scan and get CI/CD report (use forceRefresh: true for new scans).</p>
+                  <div className="bg-slate-800 rounded p-3">
+                    <pre className="text-xs text-gray-300 overflow-x-auto">{`# GitHub Actions Example
+curl -X POST https://your-domain/api/v1/score \\
+  -H "Content-Type: application/json" \\
+  -d '{"url":"$SITE_URL","threshold":70,"forceRefresh":true}'
+
+# Check exit code in CI
+if [ $? -ne 0 ]; then
+  echo "Website grade below threshold - failing build"
+  exit 1
+fi`}</pre>
+                  </div>
+                </div>
               </div>
 
               <div className="p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">

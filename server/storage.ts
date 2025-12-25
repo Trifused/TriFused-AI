@@ -133,6 +133,7 @@ export interface IStorage {
   getWebsiteGrade(id: string): Promise<WebsiteGrade | undefined>;
   getWebsiteGradeByShareToken(shareToken: string): Promise<WebsiteGrade | undefined>;
   getRecentGradeForUrl(url: string): Promise<WebsiteGrade | undefined>;
+  getWebsiteGradesByUrl(url: string, limit?: number): Promise<WebsiteGrade[]>;
   getAllWebsiteGrades(): Promise<WebsiteGrade[]>;
   getWebsiteGradesCount(): Promise<number>;
   updateWebsiteGradeShareInfo(id: string, shareToken: string, qrCodeData: string): Promise<WebsiteGrade | undefined>;
@@ -524,6 +525,15 @@ class Storage implements IStorage {
       return grade;
     }
     return undefined;
+  }
+
+  async getWebsiteGradesByUrl(url: string, limit: number = 10): Promise<WebsiteGrade[]> {
+    return await db
+      .select()
+      .from(websiteGrades)
+      .where(eq(websiteGrades.url, url))
+      .orderBy(desc(websiteGrades.createdAt))
+      .limit(limit);
   }
 
   async getAllWebsiteGrades(): Promise<WebsiteGrade[]> {
