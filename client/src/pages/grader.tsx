@@ -3,6 +3,7 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FeatureBadge } from "@/components/ui/feature-badge";
+import { GuidedTour, HelpButton } from "@/components/ui/help-tooltip";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -1032,6 +1033,35 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
         </div>
       </main>
       <Footer />
+
+      <GuidedTour
+        tourId="grader"
+        steps={[
+          {
+            id: "url-input",
+            target: "[data-testid='input-website-url']",
+            title: "Enter Any Website URL",
+            content: "Type or paste the website address you want to analyze. We'll scan it for SEO, security, and more.",
+            placement: "bottom"
+          },
+          {
+            id: "analyze-button",
+            target: "[data-testid='button-analyze']",
+            title: "Start the Analysis",
+            content: "Click here to begin the website scan. Results typically appear within 30 seconds.",
+            placement: "bottom"
+          },
+          {
+            id: "history",
+            target: "[data-testid='button-toggle-history']",
+            title: "View Your Scan History",
+            content: "Access previous scans stored in your browser. You can re-scan or share results anytime.",
+            placement: "left"
+          }
+        ]}
+        onComplete={() => console.log("Grader tour completed")}
+      />
+      <HelpButton />
     </div>
   );
 }

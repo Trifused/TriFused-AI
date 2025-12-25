@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { GuidedTour, HelpButton } from "@/components/ui/help-tooltip";
 import { motion } from "framer-motion";
 import { useState, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -603,6 +604,35 @@ Risk Reduction Investment,$${calculations.riskReductionInvestment.toFixed(2)}/mo
       </main>
 
       <Footer />
+
+      <GuidedTour
+        tourId="backup-calculator"
+        steps={[
+          {
+            id: "slider",
+            target: "[data-testid='slider-data-size']",
+            title: "Adjust Your Data Size",
+            content: "Use the slider to set how much data you need to protect. We'll calculate costs for triple-redundant backup across multiple cloud providers.",
+            placement: "bottom"
+          },
+          {
+            id: "export",
+            target: "[data-testid='button-export-csv']",
+            title: "Export Your Estimate",
+            content: "Download a detailed CSV breakdown of your backup costs to share with your team.",
+            placement: "top"
+          },
+          {
+            id: "contact",
+            target: "[data-testid='button-submit-contact']",
+            title: "Get Expert Help",
+            content: "Ready to implement? Our team can help you set up secure, redundant cloud backup today.",
+            placement: "top"
+          }
+        ]}
+        onComplete={() => console.log("Backup calculator tour completed")}
+      />
+      <HelpButton />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { GuidedTour, HelpButton } from "@/components/ui/help-tooltip";
+import { useHelp } from "@/context/help-context";
 import { 
   LayoutDashboard, 
   LogOut, 
@@ -1360,6 +1362,42 @@ export default function Dashboard() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      <GuidedTour
+        tourId="dashboard"
+        steps={[
+          {
+            id: "welcome",
+            target: "[data-testid='text-user-name']",
+            title: "Welcome to Your Dashboard",
+            content: "This is your personal portal where you can access all your TriFused tools and services.",
+            placement: "bottom"
+          },
+          {
+            id: "my-websites",
+            target: "[data-testid='card-stat-my-websites']",
+            title: "My Websites",
+            content: "Save and manage your websites here. Track scan history and run new scans anytime.",
+            placement: "bottom"
+          },
+          {
+            id: "website-grader",
+            target: "[data-testid='card-stat-website-grader']",
+            title: "Website Grader",
+            content: "Scan any website for SEO, security, performance, and compliance issues with our AI-powered grader.",
+            placement: "bottom"
+          },
+          {
+            id: "integrations",
+            target: "[data-testid='button-integrations']",
+            title: "Integrations",
+            content: "Connect with third-party services like Google Calendar and more to enhance your workflow.",
+            placement: "bottom"
+          }
+        ]}
+        onComplete={() => console.log("Dashboard tour completed")}
+      />
+      <HelpButton />
     </div>
   );
 }
