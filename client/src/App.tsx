@@ -7,6 +7,7 @@ import { useEffect, lazy, Suspense } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import { CartProvider } from "./context/cart-context";
+import { HelpProvider } from "./context/help-context";
 import { ImpersonationBanner } from "@/components/ui/impersonation-banner";
 
 // Eager load Home for fast initial paint
@@ -88,11 +89,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
-        <TooltipProvider>
-          <ImpersonationBanner />
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <HelpProvider>
+          <TooltipProvider>
+            <ImpersonationBanner />
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </HelpProvider>
       </CartProvider>
     </QueryClientProvider>
   );
