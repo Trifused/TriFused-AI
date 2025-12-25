@@ -38,7 +38,7 @@ export function HelpProvider({ children }: { children: ReactNode }) {
   const [currentTourStep, setCurrentTourStep] = useState(0);
   const [tourSteps, setTourSteps] = useState<TourStep[]>([]);
   const [dismissedTips, setDismissedTips] = useState<string[]>([]);
-  const [isNewUser, setIsNewUser] = useState(true);
+  const [isNewUser, setIsNewUser] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
