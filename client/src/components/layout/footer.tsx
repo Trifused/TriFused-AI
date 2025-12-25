@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Shield, Lock, FileText } from "lucide-react";
+import { Shield, Lock, FileText, Calculator } from "lucide-react";
 
 export function Footer() {
   const [, setLocation] = useLocation();
@@ -39,6 +39,11 @@ export function Footer() {
               <li>
                 <button onClick={() => setLocation("/portal")} className="min-h-[44px] py-2 px-1 -ml-1 hover:text-primary transition-colors">
                   Client Portal
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setLocation("/backup-calculator")} className="min-h-[44px] py-2 px-1 -ml-1 hover:text-primary transition-colors flex items-center gap-2">
+                  <Calculator className="w-4 h-4" /> Backup Calculator
                 </button>
               </li>
             </ul>

@@ -312,14 +312,14 @@ export default function Dashboard() {
   const graderWithEmail = graderLeads?.filter(g => g.companyName || g.domain).length || 0;
 
   const quickActions = isSuperuser ? [
+    { icon: Globe, label: "My Websites", description: "View your saved websites", status: "cyan", onClick: () => setLocation("/portal/websites"), featured: true },
     { 
       icon: Globe, 
       label: "Website Grader", 
       description: `${graderLeads?.length || 0} sites • Avg ${graderAvgScore}/100 • ${graderRecentCount} today`, 
       status: (graderLeads?.length || 0) > 0 ? "cyan" : "gray",
       count: graderLeads?.length || 0,
-      onClick: () => setShowGraderModal(true),
-      featured: true
+      onClick: () => setShowGraderModal(true)
     },
     { 
       icon: CreditCard, 
@@ -362,9 +362,8 @@ export default function Dashboard() {
       onClick: () => setShowDiagnosticsModal(true)
     },
   ] : [
-    { icon: ExternalLink, label: "TriFused Website", description: "Visit trifused.com", status: "cyan", onClick: () => window.open("https://trifused.com", "_blank"), featured: true },
+    { icon: Globe, label: "My Websites", description: "View your saved websites", status: "cyan", onClick: () => setLocation("/portal/websites"), featured: true },
     { icon: CreditCard, label: "Billing & Purchases", description: "View orders and subscriptions", status: "emerald", onClick: () => setLocation("/portal/billing") },
-    { icon: Globe, label: "My Websites", description: "View your saved websites", status: "cyan", onClick: () => setLocation("/portal/websites") },
     { icon: HardDrive, label: "Media Library", description: "Manage your files", status: "purple", onClick: () => setLocation("/portal/media") },
     { icon: Plug, label: "Integrations", description: "Connect your services", status: "blue", onClick: () => setLocation("/portal/integrations") },
   ];
