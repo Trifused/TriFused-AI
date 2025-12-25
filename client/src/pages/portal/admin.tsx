@@ -67,6 +67,18 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
+import { 
+  LineChart, 
+  Line, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Legend
+} from "recharts";
 
 interface User {
   id: string;
@@ -1591,13 +1603,127 @@ export default function Admin() {
                           </div>
                         </div>
 
+                        {/* HTTP Statuses Line Chart */}
+                        {productionAnalytics.httpStatusesByHour.length > 0 && (
+                          <div className="glass-panel rounded-2xl overflow-hidden mb-6">
+                            <div className="p-4 border-b border-white/5 bg-white/5">
+                              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <BarChart3 className="w-5 h-5 text-green-400" />
+                                HTTP Statuses (24h)
+                              </h3>
+                            </div>
+                            <div className="p-4">
+                              <ResponsiveContainer width="100%" height={250}>
+                                <LineChart
+                                  data={(() => {
+                                    const hourlyData: Record<string, any> = {};
+                                    productionAnalytics.httpStatusesByHour.forEach((item) => {
+                                      const hour = format(new Date(item.hour), 'HH:mm');
+                                      if (!hourlyData[hour]) {
+                                        hourlyData[hour] = { hour, '2xx': 0, '4xx': 0, '5xx': 0 };
+                                      }
+                                      const status = item.status_code;
+                                      if (status >= 200 && status < 300) hourlyData[hour]['2xx'] += parseInt(item.count);
+                                      else if (status >= 400 && status < 500) hourlyData[hour]['4xx'] += parseInt(item.count);
+                                      else if (status >= 500) hourlyData[hour]['5xx'] += parseInt(item.count);
+                                    });
+                                    return Object.values(hourlyData).sort((a, b) => a.hour.localeCompare(b.hour));
+                                  })()}
+                                  margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                                >
+                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                                  <XAxis dataKey="hour" stroke="#888" fontSize={12} />
+                                  <YAxis stroke="#888" fontSize={12} />
+                                  <Tooltip 
+                                    contentStyle={{ 
+                                      backgroundColor: 'rgba(0,0,0,0.8)', 
+                                      border: '1px solid rgba(255,255,255,0.1)',
+                                      borderRadius: '8px'
+                                    }} 
+                                  />
+                                  <Legend />
+                                  <Line type="monotone" dataKey="2xx" stroke="#22c55e" strokeWidth={2} dot={false} />
+                                  <Line type="monotone" dataKey="4xx" stroke="#f97316" strokeWidth={2} dot={false} />
+                                  <Line type="monotone" dataKey="5xx" stroke="#ef4444" strokeWidth={2} dot={false} />
+                                </LineChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Request Duration Bar Chart */}
+                        {productionAnalytics.durationDistribution.length > 0 && (
+                          <div className="glass-panel rounded-2xl overflow-hidden mb-6">
+                            <div className="p-4 border-b border-white/5 bg-white/5">
+                              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-cyan-400" />
+                                Request Durations (ms)
+                              </h3>
+                            </div>
+                            <div className="p-4">
+                              <ResponsiveContainer width="100%" height={200}>
+                                <BarChart
+                                  data={productionAnalytics.durationDistribution.map(item => ({
+                                    bucket: item.bucket.replace('< ', '<'),
+                                    count: parseInt(item.count)
+                                  }))}
+                                  margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                                >
+                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                                  <XAxis dataKey="bucket" stroke="#888" fontSize={11} />
+                                  <YAxis stroke="#888" fontSize={12} />
+                                  <Tooltip 
+                                    contentStyle={{ 
+                                      backgroundColor: 'rgba(0,0,0,0.8)', 
+                                      border: '1px solid rgba(255,255,255,0.1)',
+                                      borderRadius: '8px'
+                                    }}
+                                    formatter={(value: number) => [value.toLocaleString(), 'Requests']}
+                                  />
+                                  <Bar dataKey="count" fill="#22d3ee" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="grid md:grid-cols-2 gap-6">
-                          {/* Request Duration Distribution */}
+                          {/* Top Endpoints */}
+                          <div className="glass-panel rounded-2xl overflow-hidden">
+                            <div className="p-4 border-b border-white/5 bg-white/5">
+                              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <Link2 className="w-5 h-5 text-primary" />
+                                Top Endpoints
+                              </h3>
+                            </div>
+                            <div className="divide-y divide-white/5 max-h-64 overflow-y-auto">
+                              {productionAnalytics.topEndpoints.length === 0 ? (
+                                <div className="p-8 text-center text-muted-foreground">No data yet</div>
+                              ) : (
+                                productionAnalytics.topEndpoints.map((ep) => (
+                                  <div key={ep.endpoint} className="p-3 hover:bg-white/5">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-white font-mono text-sm truncate flex-1 mr-2">{ep.endpoint}</span>
+                                      <span className="text-cyan-400 font-bold">{parseInt(ep.requests).toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                      <span>Avg: {Math.round(parseFloat(ep.avg_duration || '0'))}ms</span>
+                                      {parseInt(ep.errors) > 0 && (
+                                        <span className="text-red-400">{ep.errors} errors</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Response Time List */}
                           <div className="glass-panel rounded-2xl overflow-hidden">
                             <div className="p-4 border-b border-white/5 bg-white/5">
                               <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                                 <Clock className="w-5 h-5 text-primary" />
-                                Response Time Distribution
+                                Response Time Breakdown
                               </h3>
                             </div>
                             <div className="p-4">
@@ -1625,36 +1751,6 @@ export default function Admin() {
                                     );
                                   })}
                                 </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Top Endpoints */}
-                          <div className="glass-panel rounded-2xl overflow-hidden">
-                            <div className="p-4 border-b border-white/5 bg-white/5">
-                              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <Link2 className="w-5 h-5 text-primary" />
-                                Top Endpoints
-                              </h3>
-                            </div>
-                            <div className="divide-y divide-white/5 max-h-64 overflow-y-auto">
-                              {productionAnalytics.topEndpoints.length === 0 ? (
-                                <div className="p-8 text-center text-muted-foreground">No data yet</div>
-                              ) : (
-                                productionAnalytics.topEndpoints.map((ep) => (
-                                  <div key={ep.endpoint} className="p-3 hover:bg-white/5">
-                                    <div className="flex items-center justify-between mb-1">
-                                      <span className="text-white font-mono text-sm truncate flex-1 mr-2">{ep.endpoint}</span>
-                                      <span className="text-cyan-400 font-bold">{parseInt(ep.requests).toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                                      <span>Avg: {Math.round(parseFloat(ep.avg_duration || '0'))}ms</span>
-                                      {parseInt(ep.errors) > 0 && (
-                                        <span className="text-red-400">{ep.errors} errors</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))
                               )}
                             </div>
                           </div>
