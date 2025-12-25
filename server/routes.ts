@@ -3898,6 +3898,101 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // ========== USER WEBSITES ROUTES ==========
+
+  // Get user's saved websites
+  app.get("/api/user/websites", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      
+      const websites = await storage.getUserWebsites(userId);
+      res.json({ data: websites });
+    } catch (error) {
+      console.error("Get user websites error:", error);
+      res.status(500).json({ error: "Failed to get websites" });
+    }
+  });
+
+  // Add a new website
+  app.post("/api/user/websites", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      
+      const { url, name } = req.body;
+      if (!url) return res.status(400).json({ error: "URL is required" });
+      
+      const website = await storage.createUserWebsite({
+        userId,
+        url,
+        name: name || null,
+        isActive: 1
+      });
+      res.json({ data: website });
+    } catch (error) {
+      console.error("Add user website error:", error);
+      res.status(500).json({ error: "Failed to add website" });
+    }
+  });
+
+  // Delete a website
+  app.delete("/api/user/websites/:id", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      
+      const website = await storage.getUserWebsite(req.params.id);
+      if (!website || website.userId !== userId) {
+        return res.status(404).json({ error: "Website not found" });
+      }
+      
+      await storage.deleteUserWebsite(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete user website error:", error);
+      res.status(500).json({ error: "Failed to delete website" });
+    }
+  });
+
+  // Run a scan on a user's website
+  app.post("/api/user/websites/:id/scan", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      
+      const website = await storage.getUserWebsite(req.params.id);
+      if (!website || website.userId !== userId) {
+        return res.status(404).json({ error: "Website not found" });
+      }
+      
+      // Call the grading endpoint internally
+      const gradeResponse = await fetch(`http://localhost:${process.env.PORT || 5000}/api/grade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: website.url, forceRefresh: true }),
+      });
+      
+      const gradeResult = await gradeResponse.json();
+      
+      if (!gradeResponse.ok) {
+        return res.status(gradeResponse.status).json(gradeResult);
+      }
+      
+      // Update the website with scan results
+      await storage.updateUserWebsiteScan(
+        req.params.id,
+        gradeResult.id,
+        gradeResult.overallScore
+      );
+      
+      res.json({ data: gradeResult });
+    } catch (error) {
+      console.error("Scan user website error:", error);
+      res.status(500).json({ error: "Failed to scan website" });
+    }
+  });
+
   // ========== REPORT SUBSCRIPTION ROUTES ==========
 
   // Get user's report subscriptions
