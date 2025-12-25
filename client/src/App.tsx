@@ -28,6 +28,7 @@ const PublicMedia = lazy(() => import("@/pages/public-media"));
 const Privacy = lazy(() => import("@/pages/legal/privacy"));
 const Terms = lazy(() => import("@/pages/legal/terms"));
 const Cookies = lazy(() => import("@/pages/legal/cookies"));
+const CheckoutSuccess = lazy(() => import("@/pages/checkout-success"));
 
 // Loading fallback for lazy components
 const PageLoader = () => (
@@ -48,6 +49,7 @@ function Router() {
         <Route path="/grader" component={Grader} />
         <Route path="/report/:shareToken" component={Report} />
         <Route path="/store" component={Store} />
+        <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/portal" component={PortalLogin} />
         <Route path="/portal/dashboard" component={Dashboard} />
         <Route path="/portal/admin" component={Admin} />
