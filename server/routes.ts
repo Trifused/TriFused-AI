@@ -3554,7 +3554,7 @@ Your primary goal is to help users AND capture their contact information natural
   // Test API endpoint - allows testing with API key ID (for portal test console)
   app.post("/api/v1/test-score", async (req: Request, res: Response) => {
     try {
-      const userId = getEffectiveUserId(req);
+      const userId = await getEffectiveUserId(req);
       if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
       }
