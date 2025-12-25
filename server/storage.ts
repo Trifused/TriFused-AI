@@ -16,6 +16,7 @@ import {
   websiteGrades,
   reportEvents,
   reportSubscriptions,
+  userWebsites,
   InsertContactSubmission, 
   InsertDiagnosticScan, 
   ContactSubmission, 
@@ -48,7 +49,9 @@ import {
   InsertReportEvent,
   ReportEventType,
   ReportSubscription,
-  InsertReportSubscription
+  InsertReportSubscription,
+  UserWebsite,
+  InsertUserWebsite
 } from "@shared/schema";
 
 export interface IStorage {
@@ -146,6 +149,14 @@ export interface IStorage {
   getReportSubscriptionsByUser(userId: string): Promise<ReportSubscription[]>;
   getAllReportSubscriptions(): Promise<ReportSubscription[]>;
   updateReportSubscription(id: string, data: Partial<InsertReportSubscription>): Promise<ReportSubscription | undefined>;
+  
+  // User websites methods
+  createUserWebsite(data: InsertUserWebsite): Promise<UserWebsite>;
+  getUserWebsites(userId: string): Promise<UserWebsite[]>;
+  getUserWebsite(id: string): Promise<UserWebsite | undefined>;
+  updateUserWebsite(id: string, data: Partial<UserWebsite>): Promise<UserWebsite | undefined>;
+  deleteUserWebsite(id: string): Promise<void>;
+  updateUserWebsiteScan(id: string, gradeId: string, score: number): Promise<UserWebsite | undefined>;
 }
 
 class Storage implements IStorage {
@@ -610,6 +621,44 @@ class Storage implements IStorage {
       .where(eq(reportSubscriptions.id, id))
       .returning();
     return subscription;
+  }
+
+  // User websites methods
+  async createUserWebsite(data: InsertUserWebsite): Promise<UserWebsite> {
+    const [website] = await db.insert(userWebsites).values(data).returning();
+    return website;
+  }
+
+  async getUserWebsites(userId: string): Promise<UserWebsite[]> {
+    return await db.select().from(userWebsites).where(eq(userWebsites.userId, userId)).orderBy(desc(userWebsites.createdAt));
+  }
+
+  async getUserWebsite(id: string): Promise<UserWebsite | undefined> {
+    const [website] = await db.select().from(userWebsites).where(eq(userWebsites.id, id));
+    return website;
+  }
+
+  async updateUserWebsite(id: string, data: Partial<UserWebsite>): Promise<UserWebsite | undefined> {
+    const [website] = await db.update(userWebsites).set(data).where(eq(userWebsites.id, id)).returning();
+    return website;
+  }
+
+  async deleteUserWebsite(id: string): Promise<void> {
+    await db.delete(userWebsites).where(eq(userWebsites.id, id));
+  }
+
+  async updateUserWebsiteScan(id: string, gradeId: string, score: number): Promise<UserWebsite | undefined> {
+    const [website] = await db
+      .update(userWebsites)
+      .set({
+        lastScannedAt: new Date(),
+        lastGradeId: gradeId,
+        lastScore: score,
+        scanCount: sql`${userWebsites.scanCount} + 1`
+      })
+      .where(eq(userWebsites.id, id))
+      .returning();
+    return website;
   }
 }
 
