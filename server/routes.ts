@@ -3386,18 +3386,18 @@ Your primary goal is to help users AND capture their contact information natural
       const { url, threshold } = req.query;
       
       // API Key authentication
-      const apiKey = req.headers["x-api-key"] as string;
-      if (apiKey) {
-        const keyValidation = await apiService.validateApiKey(apiKey);
-        if (!keyValidation.valid) {
+      const apiKeyHeader = req.headers["x-api-key"] as string;
+      if (apiKeyHeader) {
+        const validatedKey = await apiService.validateApiKey(apiKeyHeader);
+        if (!validatedKey) {
           return res.status(401).json({ error: "Invalid API key" });
         }
-        apiKeyUserId = keyValidation.userId!;
-        apiKeyId = keyValidation.keyId!;
+        apiKeyUserId = validatedKey.userId;
+        apiKeyId = validatedKey.id;
         
         // Check quota
-        const quotaCheck = await apiService.checkQuota(apiKeyUserId);
-        if (!quotaCheck.hasQuota) {
+        const quota = await apiService.getOrCreateQuota(apiKeyUserId);
+        if (quota.usedCalls >= quota.totalCalls) {
           return res.status(429).json({ error: "API quota exceeded", remaining: 0 });
         }
       }
