@@ -72,7 +72,9 @@ function ProductCard({ product, onAddToCart, onSelectSubscription, selectedSubsc
 
   const getIcon = () => {
     const name = product.name.toLowerCase();
-    if (name.includes("api")) return <Zap className="w-6 h-6 text-cyan-400" />;
+    if (name.includes("call pack")) return <Plus className="w-6 h-6 text-orange-400" />;
+    if (name.includes("report card")) return <BarChart3 className="w-6 h-6 text-cyan-400" />;
+    if (name.includes("api")) return <Zap className="w-6 h-6 text-yellow-400" />;
     if (name.includes("report") || name.includes("ai")) return <Sparkles className="w-6 h-6 text-purple-400" />;
     return <BarChart3 className="w-6 h-6 text-green-400" />;
   };

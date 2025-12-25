@@ -4029,6 +4029,21 @@ Your primary goal is to help users AND capture their contact information natural
           type: 'subscription',
           interval: 'year',
           features: '1000 API Calls/Month, CI/CD Integrations, JSON Reports, Webhook Notifications'
+        },
+        {
+          name: 'Website Report Card API - 1K Calls',
+          description: 'Monthly API subscription for automated website health scoring',
+          price: 2999,
+          type: 'subscription',
+          interval: 'month',
+          features: '1000 API Calls/Month, Website Report Cards, JSON/PDF Reports, Webhook Alerts, REST API Access'
+        },
+        {
+          name: '1K API Call Pack',
+          description: 'Additional API calls for your Website Report Card subscription',
+          price: 1499,
+          type: 'one_time',
+          features: '1000 Additional API Calls, No Expiration, Stackable, Use with Any Plan'
         }
       ];
 
