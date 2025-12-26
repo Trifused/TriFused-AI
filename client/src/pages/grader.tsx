@@ -486,25 +486,32 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-mono uppercase tracking-widest mb-4">
               <Search className="w-3 h-3" />
-              Free Tool
+              Free SEO Analyzer
             </div>
             {result ? (
               <>
                 <h1 className="text-4xl md:text-6xl font-bold font-heading mb-4">
-                  Website <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-500">Grade Report</span>
+                  Website <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-500">Performance Report</span>
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                  Free Tool - For informational purposes only
+                  Your comprehensive website audit results
                 </p>
               </>
             ) : (
               <>
-                <h1 className="text-4xl md:text-6xl font-bold font-heading mb-4">
-                  Website <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-500">Grader</span>
+                <h1 className="text-3xl md:text-5xl font-bold font-heading mb-4">
+                  Instant Website Performance Audit for{" "}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-500">Google Search</span>
                 </h1>
-                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                  Get a comprehensive analysis of your website's SEO, security, performance, accessibility (WCAG), and keyword optimization with actionable recommendations.
+                <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-6">
+                  Analyze your site's performance across <span className="text-white font-semibold">17+ key metrics</span> in under 30 seconds. Get actionable recommendations for site speed, mobile optimization, security, and SEO—delivered instantly without technical expertise.
                 </p>
+                <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground mb-4">
+                  <span className="flex items-center gap-1.5"><Zap className="w-4 h-4 text-primary" /> Core Web Vitals</span>
+                  <span className="flex items-center gap-1.5"><Shield className="w-4 h-4 text-primary" /> Security Audit</span>
+                  <span className="flex items-center gap-1.5"><Smartphone className="w-4 h-4 text-primary" /> Mobile-First</span>
+                  <span className="flex items-center gap-1.5"><Search className="w-4 h-4 text-primary" /> SEO Analysis</span>
+                </div>
               </>
             )}
           </motion.div>
@@ -1203,6 +1210,49 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                     <p className="text-sm">{item.desc}</p>
                   </div>
                 ))}
+              </div>
+              
+              {/* FAQ Section */}
+              <div className="max-w-4xl mx-auto mt-20 text-left">
+                <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-12">
+                  Frequently Asked Questions
+                </h2>
+                
+                <div className="space-y-8">
+                  <div className="glass-panel p-6 rounded-xl">
+                    <h3 className="text-lg font-semibold text-white mb-3">What is a website SEO checker?</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      A website checker is an SEO analysis tool that evaluates your site's technical performance, SEO implementation, mobile optimization, and security protocols across key ranking factors. Our Website Grader crawls your site to assess Core Web Vitals metrics and security configurations, providing comprehensive insights into your website's health and optimization opportunities. Check your website SEO instantly, for free.
+                    </p>
+                  </div>
+                  
+                  <div className="glass-panel p-6 rounded-xl">
+                    <h3 className="text-lg font-semibold text-white mb-3">Why is website performance important?</h3>
+                    <p className="text-muted-foreground leading-relaxed mb-4">
+                      Website performance directly impacts both user retention and search engine rankings through measurable speed and interactivity metrics. Sites with fast loading times maintain higher user engagement rates, while slow pages experience higher bounce rates.
+                    </p>
+                    <p className="text-muted-foreground leading-relaxed">
+                      Search engines prioritize fast-loading websites because site speed correlates with user satisfaction metrics that Google uses as ranking factors. This creates a performance-driven growth cycle: improved site speed leads to better user experience metrics, higher search rankings, increased organic traffic, and improved conversion rates.
+                    </p>
+                  </div>
+                  
+                  <div className="glass-panel p-6 rounded-xl">
+                    <h3 className="text-lg font-semibold text-white mb-3">How to optimize a website for SEO?</h3>
+                    <p className="text-muted-foreground leading-relaxed mb-4">
+                      Effective SEO optimization follows a systematic approach starting with technical foundations. Begin by ensuring search engines can crawl and index your pages. Implement comprehensive meta titles and descriptions, add descriptive alt text to images, and create clear internal linking with keyword-rich anchor text.
+                    </p>
+                    <p className="text-muted-foreground leading-relaxed">
+                      <strong className="text-white">Assessment-First Strategy:</strong> Before implementing changes, use this free website grader to analyze your site and identify specific improvement opportunities. Our tool provides a comprehensive audit covering technical foundations, on-page optimization, mobile performance, and security—giving you a baseline for measuring optimization progress.
+                    </p>
+                  </div>
+                  
+                  <div className="glass-panel p-6 rounded-xl">
+                    <h3 className="text-lg font-semibold text-white mb-3">Why is website grading important?</h3>
+                    <p className="text-muted-foreground leading-relaxed">
+                      Website grading provides objective performance benchmarking against industry standards that informs strategic optimization decisions. Regular performance auditing identifies technical issues that reduce search visibility, discovers optimization opportunities that improve user experience and rankings simultaneously, and establishes baseline metrics for measuring improvement progress over time.
+                    </p>
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
