@@ -54,7 +54,8 @@ import {
   Activity,
   MoreVertical,
   Filter,
-  ChevronUp
+  ChevronUp,
+  Headphones
 } from "lucide-react";
 import { FEATURE_FLAGS, type FeatureFlag, type FeatureStatus, type FeatureCategory } from "@shared/feature-flags";
 import { FeatureBadge } from "@/components/ui/feature-badge";
@@ -1152,6 +1153,10 @@ export default function Admin() {
               <TabsTrigger value="commerce" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-commerce">
                 <CreditCard className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">Commerce</span>
+              </TabsTrigger>
+              <TabsTrigger value="customers" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-customers">
+                <Headphones className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Customer Service</span>
               </TabsTrigger>
               <TabsTrigger value="backlinks" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-backlinks">
                 <Link2 className="w-4 h-4 md:mr-2" />
