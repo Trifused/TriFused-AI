@@ -457,7 +457,8 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                          value={urlInput}
                          onChange={(e) => setUrlInput(e.target.value)}
                          placeholder="example.com"
-                         className="flex-1 bg-black border border-white/30 rounded px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-white/40"
+                         className="flex-1 bg-slate-900 border border-cyan-500/50 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 placeholder:text-gray-400"
+                         style={{ color: '#ffffff', caretColor: '#06b6d4' }}
                          autoFocus
                          data-testid="input-website-url"
                        />
