@@ -288,7 +288,7 @@ export default function Admin() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("users");
+  const [activeTab, setActiveTab] = useState("customers");
   const [chatSubTab, setChatSubTab] = useState("leads");
   const [csSubTab, setCsSubTab] = useState("orders");
   const [searchQuery, setSearchQuery] = useState("");
@@ -1126,6 +1126,10 @@ export default function Admin() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
           <div className="overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0">
             <TabsList className="bg-white/5 border border-white/10 w-max md:w-auto">
+              <TabsTrigger value="customers" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-customers">
+                <Headphones className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Customer Service</span>
+              </TabsTrigger>
               <TabsTrigger value="users" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-users">
                 <Users className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">Users</span>
@@ -1134,33 +1138,29 @@ export default function Admin() {
                 <MessageSquare className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">Chat</span>
               </TabsTrigger>
-              <TabsTrigger value="media" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-media">
-                <Video className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Media ({pendingMedia.length})</span>
-              </TabsTrigger>
               <TabsTrigger value="analytics" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-analytics">
                 <BarChart3 className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Analytics</span>
+                <span className="hidden md:inline">Stats</span>
               </TabsTrigger>
               <TabsTrigger value="grader" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-grader">
                 <Globe className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Grader Leads</span>
-              </TabsTrigger>
-              <TabsTrigger value="features" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-features">
-                <Settings className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Features</span>
+                <span className="hidden md:inline">Grader</span>
               </TabsTrigger>
               <TabsTrigger value="commerce" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-commerce">
                 <CreditCard className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Commerce</span>
-              </TabsTrigger>
-              <TabsTrigger value="customers" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-customers">
-                <Headphones className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">Customer Service</span>
+                <span className="hidden md:inline">Stripe</span>
               </TabsTrigger>
               <TabsTrigger value="backlinks" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-backlinks">
                 <Link2 className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">Backlinks</span>
+              </TabsTrigger>
+              <TabsTrigger value="media" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-media">
+                <Video className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Media ({pendingMedia.length})</span>
+              </TabsTrigger>
+              <TabsTrigger value="features" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-features">
+                <Settings className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Feature Flags</span>
               </TabsTrigger>
             </TabsList>
           </div>
