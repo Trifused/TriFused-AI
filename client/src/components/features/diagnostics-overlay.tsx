@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Shield, Globe, Cpu, MapPin, Wifi, Lock, AlertTriangle, CheckCircle, RefreshCw, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 interface SystemData {
   ip: string;
@@ -27,6 +28,8 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
   const [data, setData] = useState<Partial<SystemData>>({});
   const [status, setStatus] = useState<'idle' | 'scanning' | 'complete'>('idle');
   const [scanProgress, setScanProgress] = useState(0);
+  const [showWebsitePrompt, setShowWebsitePrompt] = useState(false);
+  const [, setLocation] = useLocation();
 
   const addLog = (msg: string) => {
     setLogs(prev => [...prev, `> ${msg}`]);
@@ -37,6 +40,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
     setLogs([]);
     setData({});
     setScanProgress(0);
+    setShowWebsitePrompt(false);
 
     // Step 1: System Info
     addLog("Initializing heuristic scan...");
@@ -144,9 +148,12 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
       });
       
       addLog("Analytics synchronized.");
+      await new Promise(r => setTimeout(r, 800));
+      setShowWebsitePrompt(true);
     } catch (error) {
       console.error("Failed to save diagnostic data:", error);
-      // Silent fail - don't show error to user as it's analytics only
+      await new Promise(r => setTimeout(r, 800));
+      setShowWebsitePrompt(true);
     }
   };
 
@@ -156,6 +163,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
     } else if (!open) {
       setStatus('idle');
       setLogs([]);
+      setShowWebsitePrompt(false);
     }
   }, [open]);
 
@@ -199,6 +207,35 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                    transition={{ repeat: Infinity, duration: 0.8 }}
                    className="w-2 h-4 bg-primary"
                  />
+               )}
+               {showWebsitePrompt && (
+                 <motion.div 
+                   initial={{ opacity: 0, x: -10 }}
+                   animate={{ opacity: 1, x: 0 }}
+                   className="text-white/80 break-words mt-2"
+                 >
+                   <span className="text-primary mr-2">➜</span>
+                   {'>'} Test your website? [
+                   <button 
+                     onClick={() => {
+                       onOpenChange(false);
+                       setLocation('/grader');
+                     }}
+                     className="text-green-400 hover:text-green-300 underline cursor-pointer font-bold"
+                     data-testid="button-test-website-yes"
+                   >
+                     Y
+                   </button>
+                   /
+                   <button 
+                     onClick={() => onOpenChange(false)}
+                     className="text-red-400 hover:text-red-300 underline cursor-pointer font-bold"
+                     data-testid="button-test-website-no"
+                   >
+                     N
+                   </button>
+                   ]
+                 </motion.div>
                )}
              </div>
           </div>
