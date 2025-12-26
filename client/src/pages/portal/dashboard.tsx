@@ -667,12 +667,26 @@ export default function Dashboard() {
                       <div className="font-medium text-white">{quickGradeResult.mobileScore}</div>
                     </div>
                   </div>
-                  <button
-                    onClick={() => { setQuickGradeResult(null); setQuickGradeUrl(""); }}
-                    className="mt-3 text-xs text-muted-foreground hover:text-white transition-colors"
-                  >
-                    Clear result
-                  </button>
+                  <div className="mt-3 flex items-center gap-4">
+                    <button
+                      onClick={() => {
+                        const text = `${quickGradeResult.domain || quickGradeResult.url} - ${quickGradeResult.overallScore}/100\nSEO: ${quickGradeResult.seoScore} | Security: ${quickGradeResult.securityScore} | Perf: ${quickGradeResult.performanceScore}\nAccess: ${quickGradeResult.accessibilityScore} | Email: ${quickGradeResult.emailSecurityScore} | Mobile: ${quickGradeResult.mobileScore}`;
+                        navigator.clipboard.writeText(text);
+                        toast({ title: "Copied!", description: "Scorecard copied to clipboard" });
+                      }}
+                      className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1"
+                      data-testid="btn-copy-scorecard"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Copy scorecard
+                    </button>
+                    <button
+                      onClick={() => { setQuickGradeResult(null); setQuickGradeUrl(""); }}
+                      className="text-xs text-muted-foreground hover:text-white transition-colors"
+                    >
+                      Clear result
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
