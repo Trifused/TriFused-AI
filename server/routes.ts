@@ -2966,11 +2966,39 @@ Your primary goal is to help users AND capture their contact information natural
         }
       }
 
+      // Core Web Vitals data (populated by Lighthouse if enabled)
+      let coreWebVitals: {
+        lcp: number | null;
+        cls: number | null;
+        tbt: number | null;
+        fcp: number | null;
+        speedIndex: number | null;
+        tti: number | null;
+        lighthousePerformance: number | null;
+        lighthouseAccessibility: number | null;
+        lighthouseSeo: number | null;
+        lighthouseBestPractices: number | null;
+      } | null = null;
+      
       // Performance - Direct Lighthouse analysis (free, no API key needed)
       // Only run Lighthouse if explicitly enabled (superuser toggle)
       if (useLighthouse) {
         try {
           const lighthouseResult = await lighthouseService.runAudit(url);
+          
+          // Populate Core Web Vitals
+          coreWebVitals = {
+            lcp: lighthouseResult.metrics.largestContentfulPaint,
+            cls: lighthouseResult.metrics.cumulativeLayoutShift,
+            tbt: lighthouseResult.metrics.totalBlockingTime,
+            fcp: lighthouseResult.metrics.firstContentfulPaint,
+            speedIndex: lighthouseResult.metrics.speedIndex,
+            tti: lighthouseResult.metrics.timeToInteractive,
+            lighthousePerformance: lighthouseResult.performance,
+            lighthouseAccessibility: lighthouseResult.accessibility,
+            lighthouseSeo: lighthouseResult.seo,
+            lighthouseBestPractices: lighthouseResult.bestPractices,
+          };
         
         const perfScore = lighthouseResult.performance;
         const accessScore = lighthouseResult.accessibility;
@@ -3826,6 +3854,7 @@ Your primary goal is to help users AND capture their contact information natural
           findings,
           companyName: companyName || null,
           domain: parsedDomain,
+          coreWebVitals,
           blind: true,
         });
       }
@@ -3874,7 +3903,7 @@ Your primary goal is to help users AND capture their contact information natural
       const shareAssets = await generateShareAssets(grade.id, baseUrl);
       await storage.updateWebsiteGradeShareInfo(grade.id, shareAssets.shareToken, shareAssets.qrCodeData);
 
-      res.json({ ...grade, shareToken: shareAssets.shareToken, qrCodeData: shareAssets.qrCodeData });
+      res.json({ ...grade, shareToken: shareAssets.shareToken, qrCodeData: shareAssets.qrCodeData, coreWebVitals });
     } catch (error: any) {
       console.error("Website grader error:", error);
       if (error instanceof z.ZodError) {

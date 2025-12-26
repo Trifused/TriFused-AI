@@ -54,6 +54,19 @@ interface Finding {
   passed: boolean;
 }
 
+interface CoreWebVitals {
+  lcp: number | null;
+  cls: number | null;
+  tbt: number | null;
+  fcp: number | null;
+  speedIndex: number | null;
+  tti: number | null;
+  lighthousePerformance: number | null;
+  lighthouseAccessibility: number | null;
+  lighthouseSeo: number | null;
+  lighthouseBestPractices: number | null;
+}
+
 interface GradeResult {
   id: string;
   url: string;
@@ -80,6 +93,7 @@ interface GradeResult {
   pciScore: number | null;
   fcaScore: number | null;
   gdprScore: number | null;
+  coreWebVitals?: CoreWebVitals | null;
 }
 
 function getGradeLetter(score: number): string {
@@ -794,6 +808,133 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                               </div>
                             )}
                           </div>
+                        </div>
+                      )}
+
+                      {result.coreWebVitals && (
+                        <div className="mt-4 p-4 bg-gradient-to-br from-purple-500/10 to-cyan-500/10 rounded-lg border border-purple-500/20">
+                          <div className="flex items-center gap-2 text-sm mb-3">
+                            <Zap className="w-4 h-4 text-purple-400" />
+                            <span className="font-medium text-white">Core Web Vitals</span>
+                            <span className="text-xs text-muted-foreground">(via Lighthouse)</span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {result.coreWebVitals.lcp !== null && (
+                              <div className="p-2 bg-black/30 rounded-lg">
+                                <p className="text-xs text-muted-foreground">LCP</p>
+                                <p className={`text-lg font-bold ${
+                                  result.coreWebVitals.lcp <= 2500 ? 'text-green-400' : 
+                                  result.coreWebVitals.lcp <= 4000 ? 'text-yellow-400' : 'text-red-400'
+                                }`}>
+                                  {(result.coreWebVitals.lcp / 1000).toFixed(1)}s
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">Largest Contentful Paint</p>
+                              </div>
+                            )}
+                            {result.coreWebVitals.cls !== null && (
+                              <div className="p-2 bg-black/30 rounded-lg">
+                                <p className="text-xs text-muted-foreground">CLS</p>
+                                <p className={`text-lg font-bold ${
+                                  result.coreWebVitals.cls <= 0.1 ? 'text-green-400' : 
+                                  result.coreWebVitals.cls <= 0.25 ? 'text-yellow-400' : 'text-red-400'
+                                }`}>
+                                  {result.coreWebVitals.cls.toFixed(3)}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">Cumulative Layout Shift</p>
+                              </div>
+                            )}
+                            {result.coreWebVitals.tbt !== null && (
+                              <div className="p-2 bg-black/30 rounded-lg">
+                                <p className="text-xs text-muted-foreground">TBT</p>
+                                <p className={`text-lg font-bold ${
+                                  result.coreWebVitals.tbt <= 300 ? 'text-green-400' : 
+                                  result.coreWebVitals.tbt <= 600 ? 'text-yellow-400' : 'text-red-400'
+                                }`}>
+                                  {Math.round(result.coreWebVitals.tbt)}ms
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">Total Blocking Time</p>
+                              </div>
+                            )}
+                            {result.coreWebVitals.fcp !== null && (
+                              <div className="p-2 bg-black/30 rounded-lg">
+                                <p className="text-xs text-muted-foreground">FCP</p>
+                                <p className={`text-lg font-bold ${
+                                  result.coreWebVitals.fcp <= 1800 ? 'text-green-400' : 
+                                  result.coreWebVitals.fcp <= 3000 ? 'text-yellow-400' : 'text-red-400'
+                                }`}>
+                                  {(result.coreWebVitals.fcp / 1000).toFixed(1)}s
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">First Contentful Paint</p>
+                              </div>
+                            )}
+                            {result.coreWebVitals.speedIndex !== null && (
+                              <div className="p-2 bg-black/30 rounded-lg">
+                                <p className="text-xs text-muted-foreground">Speed Index</p>
+                                <p className={`text-lg font-bold ${
+                                  result.coreWebVitals.speedIndex <= 3400 ? 'text-green-400' : 
+                                  result.coreWebVitals.speedIndex <= 5800 ? 'text-yellow-400' : 'text-red-400'
+                                }`}>
+                                  {(result.coreWebVitals.speedIndex / 1000).toFixed(1)}s
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">Visual Loading Speed</p>
+                              </div>
+                            )}
+                            {result.coreWebVitals.tti !== null && (
+                              <div className="p-2 bg-black/30 rounded-lg">
+                                <p className="text-xs text-muted-foreground">TTI</p>
+                                <p className={`text-lg font-bold ${
+                                  result.coreWebVitals.tti <= 3800 ? 'text-green-400' : 
+                                  result.coreWebVitals.tti <= 7300 ? 'text-yellow-400' : 'text-red-400'
+                                }`}>
+                                  {(result.coreWebVitals.tti / 1000).toFixed(1)}s
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">Time to Interactive</p>
+                              </div>
+                            )}
+                          </div>
+                          {(result.coreWebVitals.lighthousePerformance !== null || result.coreWebVitals.lighthouseAccessibility !== null) && (
+                            <div className="mt-3 pt-3 border-t border-white/10">
+                              <p className="text-xs text-muted-foreground mb-2">Lighthouse Scores</p>
+                              <div className="flex flex-wrap gap-3">
+                                {result.coreWebVitals.lighthousePerformance !== null && (
+                                  <div className="flex items-center gap-1">
+                                    <span className={`text-sm font-bold ${
+                                      result.coreWebVitals.lighthousePerformance >= 90 ? 'text-green-400' :
+                                      result.coreWebVitals.lighthousePerformance >= 50 ? 'text-yellow-400' : 'text-red-400'
+                                    }`}>{result.coreWebVitals.lighthousePerformance}</span>
+                                    <span className="text-xs text-muted-foreground">Performance</span>
+                                  </div>
+                                )}
+                                {result.coreWebVitals.lighthouseAccessibility !== null && (
+                                  <div className="flex items-center gap-1">
+                                    <span className={`text-sm font-bold ${
+                                      result.coreWebVitals.lighthouseAccessibility >= 90 ? 'text-green-400' :
+                                      result.coreWebVitals.lighthouseAccessibility >= 50 ? 'text-yellow-400' : 'text-red-400'
+                                    }`}>{result.coreWebVitals.lighthouseAccessibility}</span>
+                                    <span className="text-xs text-muted-foreground">Accessibility</span>
+                                  </div>
+                                )}
+                                {result.coreWebVitals.lighthouseSeo !== null && (
+                                  <div className="flex items-center gap-1">
+                                    <span className={`text-sm font-bold ${
+                                      result.coreWebVitals.lighthouseSeo >= 90 ? 'text-green-400' :
+                                      result.coreWebVitals.lighthouseSeo >= 50 ? 'text-yellow-400' : 'text-red-400'
+                                    }`}>{result.coreWebVitals.lighthouseSeo}</span>
+                                    <span className="text-xs text-muted-foreground">SEO</span>
+                                  </div>
+                                )}
+                                {result.coreWebVitals.lighthouseBestPractices !== null && (
+                                  <div className="flex items-center gap-1">
+                                    <span className={`text-sm font-bold ${
+                                      result.coreWebVitals.lighthouseBestPractices >= 90 ? 'text-green-400' :
+                                      result.coreWebVitals.lighthouseBestPractices >= 50 ? 'text-yellow-400' : 'text-red-400'
+                                    }`}>{result.coreWebVitals.lighthouseBestPractices}</span>
+                                    <span className="text-xs text-muted-foreground">Best Practices</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
