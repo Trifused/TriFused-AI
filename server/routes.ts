@@ -2326,14 +2326,18 @@ Your primary goal is to help users AND capture their contact information natural
       // Lighthouse scans bypass cache since they provide fresh performance data
       // Blind mode always bypasses cache to get fresh results
       const hasComplianceChecks = complianceChecks && Object.values(complianceChecks).some(v => v);
+      console.log(`[Grader] Request params - blind: ${blind}, forceRefresh: ${forceRefresh}, useLighthouse: ${useLighthouse}`);
       if (!hasComplianceChecks && !forceRefresh && !useLighthouse && !blind) {
+        console.log(`[Grader] Checking cache for ${url}`);
         const cached = await storage.getRecentGradeForUrl(url);
         // Only use cached result if it has reasonable performance data
         // Skip cache if performanceScore is 0 (likely from failed Lighthouse scan)
         if (cached && cached.performanceScore > 0) {
+          console.log(`[Grader] Returning cached result`);
           return res.json(cached);
         }
       }
+      console.log(`[Grader] Performing fresh scan for ${url}`);
 
       const findings: Finding[] = [];
       let seoScore = 100;
