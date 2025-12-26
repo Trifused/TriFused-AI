@@ -2319,10 +2319,11 @@ Your primary goal is to help users AND capture their contact information natural
       }
       
       // Check for cached result
-      // Only use cache if no compliance checks are requested and not forcing refresh
+      // Only use cache if no compliance checks are requested, not forcing refresh, and not using Lighthouse
       // Note: www and non-www are treated as separate URLs since they could serve different content
+      // Lighthouse scans bypass cache since they provide fresh performance data
       const hasComplianceChecks = complianceChecks && Object.values(complianceChecks).some(v => v);
-      if (!hasComplianceChecks && !forceRefresh) {
+      if (!hasComplianceChecks && !forceRefresh && !useLighthouse) {
         const cached = await storage.getRecentGradeForUrl(url);
         if (cached) {
           return res.json(cached);
