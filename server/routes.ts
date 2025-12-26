@@ -20,6 +20,7 @@ import QRCode from "qrcode";
 import puppeteer from "puppeteer";
 import { stripeService } from "./stripeService";
 import { apiService } from "./apiService";
+import { gtmetrixService } from "./gtmetrixService";
 import { getStripePublishableKey } from "./stripeClient";
 
 // AI Vision helper for FDIC badge detection
@@ -1325,6 +1326,96 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Admin stats error:", error);
       res.status(500).json({ error: "Failed to fetch admin stats" });
+    }
+  });
+
+  // API Tier Management Routes
+  app.get("/api/tiers", async (req: Request, res: Response) => {
+    try {
+      const tiers = await apiService.getAllTiers();
+      res.json(tiers);
+    } catch (error: any) {
+      console.error("Get tiers error:", error);
+      res.status(500).json({ error: "Failed to fetch tiers" });
+    }
+  });
+
+  app.get("/api/user/quota", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const quotaInfo = await apiService.getUserQuotaWithTier(userId);
+      res.json(quotaInfo);
+    } catch (error: any) {
+      console.error("Get user quota error:", error);
+      res.status(500).json({ error: "Failed to fetch user quota" });
+    }
+  });
+
+  app.post("/api/admin/users/:id/tier", isAuthenticated, isSuperuser, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { tierName } = req.body;
+      if (!tierName) {
+        return res.status(400).json({ error: "tierName is required" });
+      }
+      await apiService.setUserTier(id, tierName);
+      await storage.createUserActivityLog({
+        userId: id,
+        action: 'tier_changed',
+        details: { tierName, changedBy: req.user?.id },
+        performedBy: req.user?.id,
+      });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Set user tier error:", error);
+      res.status(500).json({ error: error.message || "Failed to set user tier" });
+    }
+  });
+
+  // GTmetrix Routes
+  app.get("/api/gtmetrix/balance", isAuthenticated, isSuperuser, async (req: any, res: Response) => {
+    try {
+      const balance = await gtmetrixService.checkBalance();
+      res.json(balance || { error: "GTmetrix API not configured" });
+    } catch (error: any) {
+      console.error("GTmetrix balance error:", error);
+      res.status(500).json({ error: "Failed to check GTmetrix balance" });
+    }
+  });
+
+  app.post("/api/gtmetrix/test", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { url } = req.body;
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      // Check if user can use GTmetrix
+      const quotaInfo = await apiService.getUserQuotaWithTier(userId);
+      if (!quotaInfo.canUseGtmetrix) {
+        return res.status(403).json({ error: "GTmetrix scans require Pro tier or higher" });
+      }
+
+      // Consume quota for GTmetrix scan
+      const consumeResult = await apiService.consumeScan(userId, 'gtmetrix');
+      if (!consumeResult.success) {
+        return res.status(429).json({ error: consumeResult.error });
+      }
+
+      // Run GTmetrix test
+      const result = await gtmetrixService.runFullTest(url);
+      res.json(result);
+    } catch (error: any) {
+      console.error("GTmetrix test error:", error);
+      res.status(500).json({ error: "Failed to run GTmetrix test" });
     }
   });
 

@@ -34,11 +34,33 @@ export class WebhookHandlers {
         await WebhookHandlers.handleSubscriptionEvent(event.data.object as Stripe.Subscription);
       }
       
+      if (event.type === 'customer.subscription.deleted') {
+        await WebhookHandlers.handleSubscriptionCancelled(event.data.object as Stripe.Subscription);
+      }
+      
       if (event.type === 'checkout.session.completed') {
         await WebhookHandlers.handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
       }
     } catch (error) {
       console.error('Custom webhook logic error:', error);
+    }
+  }
+
+  static async handleSubscriptionCancelled(subscription: Stripe.Subscription): Promise<void> {
+    const stripe = await getUncachableStripeClient();
+    const customerId = subscription.customer as string;
+    
+    const user = await storage.getUserByStripeCustomerId(customerId);
+    if (!user) return;
+
+    // Check if this was an API tier subscription
+    for (const item of subscription.items.data) {
+      const product = await stripe.products.retrieve(item.price.product as string);
+      if (product.metadata?.product_type === 'api_tier') {
+        // Downgrade to free tier
+        await apiService.setUserTier(user.id, 'free');
+        console.log(`Downgraded user ${user.id} to free tier after subscription cancellation`);
+      }
     }
   }
 
@@ -80,6 +102,19 @@ export class WebhookHandlers {
     
     for (const item of subscription.items.data) {
       const product = await stripe.products.retrieve(item.price.product as string);
+      
+      // Handle API tier subscriptions
+      if (product.metadata?.product_type === 'api_tier') {
+        const tierName = product.metadata?.tier_name;
+        if (tierName) {
+          const customerId = subscription.customer as string;
+          const user = await storage.getUserByStripeCustomerId(customerId);
+          if (user) {
+            await apiService.setUserTier(user.id, tierName);
+            console.log(`Assigned API tier '${tierName}' to user ${user.id}`);
+          }
+        }
+      }
       
       if (product.metadata?.product_type === 'report_subscription') {
         const customerId = subscription.customer as string;

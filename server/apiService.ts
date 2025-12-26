@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { eq, sql, desc, and } from "drizzle-orm";
-import { apiKeys, apiQuotas, apiUsageLogs, apiCallPacks } from "@shared/schema";
+import { apiKeys, apiQuotas, apiUsageLogs, apiCallPacks, apiTiers, type ApiTier } from "@shared/schema";
 import crypto from "crypto";
 
 class ApiService {
@@ -282,6 +282,163 @@ class ApiService {
     
     const row = result.rows[0] as any;
     return row?.discount ? parseInt(row.discount) : 0;
+  }
+
+  // Tier management methods
+  async getAllTiers(): Promise<ApiTier[]> {
+    return await db.select().from(apiTiers).orderBy(apiTiers.sortOrder);
+  }
+
+  async getTierByName(name: string): Promise<ApiTier | null> {
+    const [tier] = await db.select().from(apiTiers).where(eq(apiTiers.name, name));
+    return tier || null;
+  }
+
+  async getTierById(tierId: string): Promise<ApiTier | null> {
+    const [tier] = await db.select().from(apiTiers).where(eq(apiTiers.id, tierId));
+    return tier || null;
+  }
+
+  async getUserTier(userId: string): Promise<ApiTier | null> {
+    const quota = await this.getOrCreateQuota(userId);
+    if (!quota.tierId) {
+      // Default to free tier
+      return await this.getTierByName('free');
+    }
+    return await this.getTierById(quota.tierId);
+  }
+
+  async setUserTier(userId: string, tierName: string): Promise<void> {
+    const tier = await this.getTierByName(tierName);
+    if (!tier) throw new Error(`Tier ${tierName} not found`);
+    
+    await this.getOrCreateQuota(userId);
+    
+    await db.update(apiQuotas)
+      .set({
+        tierId: tier.id,
+        subscriptionCalls: tier.monthlyLimit,
+        totalCalls: tier.monthlyLimit,
+        updatedAt: new Date(),
+      })
+      .where(eq(apiQuotas.userId, userId));
+  }
+
+  // Check and reset daily/monthly quotas
+  async checkAndResetQuotas(userId: string): Promise<void> {
+    const quota = await this.getOrCreateQuota(userId);
+    const now = new Date();
+    const updates: Record<string, any> = {};
+
+    // Check daily reset (reset if last reset was on a different day)
+    if (quota.lastDailyReset) {
+      const lastDaily = new Date(quota.lastDailyReset);
+      if (lastDaily.toDateString() !== now.toDateString()) {
+        updates.dailyUsed = 0;
+        updates.lastDailyReset = now;
+      }
+    }
+
+    // Check monthly reset (reset if last reset was in a different month)
+    if (quota.lastMonthlyReset) {
+      const lastMonthly = new Date(quota.lastMonthlyReset);
+      if (lastMonthly.getMonth() !== now.getMonth() || lastMonthly.getFullYear() !== now.getFullYear()) {
+        updates.monthlyUsed = 0;
+        updates.usedCalls = 0;
+        updates.lastMonthlyReset = now;
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      updates.updatedAt = now;
+      await db.update(apiQuotas).set(updates).where(eq(apiQuotas.userId, userId));
+    }
+  }
+
+  // Get quota with tier info and remaining calls
+  async getUserQuotaWithTier(userId: string): Promise<{
+    quota: typeof apiQuotas.$inferSelect;
+    tier: ApiTier | null;
+    dailyRemaining: number;
+    monthlyRemaining: number;
+    canUseGtmetrix: boolean;
+  }> {
+    await this.checkAndResetQuotas(userId);
+    const quota = await this.getOrCreateQuota(userId);
+    const tier = await this.getUserTier(userId);
+
+    const dailyLimit = tier?.dailyLimit || 5;
+    const monthlyLimit = tier?.monthlyLimit || 50;
+
+    return {
+      quota,
+      tier,
+      dailyRemaining: Math.max(0, dailyLimit - (quota.dailyUsed || 0)),
+      monthlyRemaining: Math.max(0, monthlyLimit - (quota.monthlyUsed || 0)),
+      canUseGtmetrix: tier?.gtmetrixEnabled === 1,
+    };
+  }
+
+  // Consume a scan with tier-based cost
+  async consumeScan(userId: string, scanType: 'basic' | 'gtmetrix' = 'basic'): Promise<{
+    success: boolean;
+    error?: string;
+    dailyRemaining: number;
+    monthlyRemaining: number;
+  }> {
+    await this.checkAndResetQuotas(userId);
+    const quota = await this.getOrCreateQuota(userId);
+    const tier = await this.getUserTier(userId);
+
+    const dailyLimit = tier?.dailyLimit || 5;
+    const monthlyLimit = tier?.monthlyLimit || 50;
+    const cost = scanType === 'gtmetrix' ? (tier?.gtmetrixCost || 3) : (tier?.basicScanCost || 1);
+
+    // Check GTmetrix permission
+    if (scanType === 'gtmetrix' && tier?.gtmetrixEnabled !== 1) {
+      return {
+        success: false,
+        error: 'GTmetrix scans require Pro tier or higher',
+        dailyRemaining: Math.max(0, dailyLimit - (quota.dailyUsed || 0)),
+        monthlyRemaining: Math.max(0, monthlyLimit - (quota.monthlyUsed || 0)),
+      };
+    }
+
+    // Check daily limit
+    if ((quota.dailyUsed || 0) + cost > dailyLimit) {
+      return {
+        success: false,
+        error: 'Daily scan limit reached',
+        dailyRemaining: 0,
+        monthlyRemaining: Math.max(0, monthlyLimit - (quota.monthlyUsed || 0)),
+      };
+    }
+
+    // Check monthly limit
+    if ((quota.monthlyUsed || 0) + cost > monthlyLimit) {
+      return {
+        success: false,
+        error: 'Monthly scan limit reached',
+        dailyRemaining: Math.max(0, dailyLimit - (quota.dailyUsed || 0)),
+        monthlyRemaining: 0,
+      };
+    }
+
+    // Deduct the cost
+    await db.update(apiQuotas)
+      .set({
+        dailyUsed: (quota.dailyUsed || 0) + cost,
+        monthlyUsed: (quota.monthlyUsed || 0) + cost,
+        usedCalls: (quota.usedCalls || 0) + cost,
+        updatedAt: new Date(),
+      })
+      .where(eq(apiQuotas.userId, userId));
+
+    return {
+      success: true,
+      dailyRemaining: Math.max(0, dailyLimit - (quota.dailyUsed || 0) - cost),
+      monthlyRemaining: Math.max(0, monthlyLimit - (quota.monthlyUsed || 0) - cost),
+    };
   }
 }
 

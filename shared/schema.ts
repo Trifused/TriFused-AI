@@ -400,14 +400,51 @@ export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;
 
+// API Tiers - defines subscription tier levels with quotas and features
+export const apiTierNames = ["free", "starter", "pro", "enterprise"] as const;
+export type ApiTierName = typeof apiTierNames[number];
+
+export const apiTiers = pgTable("api_tiers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull().unique(),
+  displayName: varchar("display_name").notNull(),
+  monthlyLimit: integer("monthly_limit").notNull(),
+  dailyLimit: integer("daily_limit").notNull(),
+  gtmetrixEnabled: integer("gtmetrix_enabled").default(0).notNull(),
+  gtmetrixCost: integer("gtmetrix_cost").default(3).notNull(),
+  basicScanCost: integer("basic_scan_cost").default(1).notNull(),
+  bulkScansEnabled: integer("bulk_scans_enabled").default(0).notNull(),
+  whitelabelEnabled: integer("whitelabel_enabled").default(0).notNull(),
+  prioritySupport: integer("priority_support").default(0).notNull(),
+  priceMonthly: integer("price_monthly").default(0).notNull(),
+  priceYearly: integer("price_yearly").default(0).notNull(),
+  stripePriceIdMonthly: varchar("stripe_price_id_monthly"),
+  stripePriceIdYearly: varchar("stripe_price_id_yearly"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertApiTierSchema = createInsertSchema(apiTiers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertApiTier = z.infer<typeof insertApiTierSchema>;
+export type ApiTier = typeof apiTiers.$inferSelect;
+
 // API Quotas - tracks available calls per user
 export const apiQuotas = pgTable("api_quotas", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().unique(),
+  tierId: varchar("tier_id"),
   totalCalls: integer("total_calls").default(0).notNull(),
   usedCalls: integer("used_calls").default(0).notNull(),
   subscriptionCalls: integer("subscription_calls").default(0).notNull(),
   packCalls: integer("pack_calls").default(0).notNull(),
+  dailyUsed: integer("daily_used").default(0).notNull(),
+  monthlyUsed: integer("monthly_used").default(0).notNull(),
+  lastDailyReset: timestamp("last_daily_reset").defaultNow(),
+  lastMonthlyReset: timestamp("last_monthly_reset").defaultNow(),
   resetAt: timestamp("reset_at"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

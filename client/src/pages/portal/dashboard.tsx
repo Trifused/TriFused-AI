@@ -144,6 +144,28 @@ interface ActivityItem {
   type: string;
 }
 
+interface ApiTier {
+  id: string;
+  name: string;
+  displayName: string;
+  monthlyLimit: number;
+  dailyLimit: number;
+  gtmetrixEnabled: number;
+  priceMonthly: number;
+  priceYearly: number;
+}
+
+interface UserQuotaInfo {
+  quota: {
+    dailyUsed: number;
+    monthlyUsed: number;
+  };
+  tier: ApiTier | null;
+  dailyRemaining: number;
+  monthlyRemaining: number;
+  canUseGtmetrix: boolean;
+}
+
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -229,6 +251,26 @@ export default function Dashboard() {
       return res.json();
     },
     enabled: isAuthenticated && isSuperuser,
+  });
+
+  const { data: quotaInfo } = useQuery<UserQuotaInfo>({
+    queryKey: ['/api/user/quota'],
+    queryFn: async () => {
+      const res = await fetch('/api/user/quota', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch quota');
+      return res.json();
+    },
+    enabled: isAuthenticated,
+  });
+
+  const { data: allTiers } = useQuery<ApiTier[]>({
+    queryKey: ['/api/tiers'],
+    queryFn: async () => {
+      const res = await fetch('/api/tiers', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch tiers');
+      return res.json();
+    },
+    enabled: isAuthenticated,
   });
 
   const { data: productionAnalytics, isLoading: productionAnalyticsLoading } = useQuery<{
@@ -592,6 +634,133 @@ export default function Dashboard() {
               : "Here's an overview of your account and recent activity."}
           </p>
         </motion.div>
+
+        {/* API Usage & Tier Panel */}
+        {quotaInfo && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <div className="glass-panel rounded-xl p-4 md:p-6">
+              <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+                {/* Current Tier */}
+                <div className="flex-shrink-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Crown className={`w-5 h-5 ${
+                      quotaInfo.tier?.name === 'enterprise' ? 'text-purple-400' :
+                      quotaInfo.tier?.name === 'pro' ? 'text-cyan-400' :
+                      quotaInfo.tier?.name === 'starter' ? 'text-blue-400' :
+                      'text-gray-400'
+                    }`} />
+                    <span className="text-sm text-muted-foreground">Current Plan</span>
+                  </div>
+                  <div className="text-xl font-bold text-white">
+                    {quotaInfo.tier?.displayName || 'Free'}
+                  </div>
+                  {quotaInfo.tier && quotaInfo.tier.name !== 'free' && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      ${(quotaInfo.tier.priceMonthly / 100).toFixed(2)}/mo
+                    </div>
+                  )}
+                </div>
+
+                {/* Usage Meters */}
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Daily Usage */}
+                  {(() => {
+                    const dailyUsed = quotaInfo.quota.dailyUsed ?? 0;
+                    const dailyLimit = quotaInfo.tier?.dailyLimit || 5;
+                    const dailyRatio = dailyUsed / dailyLimit;
+                    const dailyRemaining = Math.max(0, dailyLimit - dailyUsed);
+                    return (
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-muted-foreground">Daily Usage</span>
+                          <span className="text-xs text-white">
+                            {dailyUsed} / {dailyLimit}
+                          </span>
+                        </div>
+                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all ${
+                              dailyRatio > 0.9 ? 'bg-red-500' :
+                              dailyRatio > 0.7 ? 'bg-yellow-500' :
+                              'bg-cyan-500'
+                            }`}
+                            style={{ width: `${Math.min(100, dailyRatio * 100)}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {dailyRemaining} scans remaining today
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Monthly Usage */}
+                  {(() => {
+                    const monthlyUsed = quotaInfo.quota.monthlyUsed ?? 0;
+                    const monthlyLimit = quotaInfo.tier?.monthlyLimit || 50;
+                    const monthlyRatio = monthlyUsed / monthlyLimit;
+                    const monthlyRemaining = Math.max(0, monthlyLimit - monthlyUsed);
+                    return (
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-muted-foreground">Monthly Usage</span>
+                          <span className="text-xs text-white">
+                            {monthlyUsed} / {monthlyLimit}
+                          </span>
+                        </div>
+                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all ${
+                              monthlyRatio > 0.9 ? 'bg-red-500' :
+                              monthlyRatio > 0.7 ? 'bg-yellow-500' :
+                              'bg-cyan-500'
+                            }`}
+                            style={{ width: `${Math.min(100, monthlyRatio * 100)}%` }}
+                          />
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {monthlyRemaining} scans remaining this month
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* GTmetrix Badge & Upgrade */}
+                <div className="flex-shrink-0 flex flex-col items-end justify-between">
+                  {quotaInfo.canUseGtmetrix ? (
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-cyan-500/20 rounded text-xs text-cyan-400">
+                      <Zap className="w-3 h-3" />
+                      GTmetrix Enabled
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded text-xs text-muted-foreground">
+                      <Lock className="w-3 h-3" />
+                      GTmetrix (Pro+)
+                    </div>
+                  )}
+                  
+                  {quotaInfo.tier?.name !== 'enterprise' && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2 text-xs"
+                      onClick={() => setLocation('/portal/billing')}
+                      data-testid="btn-upgrade-tier"
+                    >
+                      <TrendingUp className="w-3 h-3 mr-1" />
+                      Upgrade
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {isSuperuser && (
           <motion.div
