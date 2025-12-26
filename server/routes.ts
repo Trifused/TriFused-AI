@@ -2019,6 +2019,7 @@ Your primary goal is to help users AND capture their contact information natural
     email: z.string().email().optional(),
     complianceChecks: z.record(z.boolean()).optional(),
     forceRefresh: z.boolean().optional(),
+    blind: z.boolean().optional(),
   });
 
   interface Finding {
@@ -2172,7 +2173,7 @@ Your primary goal is to help users AND capture their contact information natural
 
   app.post("/api/grade", async (req: Request, res: Response) => {
     try {
-      const { url, email, complianceChecks, forceRefresh } = gradeUrlSchema.parse(req.body);
+      const { url, email, complianceChecks, forceRefresh, blind } = gradeUrlSchema.parse(req.body);
       
       // SSRF protection: validate URL before fetching
       const urlValidation = await validateUrl(url);
@@ -3586,6 +3587,26 @@ Your primary goal is to help users AND capture their contact information natural
       
       // Recalculate overall score with email security and mobile
       const updatedOverallScore = Math.round((seoScore + Math.max(0, securityScore) + performanceScore + keywordsScore + accessibilityScore + emailSecurity.emailSecurityScore + finalScores.mobileScore) / 7);
+
+      // Blind mode: return results without saving to database (for quick superuser lookups)
+      if (blind) {
+        return res.json({
+          id: 'blind-' + Date.now(),
+          url,
+          overallScore: Math.max(0, Math.min(100, updatedOverallScore)),
+          seoScore: finalScores.seoScore,
+          securityScore: Math.max(0, Math.min(100, securityScore)),
+          performanceScore: finalScores.performanceScore,
+          keywordsScore: finalScores.keywordsScore,
+          accessibilityScore: finalScores.accessibilityScore,
+          emailSecurityScore: emailSecurity.emailSecurityScore,
+          mobileScore: finalScores.mobileScore,
+          findings,
+          companyName: companyName || null,
+          domain: parsedDomain,
+          blind: true,
+        });
+      }
 
       // Store the grade with lead data
       const grade = await storage.createWebsiteGrade({

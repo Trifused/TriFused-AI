@@ -50,7 +50,8 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Zap, Clock, CheckCircle2, XCircle, TrendingUp } from "lucide-react";
+import { Zap, Clock, CheckCircle2, XCircle, TrendingUp, Search, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface AdminStats {
   subscribers: number;
@@ -156,6 +157,9 @@ export default function Dashboard() {
   const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [loadingLeadId, setLoadingLeadId] = useState<string | null>(null);
+  const [quickGradeUrl, setQuickGradeUrl] = useState("");
+  const [quickGradeLoading, setQuickGradeLoading] = useState(false);
+  const [quickGradeResult, setQuickGradeResult] = useState<any>(null);
 
   const { data: stats } = useQuery<AdminStats>({
     queryKey: ['/api/admin/stats'],
@@ -304,6 +308,43 @@ export default function Dashboard() {
     }, {} as Record<string, number>),
     secureConnections: diagnosticScans.filter(d => d.isSecure === 1).length,
   } : null;
+
+  const handleQuickGrade = async () => {
+    if (!quickGradeUrl.trim()) return;
+    
+    let urlToGrade = quickGradeUrl.trim();
+    if (!urlToGrade.startsWith('http://') && !urlToGrade.startsWith('https://')) {
+      urlToGrade = 'https://' + urlToGrade;
+    }
+    
+    setQuickGradeLoading(true);
+    setQuickGradeResult(null);
+    
+    try {
+      const res = await fetch('/api/grade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ url: urlToGrade, blind: true }),
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to grade website');
+      }
+      
+      const result = await res.json();
+      setQuickGradeResult(result);
+    } catch (error: any) {
+      toast({
+        title: "Grade Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setQuickGradeLoading(false);
+    }
+  };
 
   // Calculate grader stats
   const graderAvgScore = graderLeads && graderLeads.length > 0 
@@ -551,6 +592,88 @@ export default function Dashboard() {
               : "Here's an overview of your account and recent activity."}
           </p>
         </motion.div>
+
+        {isSuperuser && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <div className="glass-panel rounded-xl p-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Quick grade URL (not saved to stats)..."
+                    value={quickGradeUrl}
+                    onChange={(e) => setQuickGradeUrl(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleQuickGrade()}
+                    className="pl-10 bg-white/5 border-white/10 h-11"
+                    data-testid="input-quick-grade"
+                  />
+                </div>
+                <Button
+                  onClick={handleQuickGrade}
+                  disabled={quickGradeLoading || !quickGradeUrl.trim()}
+                  className="h-11 px-6"
+                  data-testid="btn-quick-grade"
+                >
+                  {quickGradeLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Grade"
+                  )}
+                </Button>
+              </div>
+              {quickGradeResult && (
+                <div className="mt-4 p-3 bg-white/5 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-muted-foreground truncate flex-1 mr-2">{quickGradeResult.url}</span>
+                    <span className={`text-2xl font-bold ${
+                      quickGradeResult.overallScore >= 80 ? 'text-green-500' :
+                      quickGradeResult.overallScore >= 60 ? 'text-yellow-500' :
+                      'text-red-500'
+                    }`}>
+                      {quickGradeResult.overallScore}/100
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-xs">
+                    <div className="text-center p-2 bg-white/5 rounded">
+                      <div className="text-muted-foreground">SEO</div>
+                      <div className="font-medium text-white">{quickGradeResult.seoScore}</div>
+                    </div>
+                    <div className="text-center p-2 bg-white/5 rounded">
+                      <div className="text-muted-foreground">Security</div>
+                      <div className="font-medium text-white">{quickGradeResult.securityScore}</div>
+                    </div>
+                    <div className="text-center p-2 bg-white/5 rounded">
+                      <div className="text-muted-foreground">Perf</div>
+                      <div className="font-medium text-white">{quickGradeResult.performanceScore}</div>
+                    </div>
+                    <div className="text-center p-2 bg-white/5 rounded">
+                      <div className="text-muted-foreground">Access</div>
+                      <div className="font-medium text-white">{quickGradeResult.accessibilityScore}</div>
+                    </div>
+                    <div className="text-center p-2 bg-white/5 rounded">
+                      <div className="text-muted-foreground">Email</div>
+                      <div className="font-medium text-white">{quickGradeResult.emailSecurityScore}</div>
+                    </div>
+                    <div className="text-center p-2 bg-white/5 rounded">
+                      <div className="text-muted-foreground">Mobile</div>
+                      <div className="font-medium text-white">{quickGradeResult.mobileScore}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setQuickGradeResult(null); setQuickGradeUrl(""); }}
+                    className="mt-3 text-xs text-muted-foreground hover:text-white transition-colors"
+                  >
+                    Clear result
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
           {quickActions.map((action, index) => (
