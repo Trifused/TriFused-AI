@@ -278,7 +278,7 @@ export default function Grader() {
   const [shareCopied, setShareCopied] = useState(false);
   const [complianceChecks, setComplianceChecks] = useState<Record<string, boolean>>({});
   const [forceRefresh, setForceRefresh] = useState(false);
-  const [useLighthouse, setUseLighthouse] = useState(true);
+  const [useLighthouse, setUseLighthouse] = useState(false);
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const { toast } = useToast();
@@ -615,7 +615,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   <span className="text-xs opacity-70">(bypass 24h cache)</span>
                 </button>
                 
-                {isSuperuser && (
+                {isSuperuser ? (
                   <button
                     type="button"
                     onClick={() => setUseLighthouse(!useLighthouse)}
@@ -630,6 +630,15 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                     <span>Lighthouse Analysis</span>
                     <span className="text-xs opacity-70">(Core Web Vitals)</span>
                   </button>
+                ) : (
+                  <div
+                    className="min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border bg-white/5 border-white/10 text-sm font-medium opacity-60 cursor-not-allowed"
+                    data-testid="checkbox-lighthouse-disabled"
+                  >
+                    <Zap className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Lighthouse Analysis</span>
+                    <FeatureBadge status="coming_soon" />
+                  </div>
                 )}
               </div>
             </div>
