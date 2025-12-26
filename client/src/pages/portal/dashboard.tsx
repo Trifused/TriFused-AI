@@ -670,7 +670,8 @@ export default function Dashboard() {
                   <div className="mt-3 flex items-center gap-4">
                     <button
                       onClick={() => {
-                        const text = `${quickGradeResult.domain || quickGradeResult.url} - ${quickGradeResult.overallScore}/100\nSEO: ${quickGradeResult.seoScore} | Security: ${quickGradeResult.securityScore} | Perf: ${quickGradeResult.performanceScore}\nAccess: ${quickGradeResult.accessibilityScore} | Email: ${quickGradeResult.emailSecurityScore} | Mobile: ${quickGradeResult.mobileScore}`;
+                        const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const text = `TriFused Website Grade\n${date}\n\n${quickGradeResult.domain || quickGradeResult.url} - ${quickGradeResult.overallScore}/100\nSEO: ${quickGradeResult.seoScore} | Security: ${quickGradeResult.securityScore} | Perf: ${quickGradeResult.performanceScore}\nAccess: ${quickGradeResult.accessibilityScore} | Email: ${quickGradeResult.emailSecurityScore} | Mobile: ${quickGradeResult.mobileScore}\n\nhttps://trifused.com/grader`;
                         navigator.clipboard.writeText(text);
                         toast({ title: "Copied!", description: "Scorecard copied to clipboard" });
                       }}
