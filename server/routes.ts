@@ -3854,8 +3854,10 @@ Your primary goal is to help users AND capture their contact information natural
       // Advanced Security Scan (Premium feature - secrets detection and exposed files)
       let advancedSecurityScan: SecurityScanResult | null = null;
       if (useSecurityScan) {
+        console.log(`[Security Scan] Running advanced security scan for: ${url}`);
         try {
           advancedSecurityScan = await runSecurityScan(url, html);
+          console.log(`[Security Scan] Found ${advancedSecurityScan.secretsFound.length} secrets, ${advancedSecurityScan.exposedFiles.length} exposed files`);
           
           // Add findings for exposed secrets
           for (const secret of advancedSecurityScan.secretsFound) {
