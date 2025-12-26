@@ -1,20 +1,68 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { CheckCircle, Package, ArrowRight, FileText } from "lucide-react";
+import { CheckCircle, Package, ArrowRight, FileText, LogIn, UserPlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function CheckoutSuccess() {
   const [, setLocation] = useLocation();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [isLinking, setIsLinking] = useState(false);
+  const { user, isLoading, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setSessionId(params.get("session_id"));
   }, []);
+
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  const handleGoToDashboard = async () => {
+    if (!termsAccepted) return;
+    setLinkError(null);
+    
+    if (sessionId && isAuthenticated) {
+      setIsLinking(true);
+      try {
+        const response = await fetch("/api/link-purchase", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+          credentials: "include",
+        });
+        
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to link purchase to your account");
+        }
+      } catch (error) {
+        console.error("Failed to link purchase:", error);
+        setLinkError(error instanceof Error ? error.message : "Failed to link purchase");
+        setIsLinking(false);
+        return;
+      }
+      setIsLinking(false);
+    }
+    
+    setLocation("/portal/dashboard");
+  };
+
+  const handleLogin = () => {
+    const returnUrl = `/checkout/success${sessionId ? `?session_id=${sessionId}` : ''}`;
+    window.location.href = `/api/login?returnTo=${encodeURIComponent(returnUrl)}`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-background/95 flex items-center justify-center p-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/95 flex items-center justify-center p-4">
@@ -45,68 +93,131 @@ export default function CheckoutSuccess() {
             </div>
           )}
 
-          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Checkbox 
-                id="terms" 
-                checked={termsAccepted}
-                onCheckedChange={(checked) => setTermsAccepted(checked === true)}
-                data-testid="checkbox-accept-terms"
-                className="mt-0.5"
-              />
-              <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-                I agree to the{" "}
-                <button 
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setLocation("/legal/terms");
-                  }}
-                  className="text-primary hover:underline"
-                >
-                  Terms of Service
-                </button>
-                {" "}and{" "}
-                <button 
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setLocation("/legal/privacy");
-                  }}
-                  className="text-primary hover:underline"
-                >
-                  Privacy Policy
-                </button>
-                {" "}for using TriFused services.
-              </Label>
+          {!isAuthenticated ? (
+            <div className="space-y-4">
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                <p className="text-sm text-yellow-200 text-center">
+                  Sign in or create an account to access your purchase in the portal
+                </p>
+              </div>
+              
+              <Button 
+                onClick={handleLogin}
+                className="w-full"
+                data-testid="button-login-onboard"
+              >
+                <LogIn className="w-4 h-4 mr-2" />
+                Sign In to Continue
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-white/10" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">New to TriFused?</span>
+                </div>
+              </div>
+              
+              <Button 
+                variant="outline"
+                onClick={handleLogin}
+                className="w-full"
+                data-testid="button-signup-onboard"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Create Account
+              </Button>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                <p className="text-sm text-green-200 text-center">
+                  Welcome back, {user?.firstName || user?.email || 'there'}! Your purchase will be linked to your account.
+                </p>
+              </div>
 
-          <div className="flex flex-col gap-3">
-            <Button 
-              onClick={() => setLocation("/portal/dashboard")}
-              className="w-full"
-              disabled={!termsAccepted}
-              data-testid="button-go-dashboard"
-            >
-              Go to Dashboard
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => setLocation("/store")}
-              className="w-full"
-              data-testid="button-continue-shopping"
-            >
-              Continue Shopping
-            </Button>
-          </div>
-          
-          {!termsAccepted && (
-            <p className="text-xs text-center text-muted-foreground">
-              <FileText className="w-3 h-3 inline mr-1" />
-              Please accept the terms to access your dashboard
-            </p>
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Checkbox 
+                    id="terms" 
+                    checked={termsAccepted}
+                    onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                    data-testid="checkbox-accept-terms"
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                    I agree to the{" "}
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        window.open("/legal/terms", "_blank");
+                      }}
+                      className="text-primary hover:underline"
+                    >
+                      Terms of Service
+                    </button>
+                    {" "}and{" "}
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        window.open("/legal/privacy", "_blank");
+                      }}
+                      className="text-primary hover:underline"
+                    >
+                      Privacy Policy
+                    </button>
+                    {" "}for using TriFused services.
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Button 
+                  onClick={handleGoToDashboard}
+                  className="w-full"
+                  disabled={!termsAccepted || isLinking}
+                  data-testid="button-go-dashboard"
+                >
+                  {isLinking ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Linking Purchase...
+                    </>
+                  ) : (
+                    <>
+                      Go to Dashboard
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setLocation("/store")}
+                  className="w-full"
+                  data-testid="button-continue-shopping"
+                >
+                  Continue Shopping
+                </Button>
+              </div>
+              
+              {linkError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                  <p className="text-sm text-red-200 text-center">
+                    {linkError}. Please try again or contact support.
+                  </p>
+                </div>
+              )}
+              
+              {!termsAccepted && !linkError && (
+                <p className="text-xs text-center text-muted-foreground">
+                  <FileText className="w-3 h-3 inline mr-1" />
+                  Please accept the terms to access your dashboard
+                </p>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

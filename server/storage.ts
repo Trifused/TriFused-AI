@@ -742,6 +742,14 @@ class Storage implements IStorage {
     return user;
   }
 
+  async updateUserTermsAccepted(userId: string, acceptedAt: Date, version: string): Promise<User | undefined> {
+    const [user] = await db.update(users).set({
+      termsAcceptedAt: acceptedAt,
+      termsVersion: version,
+    }).where(eq(users.id, userId)).returning();
+    return user;
+  }
+
   // Report subscription methods
   async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.stripeCustomerId, customerId));

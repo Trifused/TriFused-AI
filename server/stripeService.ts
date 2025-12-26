@@ -418,6 +418,13 @@ export class StripeService {
     return await stripe.customers.update(customerId, updates);
   }
 
+  async retrieveCheckoutSession(sessionId: string) {
+    const stripe = await getUncachableStripeClient();
+    return await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['subscription', 'customer', 'line_items']
+    });
+  }
+
   async deleteCustomer(customerId: string) {
     const stripe = await getUncachableStripeClient();
     return await stripe.customers.del(customerId);

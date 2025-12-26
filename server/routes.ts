@@ -5347,6 +5347,70 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Link a Stripe checkout session to authenticated user (for guest checkout onboarding)
+  app.post("/api/link-purchase", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { sessionId } = req.body;
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId is required" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Retrieve the checkout session from Stripe
+      const checkoutSession = await stripeService.retrieveCheckoutSession(sessionId);
+
+      if (!checkoutSession) {
+        return res.status(404).json({ error: "Checkout session not found" });
+      }
+
+      // Get or create Stripe customer for user
+      let customerId = user.stripeCustomerId;
+      const sessionCustomerId = checkoutSession.customer as string;
+
+      if (sessionCustomerId && !customerId) {
+        // Link the session's customer to our user
+        customerId = sessionCustomerId;
+        await storage.updateUserStripeInfo(userId, { stripeCustomerId: customerId });
+        
+        // Update Stripe customer metadata to link to our user
+        await stripeService.updateCustomer(customerId, {
+          metadata: { userId: userId }
+        });
+      } else if (!customerId) {
+        // Create new customer for the user
+        const customer = await stripeService.createCustomer(user.email || '', userId);
+        customerId = customer.id;
+        await storage.updateUserStripeInfo(userId, { stripeCustomerId: customerId });
+      }
+
+      // If this was a subscription, link it to the user
+      if (checkoutSession.subscription) {
+        const subscriptionId = typeof checkoutSession.subscription === 'string' 
+          ? checkoutSession.subscription 
+          : checkoutSession.subscription.id;
+        await storage.updateUserStripeInfo(userId, { stripeSubscriptionId: subscriptionId });
+      }
+
+      // Mark terms as accepted with timestamp
+      await storage.updateUserTermsAccepted(userId, new Date(), "1.0");
+
+      console.log(`Linked purchase ${sessionId} to user ${userId}, customer ${customerId}`);
+      res.json({ success: true, customerId });
+    } catch (error) {
+      console.error("Link purchase error:", error);
+      res.status(500).json({ error: "Failed to link purchase" });
+    }
+  });
+
   // Get user subscription status
   app.get("/api/stripe/subscription", isAuthenticated, async (req: any, res: Response) => {
     try {
