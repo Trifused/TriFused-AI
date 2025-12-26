@@ -228,7 +228,7 @@ const complianceOptions: Array<{
 
 // Premium features (coming soon) - all grader and report related features (filter out free ones)
 const premiumFeatures = [
-  { ...FEATURE_FLAGS.GRADER_GTMETRIX },
+  { ...FEATURE_FLAGS.GRADER_LIGHTHOUSE },
   { ...FEATURE_FLAGS.GRADER_VISION_DETECTION },
   { ...FEATURE_FLAGS.GRADER_SCHEDULED_SCANS },
   { ...FEATURE_FLAGS.GRADER_MULTI_SITE },
@@ -585,16 +585,37 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                     Premium Features:
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    {premiumFeatures.map((feature) => (
-                      <div
-                        key={feature.id}
-                        className="min-h-[44px] px-3 py-2 rounded-lg border bg-white/5 border-white/10 text-sm font-medium opacity-60 cursor-not-allowed flex items-center gap-2"
-                        data-testid={`feature-${feature.id}`}
-                      >
-                        <span className="text-muted-foreground">{feature.name}</span>
-                        <FeatureBadge status={feature.status} tier={feature.tier} />
-                      </div>
-                    ))}
+                    {premiumFeatures.map((feature) => {
+                      // Make Lighthouse toggleable for superusers
+                      if (feature.id === 'grader_lighthouse' && isSuperuser) {
+                        return (
+                          <button
+                            key={feature.id}
+                            type="button"
+                            onClick={() => setUseLighthouse(!useLighthouse)}
+                            className={`min-h-[44px] px-3 py-2 rounded-lg border text-sm font-medium flex items-center gap-2 transition-all ${
+                              useLighthouse
+                                ? "bg-cyan-500/20 border-cyan-500 text-cyan-400"
+                                : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
+                            }`}
+                            data-testid={`feature-${feature.id}`}
+                          >
+                            <span>{feature.name}</span>
+                            {useLighthouse && <span className="text-xs">(ON)</span>}
+                          </button>
+                        );
+                      }
+                      return (
+                        <div
+                          key={feature.id}
+                          className="min-h-[44px] px-3 py-2 rounded-lg border bg-white/5 border-white/10 text-sm font-medium opacity-60 cursor-not-allowed flex items-center gap-2"
+                          data-testid={`feature-${feature.id}`}
+                        >
+                          <span className="text-muted-foreground">{feature.name}</span>
+                          <FeatureBadge status={feature.status} tier={feature.tier} />
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -614,32 +635,6 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   <span>Force Fresh Scan</span>
                   <span className="text-xs opacity-70">(bypass 24h cache)</span>
                 </button>
-                
-                {isSuperuser ? (
-                  <button
-                    type="button"
-                    onClick={() => setUseLighthouse(!useLighthouse)}
-                    className={`min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-                      useLighthouse
-                        ? "bg-cyan-500/20 border-cyan-500 text-cyan-400"
-                        : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
-                    }`}
-                    data-testid="checkbox-lighthouse"
-                  >
-                    <Zap className="w-4 h-4" />
-                    <span>Lighthouse Analysis</span>
-                    <span className="text-xs opacity-70">(Core Web Vitals)</span>
-                  </button>
-                ) : (
-                  <div
-                    className="min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border bg-white/5 border-white/10 text-sm font-medium opacity-60 cursor-not-allowed"
-                    data-testid="checkbox-lighthouse-disabled"
-                  >
-                    <Zap className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Lighthouse Analysis</span>
-                    <FeatureBadge status="coming_soon" />
-                  </div>
-                )}
               </div>
             </div>
 
