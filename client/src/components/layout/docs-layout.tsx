@@ -47,13 +47,14 @@ export function DocsLayout({ children, title, description }: DocsLayoutProps) {
       <Navbar />
       
       <div className="pt-20 flex">
-        {/* Mobile menu toggle */}
+        {/* Mobile menu toggle - uses Book icon to differentiate from main navbar */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="fixed top-24 left-4 z-50 md:hidden p-2 bg-white/10 rounded-lg border border-white/10"
+          className="fixed top-24 left-4 z-50 md:hidden p-2 px-3 bg-primary/20 rounded-lg border border-primary/30 flex items-center gap-2"
           data-testid="button-docs-mobile-menu"
         >
-          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {mobileMenuOpen ? <X className="w-4 h-4 text-primary" /> : <Book className="w-4 h-4 text-primary" />}
+          <span className="text-xs font-medium text-primary">Docs</span>
         </button>
 
         {/* Sidebar */}
