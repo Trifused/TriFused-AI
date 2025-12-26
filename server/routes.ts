@@ -400,18 +400,32 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
-  // Host-based routing: grader.trifused.com -> /grader
+  // Host-based routing for custom subdomains
   app.use((req, res, next) => {
     const host = req.hostname || req.headers.host?.split(':')[0] || '';
+    const queryString = Object.keys(req.query).length > 0 ? '?' + new URLSearchParams(req.query as Record<string, string>).toString() : '';
     
-    // If accessing from grader.trifused.com and not already on /grader path
+    // grader.trifused.com -> /grader
     if (host === 'grader.trifused.com' && !req.path.startsWith('/grader') && !req.path.startsWith('/api') && !req.path.startsWith('/report')) {
-      // Redirect root to grader page, preserve query string
       if (req.path === '/') {
-        const queryString = Object.keys(req.query).length > 0 ? '?' + new URLSearchParams(req.query as Record<string, string>).toString() : '';
         return res.redirect('/grader' + queryString);
       }
     }
+    
+    // portal.trifused.com -> /portal
+    if (host === 'portal.trifused.com' && !req.path.startsWith('/portal') && !req.path.startsWith('/api')) {
+      if (req.path === '/') {
+        return res.redirect('/portal' + queryString);
+      }
+    }
+    
+    // shop.trifused.com or store.trifused.com -> /store
+    if ((host === 'shop.trifused.com' || host === 'store.trifused.com') && !req.path.startsWith('/store') && !req.path.startsWith('/api') && !req.path.startsWith('/checkout')) {
+      if (req.path === '/') {
+        return res.redirect('/store' + queryString);
+      }
+    }
+    
     next();
   });
   
