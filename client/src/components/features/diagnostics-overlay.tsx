@@ -345,7 +345,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
           </div>
         </div>
 
-        <div className="flex flex-col md:grid md:grid-cols-2 h-[80vh] md:h-[500px]">
+        <div className={`flex flex-col md:grid md:grid-cols-2 ${flowState === 'urlInput' ? 'h-auto' : 'h-[80vh]'} md:h-[500px]`}>
           {/* Terminal Output */}
           <div className="bg-black p-4 md:p-6 font-mono text-xs md:text-sm overflow-y-auto border-b md:border-b-0 md:border-r border-white/10 relative h-[35%] md:h-full flex flex-col" ref={terminalRef}>
              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none" />
@@ -437,8 +437,8 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
 
           </div>
 
-          {/* Visual Data Visualization */}
-          <div className="p-4 md:p-6 bg-gradient-to-b from-slate-900 to-black relative overflow-hidden flex-1 flex flex-col">
+          {/* Visual Data Visualization - Hidden on mobile when URL input is active */}
+          <div className={`p-4 md:p-6 bg-gradient-to-b from-slate-900 to-black relative overflow-hidden flex-1 flex flex-col ${flowState === 'urlInput' ? 'hidden md:flex' : ''}`}>
              {/* Scanning Grid Background */}
              <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.05)_1px,transparent_1px)] bg-[size:20px_20px]" />
              
