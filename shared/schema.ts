@@ -18,6 +18,10 @@ export const sessions = pgTable(
 export const userRoles = ["guest", "validated", "superuser"] as const;
 export type UserRole = typeof userRoles[number];
 
+// User status enum
+export const userStatuses = ["active", "suspended", "banned", "pending", "deleted"] as const;
+export type UserStatus = typeof userStatuses[number];
+
 // User storage table for Replit Auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -26,17 +30,42 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role").default("guest").notNull(),
+  status: varchar("status").default("active").notNull(),
   ftpAccess: integer("ftp_access").default(0).notNull(),
   stripeCustomerId: varchar("stripe_customer_id"),
   stripeSubscriptionId: varchar("stripe_subscription_id"),
   termsAcceptedAt: timestamp("terms_accepted_at"),
   termsVersion: varchar("terms_version"),
+  lastLoginAt: timestamp("last_login_at"),
+  suspendedAt: timestamp("suspended_at"),
+  suspendedReason: text("suspended_reason"),
+  deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+// User activity logs for audit trail
+export const userActivityLogs = pgTable("user_activity_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  action: varchar("action").notNull(),
+  details: jsonb("details"),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  performedBy: varchar("performed_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserActivityLogSchema = createInsertSchema(userActivityLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertUserActivityLog = z.infer<typeof insertUserActivityLogSchema>;
+export type UserActivityLog = typeof userActivityLogs.$inferSelect;
 
 // Contact form submissions
 export const contactSubmissions = pgTable("contact_submissions", {

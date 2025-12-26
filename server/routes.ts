@@ -534,6 +534,21 @@ export async function registerRoutes(
     }
   });
 
+  app.get('/api/admin/users/paginated', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const status = req.query.status as string;
+      const search = req.query.search as string;
+      
+      const result = await storage.getUsersPaginated(page, limit, status, search);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
   const updateRoleSchema = z.object({
     role: z.enum(userRoles)
   });
@@ -548,10 +563,153 @@ export async function registerRoutes(
         return res.status(404).json({ message: "User not found" });
       }
       
+      await storage.createUserActivityLog({
+        userId: id,
+        action: 'role_changed',
+        details: { newRole: role },
+        performedBy: req.user.claims.sub,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      
       res.json(user);
     } catch (error: any) {
       console.error("Error updating user role:", error);
       res.status(400).json({ message: error.message || "Failed to update user role" });
+    }
+  });
+
+  const updateStatusSchema = z.object({
+    status: z.enum(['active', 'suspended', 'banned', 'pending']),
+    reason: z.string().optional()
+  });
+
+  app.patch('/api/admin/users/:id/status', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { status, reason } = updateStatusSchema.parse(req.body);
+      
+      const user = await storage.updateUserStatus(id, status, reason);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      await storage.createUserActivityLog({
+        userId: id,
+        action: 'status_changed',
+        details: { newStatus: status, reason },
+        performedBy: req.user.claims.sub,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      
+      res.json(user);
+    } catch (error: any) {
+      console.error("Error updating user status:", error);
+      res.status(400).json({ message: error.message || "Failed to update user status" });
+    }
+  });
+
+  const updateUserSchema = z.object({
+    email: z.string().email().optional(),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    role: z.enum(userRoles).optional(),
+    ftpAccess: z.number().optional()
+  });
+
+  app.patch('/api/admin/users/:id', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const data = updateUserSchema.parse(req.body);
+      
+      const user = await storage.updateUser(id, data);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      await storage.createUserActivityLog({
+        userId: id,
+        action: 'user_updated',
+        details: data,
+        performedBy: req.user.claims.sub,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      
+      res.json(user);
+    } catch (error: any) {
+      console.error("Error updating user:", error);
+      res.status(400).json({ message: error.message || "Failed to update user" });
+    }
+  });
+
+  app.delete('/api/admin/users/:id', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const adminId = req.user.claims.sub;
+      
+      if (id === adminId) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+      
+      await storage.deleteUser(id);
+      
+      await storage.createUserActivityLog({
+        userId: id,
+        action: 'user_deleted',
+        details: { softDelete: true },
+        performedBy: adminId,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      
+      res.json({ success: true, message: "User deleted" });
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: error.message || "Failed to delete user" });
+    }
+  });
+
+  app.delete('/api/admin/users/:id/purge', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const adminId = req.user.claims.sub;
+      
+      if (id === adminId) {
+        return res.status(400).json({ message: "Cannot purge your own account" });
+      }
+      
+      await storage.purgeUser(id);
+      
+      res.json({ success: true, message: "User permanently deleted" });
+    } catch (error: any) {
+      console.error("Error purging user:", error);
+      res.status(500).json({ message: error.message || "Failed to purge user" });
+    }
+  });
+
+  app.get('/api/admin/users/:id/activity', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      const logs = await storage.getUserActivityLogs(id, limit);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching activity logs:", error);
+      res.status(500).json({ message: "Failed to fetch activity logs" });
+    }
+  });
+
+  app.get('/api/admin/activity-logs', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const logs = await storage.getAllActivityLogs(limit);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching activity logs:", error);
+      res.status(500).json({ message: "Failed to fetch activity logs" });
     }
   });
   

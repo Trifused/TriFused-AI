@@ -18,6 +18,7 @@ import {
   reportSubscriptions,
   userWebsites,
   backlinks,
+  userActivityLogs,
   InsertContactSubmission, 
   InsertDiagnosticScan, 
   ContactSubmission, 
@@ -25,6 +26,7 @@ import {
   User,
   UpsertUser,
   UserRole,
+  UserStatus,
   BlogPost,
   InsertBlogPost,
   FileTransfer,
@@ -57,7 +59,9 @@ import {
   InsertUserWebsiteScan,
   UserWebsiteScan,
   Backlink,
-  InsertBacklink
+  InsertBacklink,
+  UserActivityLog,
+  InsertUserActivityLog
 } from "@shared/schema";
 
 export interface IStorage {
@@ -65,9 +69,18 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
+  getUsersPaginated(page: number, limit: number, status?: string, search?: string): Promise<{ users: User[]; total: number }>;
   updateUserRole(id: string, role: UserRole): Promise<User | undefined>;
   updateUserFtpAccess(id: string, ftpAccess: number): Promise<User | undefined>;
   updateUserTermsAcceptance(id: string, version: string): Promise<User | undefined>;
+  updateUserStatus(id: string, status: UserStatus, reason?: string): Promise<User | undefined>;
+  updateUser(id: string, data: Partial<UpsertUser>): Promise<User | undefined>;
+  deleteUser(id: string): Promise<void>;
+  purgeUser(id: string): Promise<void>;
+  updateLastLogin(id: string): Promise<void>;
+  createUserActivityLog(data: InsertUserActivityLog): Promise<UserActivityLog>;
+  getUserActivityLogs(userId: string, limit?: number): Promise<UserActivityLog[]>;
+  getAllActivityLogs(limit?: number): Promise<UserActivityLog[]>;
   
   createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission>;
   createDiagnosticScan(data: InsertDiagnosticScan): Promise<DiagnosticScan>;
@@ -282,6 +295,112 @@ class Storage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+
+  async getUsersPaginated(page: number, limit: number, status?: string, search?: string): Promise<{ users: User[]; total: number }> {
+    let query = db.select().from(users);
+    let countQuery = db.select({ count: count() }).from(users);
+    
+    const conditions: any[] = [];
+    if (status && status !== 'all') {
+      conditions.push(eq(users.status, status));
+    }
+    
+    if (search) {
+      const searchLower = `%${search.toLowerCase()}%`;
+      conditions.push(
+        sql`(LOWER(${users.email}) LIKE ${searchLower} OR LOWER(${users.firstName}) LIKE ${searchLower} OR LOWER(${users.lastName}) LIKE ${searchLower})`
+      );
+    }
+
+    if (conditions.length > 0) {
+      const whereClause = conditions.length === 1 ? conditions[0] : sql`${conditions[0]} AND ${conditions[1]}`;
+      query = query.where(whereClause) as any;
+      countQuery = countQuery.where(whereClause) as any;
+    }
+
+    const [totalResult] = await countQuery;
+    const userResults = await query
+      .orderBy(desc(users.createdAt))
+      .limit(limit)
+      .offset((page - 1) * limit);
+
+    return { users: userResults, total: totalResult?.count || 0 };
+  }
+
+  async updateUserStatus(id: string, status: string, reason?: string): Promise<User | undefined> {
+    const updateData: any = { 
+      status, 
+      updatedAt: new Date() 
+    };
+    
+    if (status === 'suspended' || status === 'banned') {
+      updateData.suspendedAt = new Date();
+      updateData.suspendedReason = reason || null;
+    } else if (status === 'active') {
+      updateData.suspendedAt = null;
+      updateData.suspendedReason = null;
+    }
+    
+    const [user] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: string, data: Partial<UpsertUser>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        status: 'deleted',
+        deletedAt: new Date(),
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, id));
+  }
+
+  async purgeUser(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  async updateLastLogin(id: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ lastLoginAt: new Date(), updatedAt: new Date() })
+      .where(eq(users.id, id));
+  }
+
+  async createUserActivityLog(data: InsertUserActivityLog): Promise<UserActivityLog> {
+    const [log] = await db.insert(userActivityLogs).values(data).returning();
+    return log;
+  }
+
+  async getUserActivityLogs(userId: string, limit: number = 50): Promise<UserActivityLog[]> {
+    return await db
+      .select()
+      .from(userActivityLogs)
+      .where(eq(userActivityLogs.userId, userId))
+      .orderBy(desc(userActivityLogs.createdAt))
+      .limit(limit);
+  }
+
+  async getAllActivityLogs(limit: number = 100): Promise<UserActivityLog[]> {
+    return await db
+      .select()
+      .from(userActivityLogs)
+      .orderBy(desc(userActivityLogs.createdAt))
+      .limit(limit);
   }
 
   async createFileTransfer(data: InsertFileTransfer): Promise<FileTransfer> {
