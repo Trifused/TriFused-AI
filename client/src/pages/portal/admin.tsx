@@ -239,6 +239,7 @@ interface Order {
   metadata: any;
   created: number | null;
   customer_name: string | null;
+  customer_phone: string | null;
   payment_intent_id: string | null;
   charge_id: string | null;
   refunded: boolean | null;
@@ -255,6 +256,7 @@ interface Subscription {
   created: number | null;
   customer_email: string | null;
   customer_name: string | null;
+  customer_phone: string | null;
   product_name: string | null;
   unit_amount: number | null;
   currency: string | null;
@@ -2642,7 +2644,7 @@ export default function Admin() {
                             <div className="flex-1">
                               <div className="flex items-center gap-3">
                                 <span className="font-medium text-white">
-                                  {order.customer_email || order.customer_name || 'Unknown Customer'}
+                                  {order.customer_name || order.customer_email || 'Unknown Customer'}
                                 </span>
                                 <span className={`text-xs px-2 py-0.5 rounded ${
                                   order.payment_status === 'paid' ? 'bg-green-500/20 text-green-400' :
@@ -2657,6 +2659,16 @@ export default function Admin() {
                                   </span>
                                 )}
                               </div>
+                              {(order.customer_email || order.customer_phone) && (
+                                <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                                  {order.customer_email && (
+                                    <span>{order.customer_email}</span>
+                                  )}
+                                  {order.customer_phone && (
+                                    <span>{order.customer_phone}</span>
+                                  )}
+                                </div>
+                              )}
                               <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                                 <span>
                                   {order.amount_total ? `$${(order.amount_total / 100).toFixed(2)} ${(order.currency || 'usd').toUpperCase()}` : '-'}
@@ -2712,7 +2724,7 @@ export default function Admin() {
                             <div className="flex-1">
                               <div className="flex items-center gap-3">
                                 <span className="font-medium text-white">
-                                  {sub.customer_email || sub.customer_name || 'Unknown Customer'}
+                                  {sub.customer_name || sub.customer_email || 'Unknown Customer'}
                                 </span>
                                 <span className={`text-xs px-2 py-0.5 rounded ${
                                   sub.status === 'active' ? 'bg-green-500/20 text-green-400' :
@@ -2728,6 +2740,16 @@ export default function Admin() {
                                   </span>
                                 )}
                               </div>
+                              {(sub.customer_email || sub.customer_phone) && (
+                                <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                                  {sub.customer_email && (
+                                    <span>{sub.customer_email}</span>
+                                  )}
+                                  {sub.customer_phone && (
+                                    <span>{sub.customer_phone}</span>
+                                  )}
+                                </div>
+                              )}
                               <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                                 <span className="text-white">{sub.product_name || 'Unknown Product'}</span>
                                 <span>
