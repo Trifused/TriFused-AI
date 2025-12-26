@@ -67,6 +67,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   updateUserRole(id: string, role: UserRole): Promise<User | undefined>;
   updateUserFtpAccess(id: string, ftpAccess: number): Promise<User | undefined>;
+  updateUserTermsAcceptance(id: string, version: string): Promise<User | undefined>;
   
   createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission>;
   createDiagnosticScan(data: InsertDiagnosticScan): Promise<DiagnosticScan>;
@@ -265,6 +266,19 @@ class Storage implements IStorage {
     const [user] = await db
       .update(users)
       .set({ ftpAccess, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateUserTermsAcceptance(id: string, version: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        termsAcceptedAt: new Date(), 
+        termsVersion: version,
+        updatedAt: new Date() 
+      })
       .where(eq(users.id, id))
       .returning();
     return user;

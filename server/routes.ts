@@ -449,6 +449,33 @@ export async function registerRoutes(
     }
   });
 
+  // Accept terms and conditions
+  app.post('/api/auth/accept-terms', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.session?.impersonatingUserId || req.user.claims.sub;
+      const { version } = req.body;
+      
+      if (!version) {
+        return res.status(400).json({ message: "Terms version is required" });
+      }
+      
+      const updatedUser = await storage.updateUserTermsAcceptance(userId, version);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ 
+        success: true, 
+        termsAcceptedAt: updatedUser.termsAcceptedAt,
+        termsVersion: updatedUser.termsVersion 
+      });
+    } catch (error) {
+      console.error("Error accepting terms:", error);
+      res.status(500).json({ message: "Failed to accept terms" });
+    }
+  });
+
   // Start impersonating a user (superuser only)
   app.post('/api/admin/impersonate/:userId', isAuthenticated, isSuperuser, async (req: any, res) => {
     try {
