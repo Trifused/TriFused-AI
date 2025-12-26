@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { TermsModal } from "@/components/terms-modal";
 import { 
   LayoutDashboard, 
   LogOut, 
@@ -258,6 +259,8 @@ export default function ApiPortal() {
     return null;
   }
 
+  const needsTermsAcceptance = !user?.termsAcceptedAt;
+
   const keys: ApiKey[] = keysData?.data || [];
   const quota: Quota | null = quotaData?.quota || null;
   const discount = quotaData?.discount || 0;
@@ -269,6 +272,7 @@ export default function ApiPortal() {
 
   return (
     <div className="min-h-screen bg-background">
+      <TermsModal isOpen={needsTermsAcceptance} userTermsVersion={user?.termsVersion} />
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">

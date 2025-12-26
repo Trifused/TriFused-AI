@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { TermsModal } from "@/components/terms-modal";
 import { 
   Video, 
   Music,
@@ -287,8 +288,11 @@ export default function MediaPage() {
     return null;
   }
 
+  const needsTermsAcceptance = !user?.termsAcceptedAt;
+
   return (
     <div className="min-h-screen bg-background">
+      <TermsModal isOpen={needsTermsAcceptance} userTermsVersion={user?.termsVersion} />
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-white/5">
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between h-16">

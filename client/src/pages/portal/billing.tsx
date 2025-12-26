@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { TermsModal } from "@/components/terms-modal";
 import { 
   LayoutDashboard, 
   LogOut, 
@@ -138,12 +139,15 @@ export default function Billing() {
     return null;
   }
 
+  const needsTermsAcceptance = !user?.termsAcceptedAt;
+
   const orders = ordersData?.data || [];
   const subscriptions = subscriptionsData?.data || [];
   const hasStripeCustomer = user?.stripeCustomerId;
 
   return (
     <div className="min-h-screen bg-background">
+      <TermsModal isOpen={needsTermsAcceptance} userTermsVersion={user?.termsVersion} />
       <header className="border-b border-white/10 bg-black/20 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">

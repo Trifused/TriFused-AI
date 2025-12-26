@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { TermsModal } from "@/components/terms-modal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,8 +105,11 @@ export default function ReportsPortal() {
     return null;
   }
 
+  const needsTermsAcceptance = !user?.termsAcceptedAt;
+
   return (
     <div className="min-h-screen bg-background">
+      <TermsModal isOpen={needsTermsAcceptance} userTermsVersion={user?.termsVersion} />
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">

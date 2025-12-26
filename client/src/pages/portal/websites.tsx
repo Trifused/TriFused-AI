@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { TermsModal } from "@/components/terms-modal";
 import { 
   LogOut, 
   Globe,
@@ -305,6 +306,8 @@ export default function WebsitesPortal() {
     return null;
   }
 
+  const needsTermsAcceptance = !user?.termsAcceptedAt;
+
   const handleAddWebsite = () => {
     if (!newUrl) {
       toast({ title: "Error", description: "URL is required", variant: "destructive" });
@@ -324,6 +327,7 @@ export default function WebsitesPortal() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+      <TermsModal isOpen={needsTermsAcceptance} userTermsVersion={user?.termsVersion} />
       <header className="border-b border-white/10 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
