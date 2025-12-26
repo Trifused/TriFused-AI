@@ -1,4 +1,5 @@
 import puppeteer, { Browser } from 'puppeteer';
+import { execSync } from 'child_process';
 
 interface LighthouseResult {
   performance: number;
@@ -52,8 +53,19 @@ class LighthouseService {
     let browser: Browser | null = null;
     
     try {
+      // Use system-installed Chromium instead of Puppeteer's bundled Chrome
+      let chromiumPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+      if (!chromiumPath) {
+        try {
+          chromiumPath = execSync('which chromium', { encoding: 'utf8' }).trim();
+        } catch {
+          chromiumPath = '/usr/bin/chromium';
+        }
+      }
+      
       browser = await puppeteer.launch({
         headless: true,
+        executablePath: chromiumPath,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
