@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { CheckCircle, Package, ArrowRight, Loader2 } from "lucide-react";
+import { CheckCircle, Package, ArrowRight, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 export default function CheckoutSuccess() {
   const [, setLocation] = useLocation();
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -42,10 +45,48 @@ export default function CheckoutSuccess() {
             </div>
           )}
 
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Checkbox 
+                id="terms" 
+                checked={termsAccepted}
+                onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                data-testid="checkbox-accept-terms"
+                className="mt-0.5"
+              />
+              <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
+                I agree to the{" "}
+                <button 
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setLocation("/legal/terms");
+                  }}
+                  className="text-primary hover:underline"
+                >
+                  Terms of Service
+                </button>
+                {" "}and{" "}
+                <button 
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setLocation("/legal/privacy");
+                  }}
+                  className="text-primary hover:underline"
+                >
+                  Privacy Policy
+                </button>
+                {" "}for using TriFused services.
+              </Label>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-3">
             <Button 
               onClick={() => setLocation("/portal/dashboard")}
               className="w-full"
+              disabled={!termsAccepted}
               data-testid="button-go-dashboard"
             >
               Go to Dashboard
@@ -60,6 +101,13 @@ export default function CheckoutSuccess() {
               Continue Shopping
             </Button>
           </div>
+          
+          {!termsAccepted && (
+            <p className="text-xs text-center text-muted-foreground">
+              <FileText className="w-3 h-3 inline mr-1" />
+              Please accept the terms to access your dashboard
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
