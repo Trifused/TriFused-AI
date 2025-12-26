@@ -42,6 +42,7 @@ const DocsTutorials = lazy(() => import("@/pages/docs/tutorials"));
 const DocsTrustBilling = lazy(() => import("@/pages/docs/trust-billing"));
 const DocsTeams = lazy(() => import("@/pages/docs/teams"));
 const DocsChangelog = lazy(() => import("@/pages/docs/changelog"));
+const DocsScoring = lazy(() => import("@/pages/docs/scoring"));
 
 // Loading fallback for lazy components
 const PageLoader = () => (
@@ -85,6 +86,7 @@ function Router() {
         <Route path="/docs/trust-billing" component={DocsTrustBilling} />
         <Route path="/docs/teams" component={DocsTeams} />
         <Route path="/docs/changelog" component={DocsChangelog} />
+        <Route path="/docs/scoring" component={DocsScoring} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>

@@ -8,6 +8,7 @@ import {
   Shield, 
   Users, 
   History,
+  Calculator,
   ChevronDown,
   ChevronRight,
   Menu,
@@ -25,6 +26,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Docs", href: "/docs", icon: Book, description: "Getting started guide" },
   { label: "Tutorials", href: "/docs/tutorials", icon: GraduationCap, description: "Step-by-step guides" },
+  { label: "Scoring Logic", href: "/docs/scoring", icon: Calculator, description: "How scores are calculated" },
   { label: "Trust & Billing", href: "/docs/trust-billing", icon: Shield, description: "Security & payments" },
   { label: "Teams", href: "/docs/teams", icon: Users, description: "Enterprise features" },
   { label: "Changelog", href: "/docs/changelog", icon: History, description: "Updates & releases" },
