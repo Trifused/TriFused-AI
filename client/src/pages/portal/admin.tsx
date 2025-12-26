@@ -243,6 +243,12 @@ interface Order {
   payment_intent_id: string | null;
   charge_id: string | null;
   refunded: boolean | null;
+  portal_user_id: string | null;
+  portal_user_email: string | null;
+  portal_first_name: string | null;
+  portal_last_name: string | null;
+  portal_user_status: string | null;
+  portal_user_role: string | null;
 }
 
 interface Subscription {
@@ -261,6 +267,12 @@ interface Subscription {
   unit_amount: number | null;
   currency: string | null;
   recurring: any;
+  portal_user_id: string | null;
+  portal_user_email: string | null;
+  portal_first_name: string | null;
+  portal_last_name: string | null;
+  portal_user_status: string | null;
+  portal_user_role: string | null;
 }
 
 interface CSStats {

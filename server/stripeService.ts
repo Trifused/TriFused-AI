@@ -216,11 +216,18 @@ export class StripeService {
           pi.id as payment_intent_id,
           pi.status as payment_status_detail,
           ch.id as charge_id,
-          ch.refunded
+          ch.refunded,
+          u.id as portal_user_id,
+          u.email as portal_user_email,
+          u.first_name as portal_first_name,
+          u.last_name as portal_last_name,
+          u.status as portal_user_status,
+          u.role as portal_user_role
         FROM stripe.checkout_sessions cs
         LEFT JOIN stripe.customers c ON cs.customer = c.id
         LEFT JOIN stripe.payment_intents pi ON cs.payment_intent = pi.id
         LEFT JOIN stripe.charges ch ON ch.payment_intent = pi.id
+        LEFT JOIN users u ON u.stripe_customer_id = c.id
         WHERE cs.payment_status IS NOT NULL
         ORDER BY cs.created DESC
         LIMIT ${limit} OFFSET ${offset}
@@ -271,12 +278,19 @@ export class StripeService {
           p.name as product_name,
           pr.unit_amount,
           pr.currency,
-          pr.recurring
+          pr.recurring,
+          u.id as portal_user_id,
+          u.email as portal_user_email,
+          u.first_name as portal_first_name,
+          u.last_name as portal_last_name,
+          u.status as portal_user_status,
+          u.role as portal_user_role
         FROM stripe.subscriptions s
         LEFT JOIN stripe.customers c ON s.customer = c.id
         LEFT JOIN stripe.subscription_items si ON si.subscription = s.id
         LEFT JOIN stripe.prices pr ON si.price = pr.id
         LEFT JOIN stripe.products p ON pr.product = p.id
+        LEFT JOIN users u ON u.stripe_customer_id = c.id
         ORDER BY s.created DESC
         LIMIT ${limit} OFFSET ${offset}
       `
