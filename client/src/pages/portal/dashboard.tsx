@@ -671,7 +671,7 @@ export default function Dashboard() {
                     <button
                       onClick={() => {
                         const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                        const text = `TriFused Website Grade\n${date}\n\n${quickGradeResult.domain || quickGradeResult.url} - ${quickGradeResult.overallScore}/100\nSEO: ${quickGradeResult.seoScore} | Security: ${quickGradeResult.securityScore} | Perf: ${quickGradeResult.performanceScore}\nAccess: ${quickGradeResult.accessibilityScore} | Email: ${quickGradeResult.emailSecurityScore} | Mobile: ${quickGradeResult.mobileScore}\n\nhttps://trifused.com/grader`;
+                        const text = `TriFused Website Grade\n${date}\n\n${quickGradeResult.domain || quickGradeResult.url} - ${quickGradeResult.overallScore}/100\nSEO: ${quickGradeResult.seoScore} | Security: ${quickGradeResult.securityScore} | Perf: ${quickGradeResult.performanceScore}\nAccess: ${quickGradeResult.accessibilityScore} | Email: ${quickGradeResult.emailSecurityScore} | Mobile: ${quickGradeResult.mobileScore}\n\nFree Tools:\nhttps://trifused.com/grader\nhttps://pagespeed.web.dev/\nhttps://gtmetrix.com/\nhttps://website.grader.com/`;
                         navigator.clipboard.writeText(text);
                         toast({ title: "Copied!", description: "Scorecard copied to clipboard" });
                       }}
