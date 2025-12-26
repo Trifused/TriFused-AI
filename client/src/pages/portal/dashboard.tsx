@@ -604,6 +604,10 @@ export default function Dashboard() {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
+                    type="url"
+                    inputMode="url"
+                    autoCapitalize="off"
+                    autoCorrect="off"
                     placeholder="Quick grade URL (not saved to stats)..."
                     value={quickGradeUrl}
                     onChange={(e) => setQuickGradeUrl(e.target.value)}
