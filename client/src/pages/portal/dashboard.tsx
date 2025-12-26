@@ -182,6 +182,7 @@ export default function Dashboard() {
   const [quickGradeUrl, setQuickGradeUrl] = useState("");
   const [quickGradeLoading, setQuickGradeLoading] = useState(false);
   const [quickGradeResult, setQuickGradeResult] = useState<any>(null);
+  const [quickGradeLighthouse, setQuickGradeLighthouse] = useState(false);
 
   const { data: stats } = useQuery<AdminStats>({
     queryKey: ['/api/admin/stats'],
@@ -367,7 +368,7 @@ export default function Dashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ url: urlToGrade, blind: true }),
+        body: JSON.stringify({ url: urlToGrade, blind: true, useLighthouse: quickGradeLighthouse }),
       });
       
       if (!res.ok) {
@@ -785,6 +786,15 @@ export default function Dashboard() {
                     data-testid="input-quick-grade"
                   />
                 </div>
+                <Button
+                  variant={quickGradeLighthouse ? "default" : "outline"}
+                  onClick={() => setQuickGradeLighthouse(!quickGradeLighthouse)}
+                  className={`h-11 px-3 ${quickGradeLighthouse ? 'bg-purple-600 hover:bg-purple-700' : ''}`}
+                  data-testid="btn-toggle-lighthouse"
+                  title="Toggle Lighthouse analysis"
+                >
+                  <Zap className="w-4 h-4" />
+                </Button>
                 <Button
                   onClick={handleQuickGrade}
                   disabled={quickGradeLoading || !quickGradeUrl.trim()}
