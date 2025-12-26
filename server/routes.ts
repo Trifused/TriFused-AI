@@ -1420,8 +1420,8 @@ export async function registerRoutes(
     }
   });
 
-  // Lighthouse Routes (Free for all users)
-  app.post("/api/lighthouse/test", async (req: Request, res: Response) => {
+  // Lighthouse Routes (Authenticated, rate-limited)
+  app.post("/api/lighthouse/test", isAuthenticated, async (req: any, res: Response) => {
     try {
       const { url } = req.body;
       if (!url) {
@@ -1429,13 +1429,33 @@ export async function registerRoutes(
       }
 
       // Validate URL format
+      let targetUrl: string;
       try {
-        new URL(url.startsWith('http') ? url : `https://${url}`);
+        targetUrl = url.startsWith('http') ? url : `https://${url}`;
+        const parsedUrl = new URL(targetUrl);
+        
+        // Block internal/private network access (SSRF protection)
+        const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1', 'internal'];
+        const blockedPatterns = [/^10\./, /^172\.(1[6-9]|2[0-9]|3[01])\./, /^192\.168\./, /\.local$/, /\.internal$/];
+        
+        if (blockedHosts.includes(parsedUrl.hostname.toLowerCase())) {
+          return res.status(400).json({ error: "Cannot scan internal/localhost URLs" });
+        }
+        
+        for (const pattern of blockedPatterns) {
+          if (pattern.test(parsedUrl.hostname)) {
+            return res.status(400).json({ error: "Cannot scan internal network URLs" });
+          }
+        }
+        
+        // Must be http or https
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+          return res.status(400).json({ error: "Only HTTP/HTTPS URLs are allowed" });
+        }
       } catch {
         return res.status(400).json({ error: "Invalid URL format" });
       }
 
-      const targetUrl = url.startsWith('http') ? url : `https://${url}`;
       const result = await lighthouseService.runAudit(targetUrl);
       res.json(result);
     } catch (error: any) {
@@ -2944,75 +2964,156 @@ Your primary goal is to help users AND capture their contact information natural
         }
       }
 
-      // Performance - try PageSpeed Insights API (optional, might fail without API key)
+      // Performance - Direct Lighthouse analysis (free, no API key needed)
       try {
-        const pageSpeedUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=mobile&category=performance&category=accessibility`;
-        const psController = new AbortController();
-        const psTimeout = setTimeout(() => psController.abort(), 25000);
+        const lighthouseResult = await lighthouseService.runAudit(url);
         
-        const psResponse = await fetch(pageSpeedUrl, { signal: psController.signal });
-        clearTimeout(psTimeout);
+        const perfScore = lighthouseResult.performance;
+        const accessScore = lighthouseResult.accessibility;
+        const seoLighthouseScore = lighthouseResult.seo;
+        const bestPracticesScore = lighthouseResult.bestPractices;
         
-        if (psResponse.ok) {
-          const psData = await psResponse.json() as any;
-          const perfScore = Math.round((psData.lighthouseResult?.categories?.performance?.score || 0.7) * 100);
-          const accessScore = Math.round((psData.lighthouseResult?.categories?.accessibility?.score || 0.7) * 100);
-          
-          performanceScore = perfScore;
-          
-          if (perfScore < 50) {
-            findings.push({
-              category: "performance",
-              issue: `Performance score is ${perfScore}/100 (poor)`,
-              impact: "Slow sites lose visitors and rank lower in search results",
-              priority: "critical",
-              howToFix: "Optimize images, enable compression, minimize JavaScript, and use a CDN",
-              passed: false,
-            });
-          } else if (perfScore < 80) {
-            findings.push({
-              category: "performance",
-              issue: `Performance score is ${perfScore}/100 (needs improvement)`,
-              impact: "Page speed affects user experience and SEO",
-              priority: "important",
-              howToFix: "Consider image optimization, code splitting, and caching strategies",
-              passed: false,
-            });
-          } else {
-            findings.push({
-              category: "performance",
-              issue: `Performance score is ${perfScore}/100 (good)`,
-              impact: "Fast loading improves user experience and SEO",
-              priority: "optional",
-              howToFix: "",
-              passed: true,
-            });
-          }
-
-          if (accessScore < 80) {
-            findings.push({
-              category: "performance",
-              issue: `Accessibility score is ${accessScore}/100`,
-              impact: "Accessibility issues prevent some users from using your site",
-              priority: accessScore < 50 ? "critical" : "important",
-              howToFix: "Add proper ARIA labels, ensure color contrast, and make all interactive elements keyboard accessible",
-              passed: false,
-            });
-          } else {
-            findings.push({
-              category: "performance",
-              issue: `Accessibility score is ${accessScore}/100 (good)`,
-              impact: "Your site is accessible to most users",
-              priority: "optional",
-              howToFix: "",
-              passed: true,
-            });
-          }
+        performanceScore = perfScore;
+        
+        // Core Web Vitals findings
+        const lcp = lighthouseResult.metrics.largestContentfulPaint;
+        const cls = lighthouseResult.metrics.cumulativeLayoutShift;
+        const tbt = lighthouseResult.metrics.totalBlockingTime;
+        
+        if (lcp > 4000) {
+          findings.push({
+            category: "performance",
+            issue: `Largest Contentful Paint is ${(lcp / 1000).toFixed(1)}s (poor)`,
+            impact: "LCP measures loading performance. Should occur within 2.5s",
+            priority: "critical",
+            howToFix: "Optimize images, preload important resources, use a CDN",
+            passed: false,
+          });
+        } else if (lcp > 2500) {
+          findings.push({
+            category: "performance",
+            issue: `Largest Contentful Paint is ${(lcp / 1000).toFixed(1)}s (needs improvement)`,
+            impact: "LCP should be under 2.5s for good user experience",
+            priority: "important",
+            howToFix: "Optimize image sizes, enable compression, preload fonts",
+            passed: false,
+          });
+        } else {
+          findings.push({
+            category: "performance",
+            issue: `Largest Contentful Paint is ${(lcp / 1000).toFixed(1)}s (good)`,
+            impact: "Fast LCP improves user experience",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
         }
-      } catch (psError) {
+        
+        if (cls > 0.25) {
+          findings.push({
+            category: "performance",
+            issue: `Cumulative Layout Shift is ${cls.toFixed(3)} (poor)`,
+            impact: "High CLS causes jarring page jumps as content loads",
+            priority: "critical",
+            howToFix: "Set explicit dimensions on images/videos, avoid inserting content above existing content",
+            passed: false,
+          });
+        } else if (cls > 0.1) {
+          findings.push({
+            category: "performance",
+            issue: `Cumulative Layout Shift is ${cls.toFixed(3)} (needs improvement)`,
+            impact: "CLS should be under 0.1 for stable visual experience",
+            priority: "important",
+            howToFix: "Reserve space for ads and embeds, use font-display: swap",
+            passed: false,
+          });
+        }
+        
+        if (tbt > 600) {
+          findings.push({
+            category: "performance",
+            issue: `Total Blocking Time is ${Math.round(tbt)}ms (poor)`,
+            impact: "High TBT means the page is unresponsive during loading",
+            priority: "critical",
+            howToFix: "Reduce JavaScript execution, code split, defer non-critical scripts",
+            passed: false,
+          });
+        } else if (tbt > 300) {
+          findings.push({
+            category: "performance",
+            issue: `Total Blocking Time is ${Math.round(tbt)}ms (needs improvement)`,
+            impact: "TBT should be under 300ms for responsive interactions",
+            priority: "important",
+            howToFix: "Optimize JavaScript, use web workers for heavy computations",
+            passed: false,
+          });
+        }
+        
+        if (perfScore < 50) {
+          findings.push({
+            category: "performance",
+            issue: `Performance score is ${perfScore}/100 (poor)`,
+            impact: "Slow sites lose visitors and rank lower in search results",
+            priority: "critical",
+            howToFix: "Optimize images, enable compression, minimize JavaScript, and use a CDN",
+            passed: false,
+          });
+        } else if (perfScore < 80) {
+          findings.push({
+            category: "performance",
+            issue: `Performance score is ${perfScore}/100 (needs improvement)`,
+            impact: "Page speed affects user experience and SEO",
+            priority: "important",
+            howToFix: "Consider image optimization, code splitting, and caching strategies",
+            passed: false,
+          });
+        } else {
+          findings.push({
+            category: "performance",
+            issue: `Performance score is ${perfScore}/100 (good)`,
+            impact: "Fast loading improves user experience and SEO",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+
+        if (accessScore < 80) {
+          findings.push({
+            category: "performance",
+            issue: `Accessibility score is ${accessScore}/100`,
+            impact: "Accessibility issues prevent some users from using your site",
+            priority: accessScore < 50 ? "critical" : "important",
+            howToFix: "Add proper ARIA labels, ensure color contrast, and make all interactive elements keyboard accessible",
+            passed: false,
+          });
+        } else {
+          findings.push({
+            category: "performance",
+            issue: `Accessibility score is ${accessScore}/100 (good)`,
+            impact: "Your site is accessible to most users",
+            priority: "optional",
+            howToFix: "",
+            passed: true,
+          });
+        }
+        
+        // Add Best Practices finding
+        if (bestPracticesScore < 80) {
+          findings.push({
+            category: "security",
+            issue: `Best Practices score is ${bestPracticesScore}/100`,
+            impact: "Modern web best practices improve security and reliability",
+            priority: bestPracticesScore < 50 ? "important" : "optional",
+            howToFix: "Fix console errors, use HTTPS for all resources, avoid deprecated APIs",
+            passed: false,
+          });
+        }
+      } catch (lighthouseError) {
+        console.error("Lighthouse analysis error:", lighthouseError);
         findings.push({
           category: "performance",
-          issue: "Could not analyze performance (PageSpeed API unavailable)",
+          issue: "Could not analyze performance (Lighthouse unavailable)",
           impact: "Performance analysis helps identify speed issues",
           priority: "optional",
           howToFix: "Try Google PageSpeed Insights directly: https://pagespeed.web.dev/",

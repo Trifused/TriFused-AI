@@ -23,7 +23,32 @@ interface LighthouseResult {
 }
 
 class LighthouseService {
+  private validateUrl(url: string): void {
+    const parsedUrl = new URL(url);
+    
+    // Block internal/private network access (SSRF protection)
+    const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1', 'internal'];
+    const blockedPatterns = [/^10\./, /^172\.(1[6-9]|2[0-9]|3[01])\./, /^192\.168\./, /\.local$/, /\.internal$/];
+    
+    if (blockedHosts.includes(parsedUrl.hostname.toLowerCase())) {
+      throw new Error('Cannot scan internal/localhost URLs');
+    }
+    
+    for (const pattern of blockedPatterns) {
+      if (pattern.test(parsedUrl.hostname)) {
+        throw new Error('Cannot scan internal network URLs');
+      }
+    }
+    
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error('Only HTTP/HTTPS URLs are allowed');
+    }
+  }
+
   async runAudit(url: string): Promise<LighthouseResult> {
+    // Validate URL before launching browser
+    this.validateUrl(url);
+    
     let browser: Browser | null = null;
     
     try {
