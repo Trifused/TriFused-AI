@@ -2156,6 +2156,7 @@ Your primary goal is to help users AND capture their contact information natural
     complianceChecks: z.record(z.boolean()).optional(),
     forceRefresh: z.boolean().optional(),
     blind: z.boolean().optional(),
+    useLighthouse: z.boolean().optional().default(true),
   });
 
   interface Finding {
@@ -2309,7 +2310,7 @@ Your primary goal is to help users AND capture their contact information natural
 
   app.post("/api/grade", async (req: Request, res: Response) => {
     try {
-      const { url, email, complianceChecks, forceRefresh, blind } = gradeUrlSchema.parse(req.body);
+      const { url, email, complianceChecks, forceRefresh, blind, useLighthouse } = gradeUrlSchema.parse(req.body);
       
       // SSRF protection: validate URL before fetching
       const urlValidation = await validateUrl(url);
@@ -2965,8 +2966,10 @@ Your primary goal is to help users AND capture their contact information natural
       }
 
       // Performance - Direct Lighthouse analysis (free, no API key needed)
-      try {
-        const lighthouseResult = await lighthouseService.runAudit(url);
+      // Only run Lighthouse if explicitly enabled (superuser toggle)
+      if (useLighthouse) {
+        try {
+          const lighthouseResult = await lighthouseService.runAudit(url);
         
         const perfScore = lighthouseResult.performance;
         const accessScore = lighthouseResult.accessibility;
@@ -3109,16 +3112,17 @@ Your primary goal is to help users AND capture their contact information natural
             passed: false,
           });
         }
-      } catch (lighthouseError) {
-        console.error("Lighthouse analysis error:", lighthouseError);
-        findings.push({
-          category: "performance",
-          issue: "Could not analyze performance (Lighthouse unavailable)",
-          impact: "Performance analysis helps identify speed issues",
-          priority: "optional",
-          howToFix: "Try Google PageSpeed Insights directly: https://pagespeed.web.dev/",
-          passed: true,
-        });
+        } catch (lighthouseError) {
+          console.error("Lighthouse analysis error:", lighthouseError);
+          findings.push({
+            category: "performance",
+            issue: "Could not analyze performance (Lighthouse unavailable)",
+            impact: "Performance analysis helps identify speed issues",
+            priority: "optional",
+            howToFix: "Try Google PageSpeed Insights directly: https://pagespeed.web.dev/",
+            passed: true,
+          });
+        }
       }
 
       // Mobile Checks

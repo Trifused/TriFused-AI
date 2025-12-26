@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Search, 
   Shield, 
@@ -211,9 +212,9 @@ const complianceOptions: Array<{
   { id: "gdpr", label: "GDPR", description: "EU privacy compliance", featureKey: "GRADER_COMPLIANCE_GDPR", status: FEATURE_FLAGS.GRADER_COMPLIANCE_GDPR.status },
 ];
 
-// Premium features (coming soon) - all grader and report related features
+// Premium features (coming soon) - all grader and report related features (filter out free ones)
 const premiumFeatures = [
-  { ...FEATURE_FLAGS.GRADER_LIGHTHOUSE },
+  { ...FEATURE_FLAGS.GRADER_GTMETRIX },
   { ...FEATURE_FLAGS.GRADER_VISION_DETECTION },
   { ...FEATURE_FLAGS.GRADER_SCHEDULED_SCANS },
   { ...FEATURE_FLAGS.GRADER_MULTI_SITE },
@@ -222,7 +223,7 @@ const premiumFeatures = [
   { ...FEATURE_FLAGS.REPORT_WHITE_LABEL },
   { ...FEATURE_FLAGS.REPORT_PDF_EXPORT },
   { ...FEATURE_FLAGS.API_ACCESS },
-];
+].filter(f => f.status !== 'free');
 
 interface ScanHistoryItem {
   id: string;
@@ -263,11 +264,14 @@ export default function Grader() {
   const [shareCopied, setShareCopied] = useState(false);
   const [complianceChecks, setComplianceChecks] = useState<Record<string, boolean>>({});
   const [forceRefresh, setForceRefresh] = useState(false);
+  const [useLighthouse, setUseLighthouse] = useState(true);
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const { toast } = useToast();
   const [location] = useLocation();
   const hasAutoScanned = useRef(false);
+  const { user } = useAuth();
+  const isSuperuser = user?.role === 'superuser';
 
   useEffect(() => {
     trackPageView('/grader');
@@ -304,7 +308,7 @@ export default function Grader() {
       const response = await fetch("/api/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: websiteUrl, complianceChecks, forceRefresh }),
+        body: JSON.stringify({ url: websiteUrl, complianceChecks, forceRefresh, useLighthouse }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -581,7 +585,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 </div>
               )}
               
-              <div className="mt-3 pt-3 border-t border-white/10">
+              <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={() => setForceRefresh(!forceRefresh)}
@@ -596,6 +600,23 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   <span>Force Fresh Scan</span>
                   <span className="text-xs opacity-70">(bypass 24h cache)</span>
                 </button>
+                
+                {isSuperuser && (
+                  <button
+                    type="button"
+                    onClick={() => setUseLighthouse(!useLighthouse)}
+                    className={`min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                      useLighthouse
+                        ? "bg-cyan-500/20 border-cyan-500 text-cyan-400"
+                        : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
+                    }`}
+                    data-testid="checkbox-lighthouse"
+                  >
+                    <Zap className="w-4 h-4" />
+                    <span>Lighthouse Analysis</span>
+                    <span className="text-xs opacity-70">(Core Web Vitals)</span>
+                  </button>
+                )}
               </div>
             </div>
 
