@@ -48,8 +48,10 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
   const [urlInput, setUrlInput] = useState('');
   const [graderResult, setGraderResult] = useState<GraderResult | null>(null);
   const [submittedUrl, setSubmittedUrl] = useState('');
+  const [graderProgress, setGraderProgress] = useState(0);
   const [, setLocation] = useLocation();
   const terminalRef = useRef<HTMLDivElement>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const addLog = (msg: string) => {
     setLogs(prev => [...prev, `> ${msg}`]);
@@ -208,18 +210,45 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
 
     setSubmittedUrl(url);
     setFlowState('fetching');
+    setGraderProgress(0);
     addLog(`Initiating website scan: ${url}`);
-    addLog("Connecting to target server...");
+    
+    // Start progress animation
+    let progress = 0;
+    const progressMessages = [
+      { at: 10, msg: "Connecting to target server..." },
+      { at: 25, msg: "Fetching page content..." },
+      { at: 40, msg: "Analyzing SEO structure..." },
+      { at: 55, msg: "Checking security headers..." },
+      { at: 70, msg: "Evaluating performance..." },
+      { at: 85, msg: "Compiling results..." },
+    ];
+    let messageIndex = 0;
+    
+    progressIntervalRef.current = setInterval(() => {
+      progress += Math.random() * 3 + 1;
+      if (progress > 95) progress = 95;
+      setGraderProgress(Math.floor(progress));
+      
+      if (messageIndex < progressMessages.length && progress >= progressMessages[messageIndex].at) {
+        addLog(progressMessages[messageIndex].msg);
+        messageIndex++;
+      }
+    }, 200);
 
     try {
-      await new Promise(r => setTimeout(r, 500));
-      addLog("Analyzing page structure...");
-      
       const response = await fetch('/api/grade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       });
+
+      // Stop progress animation
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      setGraderProgress(100);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -229,7 +258,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
       const result = await response.json();
       const letterGrade = getGradeLetter(result.overallScore);
       
-      addLog("Scan complete.");
+      addLog("Scan complete!");
       addLog("─".repeat(30));
       addLog(`SCORE: ${result.overallScore}/100 (Grade: ${letterGrade})`);
       addLog("─".repeat(30));
@@ -258,6 +287,13 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
       
       setFlowState('reportPrompt');
     } catch (error: any) {
+      // Stop progress animation
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      setGraderProgress(0);
+      
       addLog("ERROR: Failed to complete scan.");
       if (error?.message) {
         addLog(error.message);
@@ -414,10 +450,14 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                      <div className="flex gap-2">
                        <input
                          type="text"
+                         inputMode="url"
+                         autoCapitalize="none"
+                         autoCorrect="off"
+                         spellCheck={false}
                          value={urlInput}
                          onChange={(e) => setUrlInput(e.target.value)}
                          placeholder="example.com"
-                         className="flex-1 bg-black/50 border border-white/20 rounded px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-primary"
+                         className="flex-1 bg-black border border-white/30 rounded px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder:text-white/40"
                          autoFocus
                          data-testid="input-website-url"
                        />
@@ -459,7 +499,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                        />
                        <div className="absolute inset-0 flex items-center justify-center font-mono text-xl md:text-2xl font-bold text-white">
                          {flowState === 'fetching' ? (
-                           <Search className="w-8 h-8 text-primary" />
+                           `${graderProgress}%`
                          ) : (
                            `${scanProgress}%`
                          )}
