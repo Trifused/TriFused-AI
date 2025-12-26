@@ -1,0 +1,358 @@
+# Security Scan Report
+
+**Target:** https://trifused.com/
+**Scan ID:** `a908edf5-0675-4d20-a322-adfe1886ec50`
+**Date:** December 26, 2025 at 06:49 PM
+**Status:** completed
+
+
+> **⚠️ Important:** Review each finding carefully before implementing fixes. Some findings may be intentional design choices (e.g., public helper functions, intentionally exposed data). Each finding includes "Before applying" and "Do NOT apply if" sections - read these to avoid breaking functionality.
+
+> **🔴 Database + Code Changes Required:** For Supabase/database security fixes (RLS, RPC functions, table access), you must update BOTH the database AND the application code. Adding RLS policies without updating the app to use authenticated sessions will break the app. See the Implementation Caveats section.
+
+> **Instructions for AI:** Review the security findings below and help implement fixes. Each finding includes the problem, evidence, and suggested remediation. **Before implementing any fix, check the existing code to understand why it was designed that way.** Pay attention to the Implementation Caveats section for important context about potential gotchas.
+
+---
+
+## Executive Summary
+
+🟢 **Overall Risk Level: Low**
+
+| Severity | Count |
+|----------|-------|
+| 🔴 Critical | 0 |
+| 🟠 High | 0 |
+| 🟡 Medium | 0 |
+| 🔵 Low | 6 |
+| ⚪ Info | 1 |
+| **Total** | **7** |
+
+
+
+
+
+---
+
+## Application Context
+
+**URL:** https://trifused.com/
+**Detected Platform:** unknown
+
+---
+
+## 🔵 Low Severity (6)
+
+*Lower priority but should not be ignored*
+
+### 1. Analytics Cookies Without Secure Flag
+
+**Type:** `insecure-analytics-cookie`
+**Source:** http-analyzer
+**Confidence:** high
+**Affected URL:** `https://trifused.com/`
+**Affected Component:** Cookies
+
+#### Problem
+
+1 analytics/tracking cookie(s) set without the Secure flag. Affected: GAESA. These are third-party tracking cookies that don't contain sensitive user data.
+
+#### How to Fix
+
+## Fix
+Add the Secure flag to analytics cookies: GAESA
+
+While these cookies don't contain sensitive user data, adding the Secure flag is a best practice.
+
+Note: These cookies are set by third-party analytics services (Google Analytics, etc.) and may require configuration changes in those services rather than your application code.
+
+#### Evidence
+
+```json
+{
+  "affectedCookies": [
+    "GAESA"
+  ],
+  "setCookieHeader": "GAESA=CqgBMDAwN2UyNmQ2ODYwZmU1Yjc2ZjFmODIwOGRhNDBmMDY2MmNhNzVmMjczZWVkZmMyNjRkMjE4NmFlNDk5ZmY1YzZjZjFhYWQyNTczNjc1ZjU1MzU5YjQ0YjMyNjA5NjllZGM0MDMwYzVlNGVmNzUxYzYzOGE5NzcxMTFhYWExY2MxZGJmZjU2YWU3OTE4OTljOTVjNGI4N2Q5NzAwZTcyMTcwOGJiODA3EJzr-d-1Mw; expires=Sun, 25-Jan-2026 18:49:21 GMT; path=/"
+}
+```
+
+### 2. Missing Permissions-Policy Header
+
+**Type:** `missing-permissions-policy`
+**Source:** http-analyzer
+**Confidence:** high
+**Affected URL:** `https://trifused.com/`
+**Affected Component:** HTTP Headers
+
+#### Problem
+
+Missing Permissions-Policy header. Sensitive browser features (camera, microphone, geolocation) may be accessible to embedded third-party content.
+
+#### How to Fix
+
+## Fix
+Add Permissions-Policy header to your server configuration.
+
+## Before applying
+Check if this application uses any of these browser APIs:
+- Geolocation API (navigator.geolocation)
+- Camera/Microphone (getUserMedia, WebRTC)
+- Payment Request API
+- Fullscreen API
+
+## Implementation
+
+**If the app does NOT use camera/mic/geolocation:**
+```
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+```
+
+**If the app DOES use these features (allow for same origin only):**
+```
+Permissions-Policy: geolocation=(self), microphone=(self), camera=(self)
+```
+
+**If third-party embeds need access:**
+```
+Permissions-Policy: camera=(self "https://trusted-domain.com")
+```
+
+## Warning
+Setting `=()` completely DISABLES that browser feature. If the application uses geolocation/camera/microphone, use `=(self)` instead or the feature will break.
+
+#### Evidence
+
+**Missing Header:** `Permissions-Policy`
+
+### 3. Missing Referrer-Policy Header
+
+**Type:** `missing-referrer-policy`
+**Source:** http-analyzer
+**Confidence:** high
+**Affected URL:** `https://trifused.com/`
+**Affected Component:** HTTP Headers
+
+#### Problem
+
+Missing Referrer-Policy header. The Referer header may leak sensitive information (URLs with tokens, session IDs) to third-party sites when users click external links.
+
+#### How to Fix
+
+## Fix
+Add Referrer-Policy header to prevent information leakage:
+
+```
+Referrer-Policy: strict-origin-when-cross-origin
+```
+
+## Recommended Values
+
+**Most secure (recommended for apps with sensitive URLs):**
+```
+Referrer-Policy: no-referrer
+```
+- No referrer information sent at all
+- Use if your URLs contain tokens, session IDs, or sensitive data
+
+**Balanced (recommended for most apps):**
+```
+Referrer-Policy: strict-origin-when-cross-origin
+```
+- Sends full URL for same-origin requests
+- Only sends origin for cross-origin requests
+- Degrades to origin-only on HTTPS→HTTP
+
+**Less restrictive:**
+```
+Referrer-Policy: same-origin
+```
+- Only sends referrer for same-origin requests
+- No referrer for cross-origin requests
+
+## Safe to apply
+This header is safe to add. If you use analytics that rely on referrer data, use `strict-origin-when-cross-origin` instead of `no-referrer`.
+
+#### Evidence
+
+**Missing Header:** `Referrer-Policy`
+
+### 4. Technology Stack Disclosure via X-Powered-By
+
+**Type:** `powered-by-disclosure`
+**Source:** http-analyzer
+**Confidence:** high
+**Affected URL:** `https://trifused.com/`
+**Affected Component:** HTTP Headers
+
+#### Problem
+
+X-Powered-By header reveals technology stack: "Express". This aids attackers in targeting framework-specific vulnerabilities.
+
+#### How to Fix
+
+Remove the X-Powered-By header. In Express: app.disable("x-powered-by")
+
+#### Evidence
+
+```json
+{
+  "headers": {
+    "accept-ranges": "bytes",
+    "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+    "cache-control": "private, max-age=0",
+    "content-length": "2378",
+    "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://www.google-analytics.com https://pagespeedonline.googleapis.com https://*.googleapis.com; frame-ancestors 'self';",
+    "content-type": "text/html; charset=UTF-8",
+    "date": "Fri, 26 Dec 2025 18:49:21 GMT",
+    "etag": "W/\"94a-19b599a38f0\"",
+    "expires": "Fri, 26 Dec 2025 18:49:21 GMT",
+    "last-modified": "Fri, 26 Dec 2025 07:40:38 GMT",
+    "server": "Google Frontend",
+    "strict-transport-security": "max-age=63072000; includeSubDomains",
+    "via": "1.1 google",
+    "x-cloud-trace-context": "aa00a6fa14083588afa27c67efa65753;o=1",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "SAMEORIGIN",
+    "x-powered-by": "Express"
+  },
+  "poweredByHeader": "Express"
+}
+```
+
+### 5. Missing Cross-Origin-Opener-Policy Header
+
+**Type:** `missing-coop`
+**Source:** http-analyzer
+**Confidence:** high
+**Affected URL:** `https://trifused.com/`
+**Affected Component:** HTTP Headers
+
+#### Problem
+
+Missing Cross-Origin-Opener-Policy (COOP) header. Without this, cross-origin windows can maintain references to your window object.
+
+#### How to Fix
+
+## Fix
+Add COOP header to your server configuration.
+
+## Before applying
+Check if this application uses any popup-based flows:
+- OAuth/SSO login popups (Google, GitHub, etc.)
+- Payment popups (Stripe, PayPal)
+- `window.open()` calls that need to communicate back to the opener
+
+Search codebase for: `window.open`, `window.opener`, OAuth callback handling
+
+## Implementation
+
+**If NO popup flows are used:**
+```
+Cross-Origin-Opener-Policy: same-origin
+```
+
+**If OAuth or payment popups ARE used:**
+```
+Cross-Origin-Opener-Policy: same-origin-allow-popups
+```
+
+## Do NOT apply `same-origin` if
+The app uses OAuth popup flows or payment provider popups - it will break authentication/checkout.
+
+#### Evidence
+
+**Missing Header:** `Cross-Origin-Opener-Policy`
+
+### 6. Missing Cross-Origin-Resource-Policy Header
+
+**Type:** `missing-corp`
+**Source:** http-analyzer
+**Confidence:** high
+**Affected URL:** `https://trifused.com/`
+**Affected Component:** HTTP Headers
+
+#### Problem
+
+Missing Cross-Origin-Resource-Policy (CORP) header. This header controls whether your resources can be loaded by other origins.
+
+#### How to Fix
+
+Add header to control how your resources can be loaded:
+
+```
+Cross-Origin-Resource-Policy: same-origin
+```
+
+This prevents your resources from being embedded by other sites.
+
+Use `cross-origin` instead if you intentionally serve resources to other domains.
+
+#### Evidence
+
+**Missing Header:** `Cross-Origin-Resource-Policy`
+
+---
+
+## ⚪ Info Severity (1)
+
+*Informational findings for awareness*
+
+### 1. CSP allows 'unsafe-eval'
+
+**Type:** `weak-csp`
+**Source:** http-analyzer
+**Confidence:** high
+**Affected URL:** `https://trifused.com/`
+**Affected Component:** Content-Security-Policy
+
+#### Problem
+
+The Content-Security-Policy includes 'unsafe-eval' in script-src, which allows use of eval(), Function(), and similar methods.
+
+Note: Many frameworks require 'unsafe-eval' to function (Vue.js templates, certain bundlers, Stripe.js, Angular in development mode). If you cannot remove it, ensure other CSP directives are strict and input validation is robust.
+
+#### How to Fix
+
+If possible, remove 'unsafe-eval' from script-src. Refactor code to avoid:
+- eval()
+- Function() constructor
+- setTimeout/setInterval with strings
+
+However, if your framework requires it (Vue.js, Stripe, some webpack configs), focus on:
+1. Implementing nonce-based CSP for inline scripts
+2. Ensuring other directives are strict
+3. Implementing robust input validation
+
+#### Evidence
+
+```json
+{
+  "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://www.google-analytics.com https://pagespeedonline.googleapis.com https://*.googleapis.com; frame-ancestors 'self';",
+  "directive": "CSP allows 'unsafe-eval'"
+}
+```
+
+---
+
+## Implementation Guide
+
+**Tech Stack:** unknown
+
+Please help fix the security issues listed above. Prioritize by severity (critical → high → medium → low).
+
+### Implementation Caveats
+
+Before implementing fixes, be aware of these important considerations:
+
+- **Security Headers Location**: Headers must be set at the edge/server level. Next.js headers in next.config.js may not apply if behind a CDN or reverse proxy.
+- **CSP Implementation**: Content Security Policy is complex and can break functionality. Start with report-only mode (`Content-Security-Policy-Report-Only`) before enforcing.
+
+### Verification Checklist
+
+After implementing fixes, verify the following:
+
+- [ ] Check where your app is deployed (Vercel, CloudFlare, etc.) and configure headers there
+- [ ] Verify headers are present in production using browser DevTools
+- [ ] Test CSP in report-only mode first
+- [ ] Allow necessary domains for analytics, fonts, and third-party scripts
+- [ ] Check for
