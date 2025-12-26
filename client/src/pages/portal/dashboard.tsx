@@ -183,6 +183,7 @@ export default function Dashboard() {
   const [quickGradeLoading, setQuickGradeLoading] = useState(false);
   const [quickGradeResult, setQuickGradeResult] = useState<any>(null);
   const [quickGradeLighthouse, setQuickGradeLighthouse] = useState(false);
+  const [quickGradeSecurityScan, setQuickGradeSecurityScan] = useState(false);
 
   const { data: stats } = useQuery<AdminStats>({
     queryKey: ['/api/admin/stats'],
@@ -368,7 +369,7 @@ export default function Dashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ url: urlToGrade, blind: true, useLighthouse: quickGradeLighthouse }),
+        body: JSON.stringify({ url: urlToGrade, blind: true, useLighthouse: quickGradeLighthouse, useSecurityScan: quickGradeSecurityScan }),
       });
       
       if (!res.ok) {
@@ -796,6 +797,15 @@ export default function Dashboard() {
                   <Zap className="w-4 h-4" />
                 </Button>
                 <Button
+                  variant={quickGradeSecurityScan ? "default" : "outline"}
+                  onClick={() => setQuickGradeSecurityScan(!quickGradeSecurityScan)}
+                  className={`h-11 px-3 ${quickGradeSecurityScan ? 'bg-red-600 hover:bg-red-700' : ''}`}
+                  data-testid="btn-toggle-security-scan"
+                  title="Toggle advanced security scan (secrets & exposed files)"
+                >
+                  <Shield className="w-4 h-4" />
+                </Button>
+                <Button
                   onClick={handleQuickGrade}
                   disabled={quickGradeLoading || !quickGradeUrl.trim()}
                   className="h-11 px-6"
@@ -846,6 +856,38 @@ export default function Dashboard() {
                       <div className="font-medium text-white">{quickGradeResult.mobileScore}</div>
                     </div>
                   </div>
+                  {quickGradeResult.advancedSecurityScan && (
+                    <div className="mt-3 p-2 bg-red-500/10 border border-red-500/20 rounded">
+                      <div className="text-xs font-medium text-red-400 mb-2 flex items-center gap-1">
+                        <Shield className="w-3 h-3" />
+                        Security Scan Results
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className={`p-2 rounded ${quickGradeResult.advancedSecurityScan.secretsFound.length > 0 ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
+                          <div className="text-muted-foreground">Exposed Secrets</div>
+                          <div className={`font-medium ${quickGradeResult.advancedSecurityScan.secretsFound.length > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                            {quickGradeResult.advancedSecurityScan.secretsFound.length} found
+                          </div>
+                        </div>
+                        <div className={`p-2 rounded ${quickGradeResult.advancedSecurityScan.exposedFiles.length > 0 ? 'bg-red-500/20' : 'bg-green-500/20'}`}>
+                          <div className="text-muted-foreground">Exposed Files</div>
+                          <div className={`font-medium ${quickGradeResult.advancedSecurityScan.exposedFiles.length > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                            {quickGradeResult.advancedSecurityScan.exposedFiles.length} found
+                          </div>
+                        </div>
+                      </div>
+                      {quickGradeResult.advancedSecurityScan.secretsFound.length > 0 && (
+                        <div className="mt-2 text-xs text-red-300">
+                          {quickGradeResult.advancedSecurityScan.secretsFound.slice(0, 3).map((s: any, i: number) => (
+                            <div key={i} className="truncate">• {s.type}: {s.value}</div>
+                          ))}
+                          {quickGradeResult.advancedSecurityScan.secretsFound.length > 3 && (
+                            <div className="text-muted-foreground">...and {quickGradeResult.advancedSecurityScan.secretsFound.length - 3} more</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="mt-3 flex items-center gap-4">
                     <button
                       onClick={() => {

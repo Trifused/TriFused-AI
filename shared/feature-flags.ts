@@ -111,6 +111,22 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     category: 'grader',
     tier: 'enterprise',
   },
+  GRADER_SECRETS_SCAN: {
+    id: 'grader_secrets_scan',
+    name: 'Secrets Detection',
+    description: 'Scan for exposed API keys, credentials, and sensitive data in client-side code',
+    status: 'coming_soon',
+    category: 'grader',
+    tier: 'pro',
+  },
+  GRADER_EXPOSED_FILES: {
+    id: 'grader_exposed_files',
+    name: 'Exposed Files Detection',
+    description: 'Check for exposed .env, .git, source maps, and other sensitive files',
+    status: 'coming_soon',
+    category: 'grader',
+    tier: 'pro',
+  },
 
   // ===== REPORT FEATURES =====
   REPORT_BASIC: {

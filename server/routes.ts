@@ -22,6 +22,7 @@ import { stripeService } from "./stripeService";
 import { apiService } from "./apiService";
 import { gtmetrixService } from "./gtmetrixService";
 import { lighthouseService } from "./lighthouseService";
+import { runSecurityScan, type SecurityScanResult } from "./securityScanner";
 import { getStripePublishableKey } from "./stripeClient";
 
 // AI Vision helper for FDIC badge detection
@@ -2157,10 +2158,11 @@ Your primary goal is to help users AND capture their contact information natural
     forceRefresh: z.boolean().optional(),
     blind: z.boolean().optional(),
     useLighthouse: z.boolean().optional().default(true),
+    useSecurityScan: z.boolean().optional().default(false),
   });
 
   interface Finding {
-    category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "mobile" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr";
+    category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "mobile" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr" | "secrets" | "exposedFiles";
     issue: string;
     impact: string;
     priority: "critical" | "important" | "optional";
@@ -2310,7 +2312,7 @@ Your primary goal is to help users AND capture their contact information natural
 
   app.post("/api/grade", async (req: Request, res: Response) => {
     try {
-      const { url, email, complianceChecks, forceRefresh, blind, useLighthouse } = gradeUrlSchema.parse(req.body);
+      const { url, email, complianceChecks, forceRefresh, blind, useLighthouse, useSecurityScan } = gradeUrlSchema.parse(req.body);
       
       // SSRF protection: validate URL before fetching
       const urlValidation = await validateUrl(url);
@@ -3849,6 +3851,69 @@ Your primary goal is to help users AND capture their contact information natural
         gdprScore = Math.max(0, gdprScore);
       }
       
+      // Advanced Security Scan (Premium feature - secrets detection and exposed files)
+      let advancedSecurityScan: SecurityScanResult | null = null;
+      if (useSecurityScan) {
+        try {
+          advancedSecurityScan = await runSecurityScan(url, html);
+          
+          // Add findings for exposed secrets
+          for (const secret of advancedSecurityScan.secretsFound) {
+            findings.push({
+              category: "secrets",
+              issue: `Exposed ${secret.type}: ${secret.value}`,
+              impact: `${secret.type} found in client-side code. Attackers can extract this in seconds.`,
+              priority: secret.severity === 'critical' ? 'critical' : secret.severity === 'high' ? 'important' : 'optional',
+              howToFix: secret.remediation,
+              passed: false,
+            });
+            // Deduct from security score based on severity
+            const deduction = secret.severity === 'critical' ? 20 : secret.severity === 'high' ? 12 : secret.severity === 'medium' ? 6 : 2;
+            securityScore -= deduction;
+          }
+          
+          // Add findings for exposed files
+          for (const file of advancedSecurityScan.exposedFiles) {
+            findings.push({
+              category: "exposedFiles",
+              issue: `Exposed file: ${file.path}`,
+              impact: file.description,
+              priority: file.severity === 'critical' ? 'critical' : file.severity === 'high' ? 'important' : 'optional',
+              howToFix: file.remediation,
+              passed: false,
+            });
+            // Deduct from security score
+            const deduction = file.severity === 'critical' ? 15 : file.severity === 'high' ? 10 : file.severity === 'medium' ? 5 : 2;
+            securityScore -= deduction;
+          }
+          
+          // If no issues found, add a passing finding
+          if (advancedSecurityScan.secretsFound.length === 0) {
+            findings.push({
+              category: "secrets",
+              issue: "No exposed API keys or secrets detected",
+              impact: "Client-side code does not expose sensitive credentials",
+              priority: "optional",
+              howToFix: "",
+              passed: true,
+            });
+          }
+          if (advancedSecurityScan.exposedFiles.length === 0) {
+            findings.push({
+              category: "exposedFiles",
+              issue: "No sensitive files exposed",
+              impact: "Configuration and environment files are properly protected",
+              priority: "optional",
+              howToFix: "",
+              passed: true,
+            });
+          }
+        } catch (securityScanError) {
+          console.error("Advanced security scan error:", securityScanError);
+          // Non-blocking - continue with the rest of the scan
+        }
+      }
+      
       // Recalculate overall score with email security and mobile
       const updatedOverallScore = Math.round((seoScore + Math.max(0, securityScore) + performanceScore + keywordsScore + accessibilityScore + emailSecurity.emailSecurityScore + finalScores.mobileScore) / 7);
 
@@ -3869,6 +3934,7 @@ Your primary goal is to help users AND capture their contact information natural
           companyName: companyName || null,
           domain: parsedDomain,
           coreWebVitals,
+          advancedSecurityScan,
           blind: true,
         });
       }
