@@ -2681,6 +2681,21 @@ export default function Admin() {
                                   )}
                                 </div>
                               )}
+                              <div className="flex items-center gap-2 mt-1">
+                                {order.portal_user_id ? (
+                                  <span className={`text-xs px-2 py-0.5 rounded ${
+                                    order.portal_user_status === 'active' ? 'bg-cyan-500/20 text-cyan-400' :
+                                    order.portal_user_status === 'suspended' ? 'bg-red-500/20 text-red-400' :
+                                    'bg-gray-500/20 text-gray-400'
+                                  }`}>
+                                    Portal: {order.portal_user_status || 'unknown'}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
+                                    No portal account
+                                  </span>
+                                )}
+                              </div>
                               <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                                 <span>
                                   {order.amount_total ? `$${(order.amount_total / 100).toFixed(2)} ${(order.currency || 'usd').toUpperCase()}` : '-'}
@@ -2762,6 +2777,21 @@ export default function Admin() {
                                   )}
                                 </div>
                               )}
+                              <div className="flex items-center gap-2 mt-1">
+                                {sub.portal_user_id ? (
+                                  <span className={`text-xs px-2 py-0.5 rounded ${
+                                    sub.portal_user_status === 'active' ? 'bg-cyan-500/20 text-cyan-400' :
+                                    sub.portal_user_status === 'suspended' ? 'bg-red-500/20 text-red-400' :
+                                    'bg-gray-500/20 text-gray-400'
+                                  }`}>
+                                    Portal: {sub.portal_user_status || 'unknown'}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
+                                    No portal account
+                                  </span>
+                                )}
+                              </div>
                               <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                                 <span className="text-white">{sub.product_name || 'Unknown Product'}</span>
                                 <span>
@@ -2859,6 +2889,47 @@ export default function Admin() {
                               <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                                 <span>{customer.total_orders || 0} orders</span>
                                 <span>Created: {customer.created ? format(new Date(customer.created * 1000), 'MMM d, yyyy') : '-'}</span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-2">
+                                {customer.portal_user_id ? (
+                                  <>
+                                    <span className={`text-xs px-2 py-0.5 rounded ${
+                                      customer.portal_user_status === 'active' ? 'bg-cyan-500/20 text-cyan-400' :
+                                      customer.portal_user_status === 'suspended' ? 'bg-red-500/20 text-red-400' :
+                                      'bg-gray-500/20 text-gray-400'
+                                    }`}>
+                                      Portal: {customer.portal_user_status || 'unknown'}
+                                    </span>
+                                    <button
+                                      onClick={() => setSelectedUser({
+                                        id: customer.portal_user_id,
+                                        email: customer.portal_user_email || customer.email,
+                                        firstName: customer.portal_first_name || '',
+                                        lastName: customer.portal_last_name || '',
+                                        role: customer.portal_user_role || 'user',
+                                        status: customer.portal_user_status || 'active',
+                                        stripeCustomerId: customer.id,
+                                        stripeSubscriptionId: null,
+                                        apiTier: null,
+                                        apiCallsUsed: 0,
+                                        apiCallsLimit: 0,
+                                        createdAt: customer.created ? new Date(customer.created * 1000).toISOString() : new Date().toISOString(),
+                                        emailVerified: false,
+                                        termsAccepted: false,
+                                        termsVersion: null,
+                                        termsAcceptedAt: null
+                                      })}
+                                      className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                                    >
+                                      <Users className="w-3 h-3" />
+                                      View Account
+                                    </button>
+                                  </>
+                                ) : (
+                                  <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
+                                    No portal account
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">

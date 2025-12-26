@@ -328,8 +328,15 @@ export class StripeService {
         SELECT 
           c.*,
           (SELECT COUNT(*) FROM stripe.subscriptions s WHERE s.customer = c.id AND s.status = 'active') as active_subscriptions,
-          (SELECT COUNT(*) FROM stripe.checkout_sessions cs WHERE cs.customer = c.id AND cs.payment_status = 'paid') as total_orders
+          (SELECT COUNT(*) FROM stripe.checkout_sessions cs WHERE cs.customer = c.id AND cs.payment_status = 'paid') as total_orders,
+          u.id as portal_user_id,
+          u.email as portal_user_email,
+          u.first_name as portal_first_name,
+          u.last_name as portal_last_name,
+          u.status as portal_user_status,
+          u.role as portal_user_role
         FROM stripe.customers c
+        LEFT JOIN users u ON u.stripe_customer_id = c.id
         ORDER BY c.created DESC
         LIMIT ${limit} OFFSET ${offset}
       `
