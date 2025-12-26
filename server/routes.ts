@@ -5751,6 +5751,86 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Create portal account from Stripe customer
+  app.post("/api/admin/cs/customers/:customerId/create-portal-account", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { customerId } = req.params;
+      
+      // Get customer info from Stripe
+      const customer = await stripeService.getCustomer(customerId);
+      if (!customer) {
+        return res.status(404).json({ error: "Customer not found" });
+      }
+      
+      const email = customer.email;
+      if (!email) {
+        return res.status(400).json({ error: "Customer has no email address" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        // Link the Stripe customer ID if not already linked
+        if (!existingUser.stripeCustomerId) {
+          await storage.updateUser(existingUser.id, { stripeCustomerId: customerId });
+        }
+        
+        // Generate invite link
+        const baseUrl = process.env.REPL_SLUG 
+          ? `https://${process.env.REPL_SLUG}.replit.app`
+          : `https://${req.get('host')}`;
+        const inviteLink = `${baseUrl}/portal/login?email=${encodeURIComponent(email)}&invite=true`;
+        
+        return res.json({ 
+          success: true, 
+          user: existingUser,
+          inviteLink,
+          message: "Existing account linked to Stripe customer"
+        });
+      }
+      
+      // Create new user
+      const nameParts = customer.name?.split(' ') || [];
+      const firstName = nameParts[0] || null;
+      const lastName = nameParts.slice(1).join(' ') || null;
+      
+      const newUser = await storage.upsertUser({
+        id: crypto.randomUUID(),
+        email,
+        firstName,
+        lastName,
+        role: 'user',
+        profileImageUrl: null,
+        stripeCustomerId: customerId,
+      });
+      
+      await storage.createUserActivityLog({
+        userId: newUser.id,
+        action: 'user_created',
+        details: { email, source: 'stripe_customer', stripeCustomerId: customerId },
+        performedBy: (req as any).user?.claims?.sub || 'admin',
+        ipAddress: req.ip || null,
+        userAgent: req.headers['user-agent'] || null
+      });
+      
+      // Generate invite link
+      const baseUrl = process.env.REPL_SLUG 
+        ? `https://${process.env.REPL_SLUG}.replit.app`
+        : `https://${req.get('host')}`;
+      const inviteLink = `${baseUrl}/portal/login?email=${encodeURIComponent(email)}&invite=true`;
+      
+      res.json({ 
+        success: true, 
+        user: newUser,
+        inviteLink,
+        message: "Portal account created successfully"
+      });
+    } catch (error) {
+      console.error("Create portal account error:", error);
+      res.status(500).json({ error: "Failed to create portal account" });
+    }
+  });
+
   // Update customer
   app.patch("/api/admin/cs/customers/:customerId", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
     try {

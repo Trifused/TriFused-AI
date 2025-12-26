@@ -2931,9 +2931,47 @@ export default function Admin() {
                                     </button>
                                   </>
                                 ) : (
-                                  <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
-                                    No portal account
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
+                                      No portal account
+                                    </span>
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          const response = await fetch(`/api/admin/cs/customers/${customer.id}/create-portal-account`, {
+                                            method: 'POST',
+                                            credentials: 'include'
+                                          });
+                                          const data = await response.json();
+                                          if (data.success && data.inviteLink) {
+                                            await navigator.clipboard.writeText(data.inviteLink);
+                                            toast({
+                                              title: "Portal Account Created",
+                                              description: "Invite link copied to clipboard!"
+                                            });
+                                            queryClient.invalidateQueries({ queryKey: ['/api/admin/cs/customers'] });
+                                          } else {
+                                            toast({
+                                              title: "Error",
+                                              description: data.error || "Failed to create account",
+                                              variant: "destructive"
+                                            });
+                                          }
+                                        } catch (err) {
+                                          toast({
+                                            title: "Error",
+                                            description: "Failed to create portal account",
+                                            variant: "destructive"
+                                          });
+                                        }
+                                      }}
+                                      className="text-xs px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 flex items-center gap-1"
+                                      data-testid={`btn-create-portal-${customer.id}`}
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                      Create & Copy Invite
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             </div>
