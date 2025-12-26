@@ -52,7 +52,12 @@ export function TermsModal({ isOpen, userTermsVersion }: TermsModalProps) {
 
   return (
     <Dialog open={isOpen && needsAcceptance}>
-      <DialogContent className="max-w-2xl bg-slate-900 border-white/10" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent 
+        className="max-w-2xl bg-slate-900 border-white/10" 
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Shield className="w-6 h-6 text-cyan-400" />

@@ -52,6 +52,7 @@ import {
 } from "lucide-react";
 import { FEATURE_FLAGS, type FeatureFlag, type FeatureStatus, type FeatureCategory } from "@shared/feature-flags";
 import { FeatureBadge } from "@/components/ui/feature-badge";
+import { TermsModal } from "@/components/terms-modal";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -787,8 +788,11 @@ export default function Admin() {
     setExpandedSessions(newExpanded);
   };
 
+  const needsTermsAcceptance = !user?.termsAcceptedAt;
+
   return (
     <div className="min-h-screen bg-background">
+      <TermsModal isOpen={needsTermsAcceptance} userTermsVersion={user?.termsVersion} />
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-white/5">
         <div className="container mx-auto px-3 md:px-6">
           <div className="flex items-center justify-between h-14 md:h-16">
