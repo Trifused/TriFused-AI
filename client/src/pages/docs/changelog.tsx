@@ -13,7 +13,7 @@ interface ChangelogEntry {
 const changelog: ChangelogEntry[] = [
   {
     version: "2.4.0",
-    date: "December 2024",
+    date: "December 26, 2025",
     type: "feature",
     title: "Documentation Hub",
     description: "Launched comprehensive documentation with tutorials, trust & billing info, and team features.",
@@ -26,7 +26,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "2.3.0",
-    date: "December 2024",
+    date: "December 25, 2025",
     type: "feature",
     title: "HubSpot-Style Website Grader",
     description: "Redesigned the Website Grader with improved messaging and FAQ section.",
@@ -39,7 +39,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "2.2.0",
-    date: "December 2024",
+    date: "December 23, 2025",
     type: "feature",
     title: "API Subscription Checkout",
     description: "Added guest checkout for API subscriptions directly from the grader results page.",
@@ -51,7 +51,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "2.1.0",
-    date: "December 2024",
+    date: "December 22, 2025",
     type: "feature",
     title: "Custom Domain Support",
     description: "Added subdomain routing for portal, shop, and store domains.",
@@ -64,7 +64,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "2.0.0",
-    date: "November 2024",
+    date: "December 17, 2025",
     type: "feature",
     title: "Mobile Diagnostics Overlay",
     description: "Improved mobile experience with gamified progress animation.",
@@ -77,7 +77,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "1.9.0",
-    date: "November 2024",
+    date: "December 12, 2025",
     type: "feature",
     title: "Security Scanning Pro",
     description: "Premium security scanning features for Pro tier users.",
@@ -90,7 +90,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "1.8.0",
-    date: "November 2024",
+    date: "December 12, 2025",
     type: "feature",
     title: "Google Lighthouse Integration",
     description: "Free Core Web Vitals analysis powered by Lighthouse.",
@@ -103,7 +103,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "1.7.0",
-    date: "October 2024",
+    date: "December 9, 2025",
     type: "feature",
     title: "Compliance Checks",
     description: "Industry-specific compliance scanning for regulated businesses.",
@@ -118,7 +118,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "1.6.0",
-    date: "October 2024",
+    date: "December 7, 2025",
     type: "feature",
     title: "Shareable Reports",
     description: "Generate and share website grade reports with QR codes.",
@@ -131,7 +131,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "1.5.0",
-    date: "September 2024",
+    date: "December 6, 2025",
     type: "feature",
     title: "Stripe Integration",
     description: "Full e-commerce support with Stripe payments.",
@@ -144,7 +144,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "1.4.0",
-    date: "September 2024",
+    date: "December 6, 2025",
     type: "improvement",
     title: "Performance Optimizations",
     description: "Improved scanning speed and reliability.",
@@ -157,7 +157,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "1.3.0",
-    date: "August 2024",
+    date: "December 6, 2025",
     type: "feature",
     title: "User Portal",
     description: "Full-featured dashboard for managing scans and subscriptions.",
@@ -170,7 +170,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "1.2.0",
-    date: "August 2024",
+    date: "December 6, 2025",
     type: "security",
     title: "Security Enhancements",
     description: "Improved security across the platform.",
@@ -183,7 +183,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "1.1.0",
-    date: "July 2024",
+    date: "December 6, 2025",
     type: "improvement",
     title: "Email Security Scoring",
     description: "Added email security analysis to website grading.",
@@ -196,7 +196,7 @@ const changelog: ChangelogEntry[] = [
   },
   {
     version: "1.0.0",
-    date: "July 2024",
+    date: "December 6, 2025",
     type: "feature",
     title: "Initial Release",
     description: "Launch of TriFused Website Grader.",
