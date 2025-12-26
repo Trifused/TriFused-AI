@@ -2351,13 +2351,20 @@ Your primary goal is to help users AND capture their contact information natural
       let isHttps = url.startsWith("https://");
       let redirectCount = 0;
       
+      const browserHeaders = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+      };
+      
       try {
         let finalUrl = url;
         let response = await fetch(url, {
           signal: controller.signal,
-          headers: {
-            'User-Agent': 'TriFused Website Grader Bot/1.0',
-          },
+          headers: browserHeaders,
           redirect: 'manual',
         });
         
@@ -2375,9 +2382,7 @@ Your primary goal is to help users AND capture their contact information natural
           
           response = await fetch(finalUrl, {
             signal: controller.signal,
-            headers: {
-              'User-Agent': 'TriFused Website Grader Bot/1.0',
-            },
+            headers: browserHeaders,
             redirect: 'manual',
           });
           redirectCount++;
@@ -2389,6 +2394,13 @@ Your primary goal is to help users AND capture their contact information natural
         response.headers.forEach((value, key) => {
           responseHeaders[key.toLowerCase()] = value;
         });
+        
+        // Debug logging for troubleshooting fetch issues
+        if (html.length < 500 || !html.includes('<title')) {
+          console.log(`[Grader Debug] Potentially incomplete response for ${url}:`);
+          console.log(`[Grader Debug] Status: ${response.status}, Length: ${html.length}`);
+          console.log(`[Grader Debug] First 200 chars: ${html.substring(0, 200).replace(/\n/g, ' ')}`);
+        }
       } catch (fetchError: any) {
         clearTimeout(timeout);
         return res.status(400).json({ 

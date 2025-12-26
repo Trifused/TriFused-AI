@@ -1,0 +1,93 @@
+# Website Grade Report for https://trifused.com
+*(Free Tool - For informational purposes only)*
+
+## Overall Score: 69/100 (Grade: D)
+
+### Category Scores:
+- SEO: 35/100
+- Security: 55/100
+- Performance: 75/100
+- Keywords: 75/100
+- Accessibility: 85/100
+- Email Security: 80/100
+- Mobile: 75/100
+
+## Issues Found (16):
+
+### [SEO] Missing page title (critical)
+**Impact:** Page titles are crucial for SEO and user experience
+**Fix:** Add a <title> tag inside your <head> section with a descriptive title (50-60 characters recommended)
+
+### [SEO] Missing meta description (critical)
+**Impact:** Meta descriptions help search engines understand your page and improve click-through rates
+**Fix:** Add <meta name="description" content="Your description here"> to your <head> section (150-160 characters recommended)
+
+### [SEO] Missing H1 heading (critical)
+**Impact:** H1 tags help search engines understand your page's main topic
+**Fix:** Add an <h1> tag with your main page heading. Each page should have exactly one H1
+
+### [SEO] Missing Open Graph meta tags (important)
+**Impact:** Open Graph tags improve how your page appears when shared on social media
+**Fix:** Add og:title, og:description, and og:image meta tags for better social sharing
+
+### [SEO] Missing robots.txt file (optional)
+**Impact:** Search engines have no guidance on which pages to crawl
+**Fix:** Create a robots.txt file in your root directory with crawl directives
+
+### [SEO] Missing sitemap.xml file (important)
+**Impact:** Search engines may not discover all your pages
+**Fix:** Create a sitemap.xml file listing all your important pages and submit it to search engines
+
+### [SECURITY] Missing Content-Security-Policy header (important)
+**Impact:** CSP helps prevent XSS attacks and data injection
+**Fix:** Add a Content-Security-Policy header to your server configuration. Start with: Content-Security-Policy: default-src 'self'
+
+### [SECURITY] Missing X-Frame-Options header (important)
+**Impact:** Your site could be embedded in iframes, enabling clickjacking attacks
+**Fix:** Add header: X-Frame-Options: DENY (or SAMEORIGIN if you need iframes from your own domain)
+
+### [SECURITY] Missing X-Content-Type-Options header (important)
+**Impact:** Browsers might MIME-sniff content, leading to security issues
+**Fix:** Add header: X-Content-Type-Options: nosniff
+
+### [SECURITY] Missing Strict-Transport-Security header (important)
+**Impact:** Users could be downgraded to HTTP connections
+**Fix:** Add header: Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+### [ACCESSIBILITY] Missing language attribute on <html> (important)
+**Impact:** Screen readers may mispronounce content
+**Fix:** Add lang attribute: <html lang="en">
+
+### [ACCESSIBILITY] No skip navigation link found (optional)
+**Impact:** Keyboard users must tab through all navigation on every page
+**Fix:** Add a 'Skip to main content' link at the top of your page
+
+### [KEYWORDS] Top keyword "found" not in title or H1 (important)
+**Impact:** Main keywords should appear in title and H1 for better SEO
+**Fix:** Include "found" naturally in your page title and H1 heading
+
+### [KEYWORDS] Keyword "found" density is 100.0% (may be too high) (important)
+**Impact:** Keyword stuffing can hurt SEO rankings
+**Fix:** Reduce repetition of this keyword. Aim for 1-2% density
+
+### [MOBILE] Missing viewport meta tag (critical)
+**Impact:** Without a viewport meta tag, mobile browsers may render the page at desktop width and scale it down
+**Fix:** Add <meta name="viewport" content="width=device-width, initial-scale=1"> to your <head> section
+
+### [EMAIL] No DKIM signature detected (important)
+**Impact:** Emails cannot be verified as authentic
+**Fix:** Configure DKIM with your email provider and add the public key to DNS
+
+
+## Passed Checks (8):
+- Site uses HTTPS
+- Performance estimated (Lighthouse analysis not enabled)
+- No extremely small inline font sizes detected
+- No redirects detected
+- 5 MX record(s) configured
+- SPF record configured
+- DMARC policy configured
+- Domain IP not on any checked blacklists
+
+---
+*Analyzed on 12/26/2025, 11:26:26 AM by TriFused Website Grader*
