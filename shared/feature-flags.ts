@@ -67,8 +67,9 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     id: 'grader_lighthouse',
     name: 'Google Lighthouse Integration',
     description: 'Core Web Vitals and performance scoring powered by Google Lighthouse',
-    status: 'free',
+    status: 'coming_soon',
     category: 'grader',
+    tier: 'pro',
   },
   GRADER_GTMETRIX: {
     id: 'grader_gtmetrix',
