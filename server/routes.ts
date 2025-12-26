@@ -2324,8 +2324,9 @@ Your primary goal is to help users AND capture their contact information natural
       // Only use cache if no compliance checks are requested, not forcing refresh, and not using Lighthouse
       // Note: www and non-www are treated as separate URLs since they could serve different content
       // Lighthouse scans bypass cache since they provide fresh performance data
+      // Blind mode always bypasses cache to get fresh results
       const hasComplianceChecks = complianceChecks && Object.values(complianceChecks).some(v => v);
-      if (!hasComplianceChecks && !forceRefresh && !useLighthouse) {
+      if (!hasComplianceChecks && !forceRefresh && !useLighthouse && !blind) {
         const cached = await storage.getRecentGradeForUrl(url);
         // Only use cached result if it has reasonable performance data
         // Skip cache if performanceScore is 0 (likely from failed Lighthouse scan)
