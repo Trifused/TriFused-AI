@@ -586,7 +586,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {premiumFeatures.map((feature) => {
-                      // Make Lighthouse toggleable for superusers
+                      // Make Lighthouse toggleable for superusers but still show Coming Soon badge
                       if (feature.id === 'grader_lighthouse' && isSuperuser) {
                         return (
                           <button
@@ -596,12 +596,12 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                             className={`min-h-[44px] px-3 py-2 rounded-lg border text-sm font-medium flex items-center gap-2 transition-all ${
                               useLighthouse
                                 ? "bg-cyan-500/20 border-cyan-500 text-cyan-400"
-                                : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
+                                : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30 opacity-60"
                             }`}
                             data-testid={`feature-${feature.id}`}
                           >
-                            <span>{feature.name}</span>
-                            {useLighthouse && <span className="text-xs">(ON)</span>}
+                            <span className={useLighthouse ? "" : "text-muted-foreground"}>{feature.name}</span>
+                            <FeatureBadge status={feature.status} tier={feature.tier} />
                           </button>
                         );
                       }
