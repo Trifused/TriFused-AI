@@ -5233,5 +5233,134 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // ==========================================
+  // Backlink Management Routes (Superuser Only)
+  // ==========================================
+
+  // Get all backlinks
+  app.get("/api/admin/backlinks", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const backlinks = await storage.getAllBacklinks();
+      res.json(backlinks);
+    } catch (error) {
+      console.error("Get backlinks error:", error);
+      res.status(500).json({ error: "Failed to get backlinks" });
+    }
+  });
+
+  // Get backlinks count
+  app.get("/api/admin/backlinks/count", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const count = await storage.getBacklinksCount();
+      res.json({ count });
+    } catch (error) {
+      console.error("Get backlinks count error:", error);
+      res.status(500).json({ error: "Failed to get backlinks count" });
+    }
+  });
+
+  // Create backlink
+  app.post("/api/admin/backlinks", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { url, targetUrl, siteName, notes, status } = req.body;
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+      const backlink = await storage.createBacklink({
+        url,
+        targetUrl: targetUrl || "https://trifused.com",
+        siteName,
+        notes,
+        status: status || "pending"
+      });
+      res.json(backlink);
+    } catch (error) {
+      console.error("Create backlink error:", error);
+      res.status(500).json({ error: "Failed to create backlink" });
+    }
+  });
+
+  // Update backlink
+  app.patch("/api/admin/backlinks/:id", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const backlink = await storage.updateBacklink(id, updates);
+      if (!backlink) {
+        return res.status(404).json({ error: "Backlink not found" });
+      }
+      res.json(backlink);
+    } catch (error) {
+      console.error("Update backlink error:", error);
+      res.status(500).json({ error: "Failed to update backlink" });
+    }
+  });
+
+  // Delete backlink
+  app.delete("/api/admin/backlinks/:id", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteBacklink(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete backlink error:", error);
+      res.status(500).json({ error: "Failed to delete backlink" });
+    }
+  });
+
+  // Verify backlink (check if the URL contains a link to TriFused)
+  app.post("/api/admin/backlinks/:id/verify", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const backlink = await storage.getBacklink(id);
+      if (!backlink) {
+        return res.status(404).json({ error: "Backlink not found" });
+      }
+
+      // Fetch the page and check for backlink
+      const response = await fetch(backlink.url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; TriFused Backlink Checker/1.0)'
+        }
+      });
+      
+      if (!response.ok) {
+        await storage.updateBacklink(id, { 
+          status: "broken",
+          lastCheckedAt: new Date()
+        });
+        return res.json({ verified: false, reason: "Page not accessible", status: response.status });
+      }
+
+      const html = await response.text();
+      const $ = cheerio.load(html);
+      
+      // Check for links to TriFused
+      const targetUrl = backlink.targetUrl || "https://trifused.com";
+      const targetDomain = new URL(targetUrl).hostname.replace("www.", "");
+      
+      let found = false;
+      $('a[href]').each((_, el) => {
+        const href = $(el).attr('href') || '';
+        if (href.includes(targetDomain) || href.includes('trifused')) {
+          found = true;
+          return false; // break
+        }
+      });
+
+      const newStatus = found ? "verified" : "broken";
+      await storage.updateBacklink(id, {
+        status: newStatus,
+        lastCheckedAt: new Date(),
+        verifiedAt: found ? new Date() : undefined
+      });
+
+      res.json({ verified: found, status: newStatus });
+    } catch (error) {
+      console.error("Verify backlink error:", error);
+      res.status(500).json({ error: "Failed to verify backlink" });
+    }
+  });
+
   return httpServer;
 }

@@ -233,7 +233,7 @@ export default function Admin() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tab && ["users", "chat", "media", "analytics", "grader", "features", "commerce", "customers", "reports"].includes(tab)) {
+    if (tab && ["users", "chat", "media", "analytics", "grader", "features", "commerce", "customers", "reports", "backlinks"].includes(tab)) {
       setActiveTab(tab);
     }
   }, []);
@@ -891,6 +891,10 @@ export default function Admin() {
               <TabsTrigger value="commerce" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-commerce">
                 <CreditCard className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">Commerce</span>
+              </TabsTrigger>
+              <TabsTrigger value="backlinks" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-backlinks">
+                <Link2 className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Backlinks</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -2445,6 +2449,10 @@ export default function Admin() {
               </div>
             </motion.div>
           </TabsContent>
+
+          <TabsContent value="backlinks">
+            <BacklinksTab />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
@@ -2985,6 +2993,357 @@ function CommerceTab() {
           </motion.div>
         </div>
       )}
+    </motion.div>
+  );
+}
+
+interface Backlink {
+  id: string;
+  url: string;
+  targetUrl: string;
+  status: string;
+  siteName: string | null;
+  notes: string | null;
+  lastCheckedAt: string | null;
+  verifiedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function BacklinksTab() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingBacklink, setEditingBacklink] = useState<Backlink | null>(null);
+  const [newBacklink, setNewBacklink] = useState({
+    url: '',
+    targetUrl: 'https://trifused.com',
+    siteName: '',
+    notes: '',
+  });
+
+  const { data: backlinks = [], isLoading } = useQuery<Backlink[]>({
+    queryKey: ['admin-backlinks'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/backlinks', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch backlinks');
+      return res.json();
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: typeof newBacklink) => {
+      const res = await fetch('/api/admin/backlinks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Failed to create backlink');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-backlinks'] });
+      setShowAddForm(false);
+      setNewBacklink({ url: '', targetUrl: 'https://trifused.com', siteName: '', notes: '' });
+      toast({ title: 'Backlink added successfully' });
+    },
+    onError: () => {
+      toast({ title: 'Failed to add backlink', variant: 'destructive' });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Backlink> }) => {
+      const res = await fetch(`/api/admin/backlinks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Failed to update backlink');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-backlinks'] });
+      setEditingBacklink(null);
+      toast({ title: 'Backlink updated successfully' });
+    },
+    onError: () => {
+      toast({ title: 'Failed to update backlink', variant: 'destructive' });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/backlinks/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete backlink');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-backlinks'] });
+      toast({ title: 'Backlink deleted successfully' });
+    },
+    onError: () => {
+      toast({ title: 'Failed to delete backlink', variant: 'destructive' });
+    },
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/backlinks/${id}/verify`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to verify backlink');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-backlinks'] });
+      toast({
+        title: data.verified ? 'Backlink verified!' : 'Backlink not found',
+        description: data.verified ? 'Link to TriFused was found on the page' : 'No link to TriFused found on the page',
+        variant: data.verified ? 'default' : 'destructive',
+      });
+    },
+    onError: () => {
+      toast({ title: 'Failed to verify backlink', variant: 'destructive' });
+    },
+  });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'verified': return 'text-green-400 bg-green-500/10';
+      case 'pending': return 'text-yellow-400 bg-yellow-500/10';
+      case 'broken': return 'text-red-400 bg-red-500/10';
+      case 'removed': return 'text-gray-400 bg-gray-500/10';
+      default: return 'text-muted-foreground bg-white/5';
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="glass-panel rounded-2xl overflow-hidden"
+    >
+      <div className="p-4 border-b border-white/5 bg-white/5 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Link2 className="w-5 h-5 text-cyan-400" />
+            Backlink Manager
+          </h2>
+          <p className="text-sm text-muted-foreground">Track and verify backlinks to TriFused</p>
+        </div>
+        <Button
+          onClick={() => setShowAddForm(true)}
+          className="bg-cyan-500 hover:bg-cyan-600 text-black"
+          data-testid="btn-add-backlink"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Backlink
+        </Button>
+      </div>
+
+      {showAddForm && (
+        <div className="p-4 border-b border-white/5 bg-cyan-500/5">
+          <h3 className="font-medium text-white mb-4">Add New Backlink</h3>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-muted-foreground block mb-1">Page URL *</label>
+              <Input
+                placeholder="https://example.com/blog/post"
+                value={newBacklink.url}
+                onChange={(e) => setNewBacklink({ ...newBacklink, url: e.target.value })}
+                data-testid="input-backlink-url"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground block mb-1">Site Name</label>
+              <Input
+                placeholder="Example Blog"
+                value={newBacklink.siteName}
+                onChange={(e) => setNewBacklink({ ...newBacklink, siteName: e.target.value })}
+                data-testid="input-backlink-sitename"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground block mb-1">Target URL</label>
+              <Input
+                placeholder="https://trifused.com"
+                value={newBacklink.targetUrl}
+                onChange={(e) => setNewBacklink({ ...newBacklink, targetUrl: e.target.value })}
+                data-testid="input-backlink-target"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-muted-foreground block mb-1">Notes</label>
+              <Input
+                placeholder="Optional notes..."
+                value={newBacklink.notes}
+                onChange={(e) => setNewBacklink({ ...newBacklink, notes: e.target.value })}
+                data-testid="input-backlink-notes"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button
+              onClick={() => createMutation.mutate(newBacklink)}
+              disabled={!newBacklink.url || createMutation.isPending}
+              className="bg-cyan-500 hover:bg-cyan-600 text-black"
+              data-testid="btn-save-backlink"
+            >
+              {createMutation.isPending ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+              Save
+            </Button>
+            <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="p-12 text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading backlinks...</p>
+        </div>
+      ) : backlinks.length === 0 ? (
+        <div className="p-12 text-center">
+          <Link2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground">No backlinks tracked yet</p>
+          <p className="text-sm text-muted-foreground">Add your first backlink to start tracking</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-white/5">
+          {backlinks.map((backlink) => (
+            <div
+              key={backlink.id}
+              className="p-4 hover:bg-white/5 transition-colors"
+              data-testid={`backlink-${backlink.id}`}
+            >
+              {editingBacklink?.id === backlink.id ? (
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Input
+                      value={editingBacklink.url}
+                      onChange={(e) => setEditingBacklink({ ...editingBacklink, url: e.target.value })}
+                      placeholder="Page URL"
+                    />
+                    <Input
+                      value={editingBacklink.siteName || ''}
+                      onChange={(e) => setEditingBacklink({ ...editingBacklink, siteName: e.target.value })}
+                      placeholder="Site Name"
+                    />
+                    <Input
+                      value={editingBacklink.notes || ''}
+                      onChange={(e) => setEditingBacklink({ ...editingBacklink, notes: e.target.value })}
+                      placeholder="Notes"
+                    />
+                    <select
+                      className="bg-slate-800 border border-white/10 rounded px-3 py-2 text-white"
+                      value={editingBacklink.status}
+                      onChange={(e) => setEditingBacklink({ ...editingBacklink, status: e.target.value })}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="verified">Verified</option>
+                      <option value="broken">Broken</option>
+                      <option value="removed">Removed</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => updateMutation.mutate({ id: backlink.id, data: editingBacklink })}
+                      disabled={updateMutation.isPending}
+                    >
+                      <Save className="w-4 h-4 mr-1" /> Save
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingBacklink(null)}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(backlink.status)}`}>
+                        {backlink.status}
+                      </span>
+                      {backlink.siteName && (
+                        <span className="text-sm font-medium text-white">{backlink.siteName}</span>
+                      )}
+                    </div>
+                    <a
+                      href={backlink.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-cyan-400 hover:underline truncate block"
+                    >
+                      {backlink.url}
+                    </a>
+                    {backlink.notes && (
+                      <p className="text-xs text-muted-foreground mt-1">{backlink.notes}</p>
+                    )}
+                    <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                      <span>Added: {format(new Date(backlink.createdAt), 'MMM d, yyyy')}</span>
+                      {backlink.lastCheckedAt && (
+                        <span>Last checked: {format(new Date(backlink.lastCheckedAt), 'MMM d, yyyy')}</span>
+                      )}
+                      {backlink.verifiedAt && (
+                        <span className="text-green-400">Verified: {format(new Date(backlink.verifiedAt), 'MMM d, yyyy')}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => verifyMutation.mutate(backlink.id)}
+                      disabled={verifyMutation.isPending}
+                      data-testid={`btn-verify-${backlink.id}`}
+                    >
+                      {verifyMutation.isPending ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingBacklink(backlink)}
+                      data-testid={`btn-edit-${backlink.id}`}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-400 hover:text-red-300"
+                      onClick={() => {
+                        if (confirm('Delete this backlink?')) {
+                          deleteMutation.mutate(backlink.id);
+                        }
+                      }}
+                      data-testid={`btn-delete-${backlink.id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="p-4 bg-cyan-500/10 border-t border-cyan-500/20">
+        <p className="text-sm text-cyan-400">
+          <Link2 className="w-4 h-4 inline mr-2" />
+          The verify button checks if the page contains a link to TriFused. Broken links indicate the backlink may have been removed.
+        </p>
+      </div>
     </motion.div>
   );
 }

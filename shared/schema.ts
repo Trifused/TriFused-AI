@@ -510,3 +510,31 @@ export const insertUserWebsiteScanSchema = createInsertSchema(userWebsiteScans).
 
 export type InsertUserWebsiteScan = z.infer<typeof insertUserWebsiteScanSchema>;
 export type UserWebsiteScan = typeof userWebsiteScans.$inferSelect;
+
+// Backlink tracking for superuser management
+export const backlinkStatuses = ["pending", "verified", "broken", "removed"] as const;
+export type BacklinkStatus = typeof backlinkStatuses[number];
+
+export const backlinks = pgTable("backlinks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  url: text("url").notNull(),
+  targetUrl: text("target_url").default("https://trifused.com").notNull(),
+  status: varchar("status").default("pending").notNull(),
+  siteName: text("site_name"),
+  notes: text("notes"),
+  lastCheckedAt: timestamp("last_checked_at"),
+  verifiedAt: timestamp("verified_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertBacklinkSchema = createInsertSchema(backlinks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastCheckedAt: true,
+  verifiedAt: true,
+});
+
+export type InsertBacklink = z.infer<typeof insertBacklinkSchema>;
+export type Backlink = typeof backlinks.$inferSelect;

@@ -17,6 +17,7 @@ import {
   reportEvents,
   reportSubscriptions,
   userWebsites,
+  backlinks,
   InsertContactSubmission, 
   InsertDiagnosticScan, 
   ContactSubmission, 
@@ -54,7 +55,9 @@ import {
   InsertUserWebsite,
   userWebsiteScans,
   InsertUserWebsiteScan,
-  UserWebsiteScan
+  UserWebsiteScan,
+  Backlink,
+  InsertBacklink
 } from "@shared/schema";
 
 export interface IStorage {
@@ -166,6 +169,14 @@ export interface IStorage {
   createUserWebsiteScan(data: InsertUserWebsiteScan): Promise<UserWebsiteScan>;
   getUserWebsiteScans(userWebsiteId: string, limit?: number): Promise<WebsiteGrade[]>;
   getUserScansForWebsites(userWebsiteIds: string[], limit?: number): Promise<WebsiteGrade[]>;
+  
+  // Backlink management methods (superuser only)
+  createBacklink(data: InsertBacklink): Promise<Backlink>;
+  getBacklink(id: string): Promise<Backlink | undefined>;
+  getAllBacklinks(): Promise<Backlink[]>;
+  updateBacklink(id: string, data: Partial<Backlink>): Promise<Backlink | undefined>;
+  deleteBacklink(id: string): Promise<void>;
+  getBacklinksCount(): Promise<number>;
 }
 
 class Storage implements IStorage {
@@ -722,6 +733,39 @@ class Storage implements IStorage {
       .from(websiteGrades)
       .where(inArray(websiteGrades.id, gradeIds))
       .orderBy(desc(websiteGrades.createdAt));
+  }
+
+  // Backlink management methods
+  async createBacklink(data: InsertBacklink): Promise<Backlink> {
+    const [backlink] = await db.insert(backlinks).values(data).returning();
+    return backlink;
+  }
+
+  async getBacklink(id: string): Promise<Backlink | undefined> {
+    const [backlink] = await db.select().from(backlinks).where(eq(backlinks.id, id));
+    return backlink;
+  }
+
+  async getAllBacklinks(): Promise<Backlink[]> {
+    return await db.select().from(backlinks).orderBy(desc(backlinks.createdAt));
+  }
+
+  async updateBacklink(id: string, data: Partial<Backlink>): Promise<Backlink | undefined> {
+    const [backlink] = await db
+      .update(backlinks)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(backlinks.id, id))
+      .returning();
+    return backlink;
+  }
+
+  async deleteBacklink(id: string): Promise<void> {
+    await db.delete(backlinks).where(eq(backlinks.id, id));
+  }
+
+  async getBacklinksCount(): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(backlinks);
+    return result?.count || 0;
   }
 }
 
