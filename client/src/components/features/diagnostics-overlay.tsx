@@ -222,7 +222,8 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
       });
 
       if (!response.ok) {
-        throw new Error('Scan failed');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Scan failed');
       }
 
       const result = await response.json();
@@ -256,9 +257,13 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
       });
       
       setFlowState('reportPrompt');
-    } catch (error) {
+    } catch (error: any) {
       addLog("ERROR: Failed to complete scan.");
-      addLog("Check URL and try again.");
+      if (error?.message) {
+        addLog(error.message);
+      } else {
+        addLog("Check URL and try again.");
+      }
       setFlowState('urlInput');
     }
   };
