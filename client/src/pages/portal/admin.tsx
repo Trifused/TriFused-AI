@@ -48,7 +48,13 @@ import {
   Upload,
   Download,
   UserCog,
-  FileText
+  FileText,
+  Ban,
+  UserMinus,
+  Activity,
+  MoreVertical,
+  Filter,
+  ChevronUp
 } from "lucide-react";
 import { FEATURE_FLAGS, type FeatureFlag, type FeatureStatus, type FeatureCategory } from "@shared/feature-flags";
 import { FeatureBadge } from "@/components/ui/feature-badge";
@@ -67,7 +73,34 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { 
   LineChart, 
   Line, 
@@ -89,8 +122,24 @@ interface User {
   profileImageUrl: string | null;
   role: string;
   ftpAccess: number;
+  status: string;
+  lastLoginAt: string | null;
+  suspendedAt: string | null;
+  suspendedReason: string | null;
+  deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+interface UserActivityLog {
+  id: string;
+  userId: string;
+  action: string;
+  details: any;
+  performedBy: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
 }
 
 interface ChatLead {
@@ -230,6 +279,19 @@ export default function Admin() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
+  
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersSearch, setUsersSearch] = useState("");
+  const [usersStatusFilter, setUsersStatusFilter] = useState("all");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editUserOpen, setEditUserOpen] = useState(false);
+  const [activityLogOpen, setActivityLogOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmPurgeOpen, setConfirmPurgeOpen] = useState(false);
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [suspendReason, setSuspendReason] = useState("");
+  const [editForm, setEditForm] = useState({ firstName: "", lastName: "", email: "", role: "guest" });
+  const usersLimit = 10;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -239,9 +301,34 @@ export default function Admin() {
     }
   }, []);
 
-  const { data: users, isLoading: usersLoading, error } = useQuery<User[]>({
-    queryKey: ['/api/admin/users'],
+  const { data: usersData, isLoading: usersLoading, error } = useQuery<{ users: User[]; total: number }>({
+    queryKey: ['/api/admin/users/paginated', usersPage, usersLimit, usersStatusFilter, usersSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: String(usersPage),
+        limit: String(usersLimit),
+        status: usersStatusFilter,
+        search: usersSearch,
+      });
+      const res = await fetch(`/api/admin/users/paginated?${params}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch users');
+      return res.json();
+    },
     enabled: isAuthenticated && user?.role === 'superuser',
+  });
+
+  const users = usersData?.users;
+  const usersTotal = usersData?.total || 0;
+  const totalPages = Math.ceil(usersTotal / usersLimit);
+
+  const { data: userActivityLogs, isLoading: activityLoading } = useQuery<UserActivityLog[]>({
+    queryKey: ['/api/admin/users', selectedUser?.id, 'activity'],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/users/${selectedUser?.id}/activity`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch activity');
+      return res.json();
+    },
+    enabled: activityLogOpen && !!selectedUser?.id,
   });
 
   const { data: leads, isLoading: leadsLoading } = useQuery<ChatLead[]>({
@@ -624,7 +711,7 @@ export default function Admin() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users/paginated'] });
       toast({
         title: "Role Updated",
         description: "User role has been updated successfully.",
@@ -654,7 +741,7 @@ export default function Admin() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users/paginated'] });
       toast({
         title: "FTP Access Updated",
         description: "User MFT access has been updated successfully.",
@@ -666,6 +753,101 @@ export default function Admin() {
         description: error.message,
         variant: "destructive",
       });
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ userId, status, reason }: { userId: string; status: string; reason?: string }) => {
+      const res = await fetch(`/api/admin/users/${userId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, reason }),
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to update status');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users/paginated'] });
+      setSuspendDialogOpen(false);
+      setSuspendReason("");
+      toast({ title: "Status Updated", description: "User status has been updated." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ userId, data }: { userId: string; data: any }) => {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to update user');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users/paginated'] });
+      setEditUserOpen(false);
+      toast({ title: "User Updated", description: "User has been updated successfully." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to delete user');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users/paginated'] });
+      setConfirmDeleteOpen(false);
+      setSelectedUser(null);
+      toast({ title: "User Deleted", description: "User has been marked as deleted." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const purgeUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await fetch(`/api/admin/users/${userId}/purge`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to purge user');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users/paginated'] });
+      setConfirmPurgeOpen(false);
+      setSelectedUser(null);
+      toast({ title: "User Purged", description: "User has been permanently deleted." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -757,6 +939,40 @@ export default function Admin() {
       default:
         return 'bg-white/5 text-muted-foreground border-white/10';
     }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return { class: 'bg-green-500/10 text-green-500 border-green-500/20', icon: CheckCircle2 };
+      case 'suspended':
+        return { class: 'bg-orange-500/10 text-orange-500 border-orange-500/20', icon: AlertTriangle };
+      case 'banned':
+        return { class: 'bg-red-500/10 text-red-500 border-red-500/20', icon: Ban };
+      case 'pending':
+        return { class: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: Clock };
+      case 'deleted':
+        return { class: 'bg-gray-500/10 text-gray-500 border-gray-500/20', icon: Trash2 };
+      default:
+        return { class: 'bg-white/5 text-muted-foreground border-white/10', icon: Users };
+    }
+  };
+
+  const openEditUser = (u: User) => {
+    setSelectedUser(u);
+    setEditForm({
+      firstName: u.firstName || "",
+      lastName: u.lastName || "",
+      email: u.email || "",
+      role: u.role,
+    });
+    setEditUserOpen(true);
+  };
+
+  const openSuspendDialog = (u: User) => {
+    setSelectedUser(u);
+    setSuspendReason("");
+    setSuspendDialogOpen(true);
   };
 
   const filteredLeads = leads?.filter(lead => {
@@ -908,135 +1124,408 @@ export default function Admin() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="glass-panel rounded-2xl overflow-hidden"
+              className="space-y-4"
             >
-              <div className="p-4 border-b border-white/5 bg-white/5">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-white">All Users</h2>
-                  <div className="text-sm text-muted-foreground">
-                    {users?.length || 0} total users
+              <div className="sticky top-14 md:top-16 z-40 -mx-3 px-3 py-3 md:mx-0 md:px-0 bg-background/95 backdrop-blur-sm border-b border-white/5 md:border-none">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="relative flex-1 max-w-full md:max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name or email..."
+                      value={usersSearch}
+                      onChange={(e) => { setUsersSearch(e.target.value); setUsersPage(1); }}
+                      className="pl-10 bg-white/5 border-white/10 h-11"
+                      data-testid="input-search-users"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 -mb-1">
+                    {['all', 'active', 'suspended', 'banned', 'pending', 'deleted'].map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => { setUsersStatusFilter(status); setUsersPage(1); }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                          usersStatusFilter === status
+                            ? 'bg-primary text-white'
+                            : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                        }`}
+                        data-testid={`filter-${status}`}
+                      >
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {usersLoading ? (
-                <div className="p-12 text-center">
-                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                  <p className="text-muted-foreground">Loading users...</p>
-                </div>
-              ) : error ? (
-                <div className="p-12 text-center">
-                  <p className="text-red-400">Failed to load users</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-white/5">
-                  {users?.map((u, index) => (
-                    <motion.div
-                      key={u.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="p-4 hover:bg-white/5 transition-colors"
-                      data-testid={`row-user-${u.id}`}
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4 flex-1 min-w-0">
-                          {u.profileImageUrl ? (
-                            <img 
-                              src={u.profileImageUrl} 
-                              alt="" 
-                              className="w-10 h-10 rounded-full object-cover border border-white/10"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
-                              <Users className="w-5 h-5 text-muted-foreground" />
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <div className="text-white font-medium truncate">
-                              {u.firstName && u.lastName 
-                                ? `${u.firstName} ${u.lastName}` 
-                                : u.firstName || u.email?.split('@')[0] || 'Unknown'}
-                            </div>
-                            <div className="text-sm text-muted-foreground truncate">
-                              {u.email || 'No email'}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                          <div className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-2 ${getRoleBadge(u.role)}`}>
-                            {getRoleIcon(u.role)}
-                            {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
-                          </div>
-
-                          <Select
-                            value={u.role}
-                            onValueChange={(value) => updateRoleMutation.mutate({ userId: u.id, role: value })}
-                            disabled={u.id === user?.id || updateRoleMutation.isPending}
-                          >
-                            <SelectTrigger className="w-36 bg-white/5 border-white/10" data-testid={`select-role-${u.id}`}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="guest">
-                                <span className="flex items-center gap-2">
-                                  <UserX className="w-4 h-4" /> Guest
-                                </span>
-                              </SelectItem>
-                              <SelectItem value="validated">
-                                <span className="flex items-center gap-2">
-                                  <UserCheck className="w-4 h-4" /> Validated
-                                </span>
-                              </SelectItem>
-                              <SelectItem value="superuser">
-                                <span className="flex items-center gap-2">
-                                  <Crown className="w-4 h-4" /> Superuser
-                                </span>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-
-                          <div className="flex items-center gap-2 pl-4 border-l border-white/10">
-                            <HardDrive className={`w-4 h-4 ${u.ftpAccess === 1 ? 'text-primary' : 'text-muted-foreground'}`} />
-                            <Switch
-                              checked={u.ftpAccess === 1}
-                              onCheckedChange={(checked) => 
-                                updateFtpAccessMutation.mutate({ userId: u.id, ftpAccess: checked ? 1 : 0 })
-                              }
-                              disabled={updateFtpAccessMutation.isPending}
-                              data-testid={`switch-ftp-${u.id}`}
-                            />
-                            <span className="text-xs text-muted-foreground">MFT</span>
-                          </div>
-
-                          {u.id !== user?.id && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => impersonateMutation.mutate(u.id)}
-                              disabled={impersonateMutation.isPending}
-                              className="ml-2"
-                              data-testid={`btn-impersonate-${u.id}`}
-                            >
-                              <UserCog className="w-4 h-4 mr-1" />
-                              Run As
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-
-                  {users?.length === 0 && (
-                    <div className="p-12 text-center">
-                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No users found</p>
+              <div className="glass-panel rounded-2xl overflow-hidden">
+                <div className="p-3 md:p-4 border-b border-white/5 bg-white/5">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-base md:text-lg font-semibold text-white">User Management</h2>
+                    <div className="text-xs md:text-sm text-muted-foreground">
+                      {usersTotal} total
                     </div>
+                  </div>
+                </div>
+
+                {usersLoading ? (
+                  <div className="p-12 text-center">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-muted-foreground">Loading users...</p>
+                  </div>
+                ) : error ? (
+                  <div className="p-12 text-center">
+                    <p className="text-red-400">Failed to load users</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-white/5">
+                    {users?.map((u) => {
+                      const statusInfo = getStatusBadge(u.status || 'active');
+                      const StatusIcon = statusInfo.icon;
+                      return (
+                        <div
+                          key={u.id}
+                          className="p-3 md:p-4 hover:bg-white/5 transition-colors"
+                          data-testid={`row-user-${u.id}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            {u.profileImageUrl ? (
+                              <img 
+                                src={u.profileImageUrl} 
+                                alt="" 
+                                className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border border-white/10 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                                <Users className="w-5 h-5 text-muted-foreground" />
+                              </div>
+                            )}
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="text-white font-medium truncate text-sm md:text-base">
+                                    {u.firstName && u.lastName 
+                                      ? `${u.firstName} ${u.lastName}` 
+                                      : u.firstName || u.email?.split('@')[0] || 'Unknown'}
+                                  </div>
+                                  <div className="text-xs md:text-sm text-muted-foreground truncate">
+                                    {u.email || 'No email'}
+                                  </div>
+                                </div>
+                                
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" data-testid={`menu-user-${u.id}`}>
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem onClick={() => openEditUser(u)}>
+                                      <Edit className="w-4 h-4 mr-2" />
+                                      Edit User
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => { setSelectedUser(u); setActivityLogOpen(true); }}>
+                                      <Activity className="w-4 h-4 mr-2" />
+                                      View Activity
+                                    </DropdownMenuItem>
+                                    {u.id !== user?.id && (
+                                      <DropdownMenuItem onClick={() => impersonateMutation.mutate(u.id)}>
+                                        <UserCog className="w-4 h-4 mr-2" />
+                                        Run As User
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    {u.status === 'active' && u.id !== user?.id && (
+                                      <DropdownMenuItem onClick={() => openSuspendDialog(u)} className="text-orange-500">
+                                        <Ban className="w-4 h-4 mr-2" />
+                                        Suspend User
+                                      </DropdownMenuItem>
+                                    )}
+                                    {u.status === 'suspended' && (
+                                      <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ userId: u.id, status: 'active' })} className="text-green-500">
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                        Reactivate User
+                                      </DropdownMenuItem>
+                                    )}
+                                    {u.id !== user?.id && u.status !== 'deleted' && (
+                                      <DropdownMenuItem onClick={() => { setSelectedUser(u); setConfirmDeleteOpen(true); }} className="text-red-500">
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Delete User
+                                      </DropdownMenuItem>
+                                    )}
+                                    {u.status === 'deleted' && u.id !== user?.id && (
+                                      <DropdownMenuItem onClick={() => { setSelectedUser(u); setConfirmPurgeOpen(true); }} className="text-red-500">
+                                        <UserMinus className="w-4 h-4 mr-2" />
+                                        Purge Forever
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                              
+                              <div className="flex flex-wrap items-center gap-2 mt-2">
+                                <div className={`px-2 py-0.5 rounded-full text-xs font-medium border flex items-center gap-1 ${statusInfo.class}`}>
+                                  <StatusIcon className="w-3 h-3" />
+                                  {(u.status || 'active').charAt(0).toUpperCase() + (u.status || 'active').slice(1)}
+                                </div>
+                                <div className={`px-2 py-0.5 rounded-full text-xs font-medium border flex items-center gap-1 ${getRoleBadge(u.role)}`}>
+                                  {getRoleIcon(u.role)}
+                                  {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                                </div>
+                                {u.ftpAccess === 1 && (
+                                  <div className="px-2 py-0.5 rounded-full text-xs font-medium border bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
+                                    <HardDrive className="w-3 h-3" />
+                                    MFT
+                                  </div>
+                                )}
+                                {u.lastLoginAt && (
+                                  <div className="text-xs text-muted-foreground flex items-center gap-1 ml-auto hidden md:flex">
+                                    <Clock className="w-3 h-3" />
+                                    Last login: {format(new Date(u.lastLoginAt), 'MMM d, yyyy')}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="hidden md:flex items-center gap-3 mt-3 pt-3 border-t border-white/5">
+                                <Select
+                                  value={u.role}
+                                  onValueChange={(value) => updateRoleMutation.mutate({ userId: u.id, role: value })}
+                                  disabled={u.id === user?.id || updateRoleMutation.isPending}
+                                >
+                                  <SelectTrigger className="w-32 h-8 text-xs bg-white/5 border-white/10" data-testid={`select-role-${u.id}`}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="guest"><span className="flex items-center gap-2"><UserX className="w-3 h-3" /> Guest</span></SelectItem>
+                                    <SelectItem value="validated"><span className="flex items-center gap-2"><UserCheck className="w-3 h-3" /> Validated</span></SelectItem>
+                                    <SelectItem value="superuser"><span className="flex items-center gap-2"><Crown className="w-3 h-3" /> Superuser</span></SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={u.ftpAccess === 1}
+                                    onCheckedChange={(checked) => 
+                                      updateFtpAccessMutation.mutate({ userId: u.id, ftpAccess: checked ? 1 : 0 })
+                                    }
+                                    disabled={updateFtpAccessMutation.isPending}
+                                    data-testid={`switch-ftp-${u.id}`}
+                                  />
+                                  <span className="text-xs text-muted-foreground">MFT Access</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {users?.length === 0 && (
+                      <div className="p-12 text-center">
+                        <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No users found</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {totalPages > 1 && (
+                  <div className="p-3 md:p-4 border-t border-white/5 bg-white/5 flex items-center justify-between">
+                    <div className="text-xs text-muted-foreground">
+                      Page {usersPage} of {totalPages}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUsersPage(p => Math.max(1, p - 1))}
+                        disabled={usersPage === 1}
+                        className="h-8"
+                        data-testid="btn-prev-page"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUsersPage(p => Math.min(totalPages, p + 1))}
+                        disabled={usersPage === totalPages}
+                        className="h-8"
+                        data-testid="btn-next-page"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+
+            <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Edit User</DialogTitle>
+                  <DialogDescription>Update user information and role.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      value={editForm.firstName}
+                      onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                      className="bg-white/5 border-white/10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={editForm.lastName}
+                      onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                      className="bg-white/5 border-white/10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      className="bg-white/5 border-white/10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v })}>
+                      <SelectTrigger className="bg-white/5 border-white/10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="guest">Guest</SelectItem>
+                        <SelectItem value="validated">Validated</SelectItem>
+                        <SelectItem value="superuser">Superuser</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setEditUserOpen(false)}>Cancel</Button>
+                  <Button 
+                    onClick={() => selectedUser && updateUserMutation.mutate({ userId: selectedUser.id, data: editForm })}
+                    disabled={updateUserMutation.isPending}
+                  >
+                    {updateUserMutation.isPending ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={activityLogOpen} onOpenChange={setActivityLogOpen}>
+              <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>User Activity Log</DialogTitle>
+                  <DialogDescription>
+                    Activity for {selectedUser?.email || 'user'}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 py-4">
+                  {activityLoading ? (
+                    <div className="text-center py-8">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                    </div>
+                  ) : userActivityLogs?.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">No activity recorded</div>
+                  ) : (
+                    userActivityLogs?.map((log) => (
+                      <div key={log.id} className="p-3 bg-white/5 rounded-lg text-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-white capitalize">{log.action.replace(/_/g, ' ')}</span>
+                          <span className="text-xs text-muted-foreground">{format(new Date(log.createdAt), 'MMM d, HH:mm')}</span>
+                        </div>
+                        {log.details && (
+                          <pre className="text-xs text-muted-foreground overflow-x-auto">{JSON.stringify(log.details, null, 2)}</pre>
+                        )}
+                      </div>
+                    ))
                   )}
                 </div>
-              )}
-            </motion.div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Suspend User</DialogTitle>
+                  <DialogDescription>
+                    Suspend {selectedUser?.email}. They will not be able to access the portal.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reason">Reason (optional)</Label>
+                    <Textarea
+                      id="reason"
+                      value={suspendReason}
+                      onChange={(e) => setSuspendReason(e.target.value)}
+                      placeholder="Enter reason for suspension..."
+                      className="bg-white/5 border-white/10"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setSuspendDialogOpen(false)}>Cancel</Button>
+                  <Button 
+                    variant="destructive"
+                    onClick={() => selectedUser && updateStatusMutation.mutate({ userId: selectedUser.id, status: 'suspended', reason: suspendReason })}
+                    disabled={updateStatusMutation.isPending}
+                  >
+                    {updateStatusMutation.isPending ? 'Suspending...' : 'Suspend User'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete User?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will mark the user as deleted. They will not be able to access the portal. This action can be undone by reactivating the user.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => selectedUser && deleteUserMutation.mutate(selectedUser.id)}
+                    className="bg-red-500 hover:bg-red-600"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={confirmPurgeOpen} onOpenChange={setConfirmPurgeOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Permanently Delete User?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently remove the user from the database. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => selectedUser && purgeUserMutation.mutate(selectedUser.id)}
+                    className="bg-red-500 hover:bg-red-600"
+                  >
+                    Purge Forever
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </TabsContent>
 
           <TabsContent value="chat">
