@@ -228,6 +228,7 @@ const complianceOptions: Array<{
 
 // Premium features (coming soon) - all grader and report related features (filter out free ones)
 const premiumFeatures = [
+  { ...FEATURE_FLAGS.GRADER_LIGHTHOUSE },
   { ...FEATURE_FLAGS.GRADER_VISION_DETECTION },
   { ...FEATURE_FLAGS.GRADER_SCHEDULED_SCANS },
   { ...FEATURE_FLAGS.GRADER_MULTI_SITE },
