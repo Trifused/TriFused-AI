@@ -21,6 +21,7 @@ import puppeteer from "puppeteer";
 import { stripeService } from "./stripeService";
 import { apiService } from "./apiService";
 import { gtmetrixService } from "./gtmetrixService";
+import { lighthouseService } from "./lighthouseService";
 import { getStripePublishableKey } from "./stripeClient";
 
 // AI Vision helper for FDIC badge detection
@@ -1416,6 +1417,30 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("GTmetrix test error:", error);
       res.status(500).json({ error: "Failed to run GTmetrix test" });
+    }
+  });
+
+  // Lighthouse Routes (Free for all users)
+  app.post("/api/lighthouse/test", async (req: Request, res: Response) => {
+    try {
+      const { url } = req.body;
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      // Validate URL format
+      try {
+        new URL(url.startsWith('http') ? url : `https://${url}`);
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+
+      const targetUrl = url.startsWith('http') ? url : `https://${url}`;
+      const result = await lighthouseService.runAudit(targetUrl);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Lighthouse test error:", error);
+      res.status(500).json({ error: "Failed to run Lighthouse test" });
     }
   });
 
