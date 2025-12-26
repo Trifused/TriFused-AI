@@ -968,6 +968,10 @@ pipeline {
                     <div>
                       <Label className="text-white mb-2 block">Or Enter URL</Label>
                       <Input
+                        type="url"
+                        inputMode="url"
+                        autoCapitalize="off"
+                        autoCorrect="off"
                         placeholder="https://example.com"
                         value={testUrl}
                         onChange={(e) => setTestUrl(e.target.value)}
@@ -1197,6 +1201,10 @@ pipeline {
               <Label htmlFor="url" className="text-white">Website URL</Label>
               <Input
                 id="url"
+                type="url"
+                inputMode="url"
+                autoCapitalize="off"
+                autoCorrect="off"
                 placeholder="https://example.com"
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
