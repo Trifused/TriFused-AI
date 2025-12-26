@@ -435,46 +435,6 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                )}
              </div>
 
-             {/* URL Input Box - Unfolds from bottom */}
-             <AnimatePresence>
-               {flowState === 'urlInput' && (
-                 <motion.div
-                   initial={{ height: 0, opacity: 0 }}
-                   animate={{ height: 'auto', opacity: 1 }}
-                   exit={{ height: 0, opacity: 0 }}
-                   transition={{ duration: 0.3, ease: 'easeOut' }}
-                   className="relative z-10 mt-3 overflow-hidden"
-                 >
-                   <form onSubmit={handleUrlSubmit} className="bg-white/5 border border-primary/30 rounded-lg p-3">
-                     <div className="text-[10px] text-primary mb-2 uppercase tracking-wider">Enter Website URL</div>
-                     <div className="flex gap-2">
-                       <input
-                         type="text"
-                         inputMode="url"
-                         autoCapitalize="none"
-                         autoCorrect="off"
-                         spellCheck={false}
-                         value={urlInput}
-                         onChange={(e) => setUrlInput(e.target.value)}
-                         placeholder="example.com"
-                         className="flex-1 bg-slate-900 border border-cyan-500/50 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 placeholder:text-gray-400"
-                         style={{ color: '#ffffff', caretColor: '#06b6d4' }}
-                         autoFocus
-                         data-testid="input-website-url"
-                       />
-                       <button
-                         type="submit"
-                         className="bg-primary/20 hover:bg-primary/30 border border-primary/50 text-primary px-3 py-2 rounded text-sm font-mono flex items-center gap-1"
-                         data-testid="button-scan-url"
-                       >
-                         <Search className="w-3 h-3" />
-                         Scan
-                       </button>
-                     </div>
-                   </form>
-                 </motion.div>
-               )}
-             </AnimatePresence>
           </div>
 
           {/* Visual Data Visualization */}
@@ -651,6 +611,47 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
              </div>
           </div>
         </div>
+
+        {/* URL Input Footer - Fixed at bottom for mobile visibility */}
+        <AnimatePresence>
+          {flowState === 'urlInput' && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="border-t border-primary/30 bg-black p-4"
+            >
+              <form onSubmit={handleUrlSubmit} className="flex flex-col gap-2">
+                <div className="text-xs text-cyan-400 font-mono uppercase tracking-wider">Enter Website URL</div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    inputMode="url"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    placeholder="example.com"
+                    className="flex-1 bg-slate-800 border-2 border-cyan-500 rounded px-4 py-3 text-base font-mono placeholder:text-gray-500"
+                    style={{ color: '#ffffff', fontSize: '16px', WebkitTextFillColor: '#ffffff' }}
+                    autoFocus
+                    data-testid="input-website-url"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-3 rounded text-sm font-mono font-bold flex items-center gap-2"
+                    data-testid="button-scan-url"
+                  >
+                    <Search className="w-4 h-4" />
+                    Scan
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </DialogContent>
     </Dialog>
   );
