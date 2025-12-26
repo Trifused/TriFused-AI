@@ -2325,7 +2325,9 @@ Your primary goal is to help users AND capture their contact information natural
       const hasComplianceChecks = complianceChecks && Object.values(complianceChecks).some(v => v);
       if (!hasComplianceChecks && !forceRefresh && !useLighthouse) {
         const cached = await storage.getRecentGradeForUrl(url);
-        if (cached) {
+        // Only use cached result if it has reasonable performance data
+        // Skip cache if performanceScore is 0 (likely from failed Lighthouse scan)
+        if (cached && cached.performanceScore > 0) {
           return res.json(cached);
         }
       }
