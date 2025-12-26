@@ -549,6 +549,47 @@ export async function registerRoutes(
     }
   });
 
+  const createUserSchema = z.object({
+    email: z.string().email(),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    role: z.enum(userRoles).optional().default('guest'),
+  });
+
+  app.post('/api/admin/users', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const data = createUserSchema.parse(req.body);
+      
+      const existingUser = await storage.getUserByEmail(data.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "A user with this email already exists" });
+      }
+      
+      const newUser = await storage.upsertUser({
+        id: crypto.randomUUID(),
+        email: data.email,
+        firstName: data.firstName || null,
+        lastName: data.lastName || null,
+        role: data.role || 'guest',
+        profileImageUrl: null,
+      });
+      
+      await storage.createUserActivityLog({
+        userId: newUser.id,
+        action: 'user_created',
+        details: { email: data.email, role: data.role },
+        performedBy: req.user.claims.sub,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+      
+      res.status(201).json(newUser);
+    } catch (error: any) {
+      console.error("Error creating user:", error);
+      res.status(400).json({ message: error.message || "Failed to create user" });
+    }
+  });
+
   const updateRoleSchema = z.object({
     role: z.enum(userRoles)
   });

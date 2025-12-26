@@ -291,6 +291,8 @@ export default function Admin() {
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [suspendReason, setSuspendReason] = useState("");
   const [editForm, setEditForm] = useState({ firstName: "", lastName: "", email: "", role: "guest" });
+  const [addUserOpen, setAddUserOpen] = useState(false);
+  const [addUserForm, setAddUserForm] = useState({ firstName: "", lastName: "", email: "", role: "guest" });
   const usersLimit = 10;
 
   useEffect(() => {
@@ -851,6 +853,31 @@ export default function Admin() {
     },
   });
 
+  const createUserMutation = useMutation({
+    mutationFn: async (userData: { firstName: string; lastName: string; email: string; role: string }) => {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(userData),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to create user');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users/paginated'] });
+      setAddUserOpen(false);
+      setAddUserForm({ firstName: "", lastName: "", email: "", role: "guest" });
+      toast({ title: "User Created", description: "New user has been created successfully." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const impersonateMutation = useMutation({
     mutationFn: async (userId: string) => {
       const res = await fetch(`/api/admin/impersonate/${userId}`, {
@@ -1161,8 +1188,19 @@ export default function Admin() {
                 <div className="p-3 md:p-4 border-b border-white/5 bg-white/5">
                   <div className="flex items-center justify-between">
                     <h2 className="text-base md:text-lg font-semibold text-white">User Management</h2>
-                    <div className="text-xs md:text-sm text-muted-foreground">
-                      {usersTotal} total
+                    <div className="flex items-center gap-3">
+                      <div className="text-xs md:text-sm text-muted-foreground">
+                        {usersTotal} total
+                      </div>
+                      <Button 
+                        size="sm" 
+                        onClick={() => setAddUserOpen(true)}
+                        className="h-8"
+                        data-testid="btn-add-user"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -1417,6 +1455,72 @@ export default function Admin() {
                     disabled={updateUserMutation.isPending}
                   >
                     {updateUserMutation.isPending ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add New User</DialogTitle>
+                  <DialogDescription>Create a new user account.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="newFirstName">First Name</Label>
+                    <Input
+                      id="newFirstName"
+                      value={addUserForm.firstName}
+                      onChange={(e) => setAddUserForm({ ...addUserForm, firstName: e.target.value })}
+                      className="bg-white/5 border-white/10"
+                      data-testid="input-add-first-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newLastName">Last Name</Label>
+                    <Input
+                      id="newLastName"
+                      value={addUserForm.lastName}
+                      onChange={(e) => setAddUserForm({ ...addUserForm, lastName: e.target.value })}
+                      className="bg-white/5 border-white/10"
+                      data-testid="input-add-last-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newEmail">Email *</Label>
+                    <Input
+                      id="newEmail"
+                      type="email"
+                      value={addUserForm.email}
+                      onChange={(e) => setAddUserForm({ ...addUserForm, email: e.target.value })}
+                      className="bg-white/5 border-white/10"
+                      data-testid="input-add-email"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newRole">Role</Label>
+                    <Select value={addUserForm.role} onValueChange={(v) => setAddUserForm({ ...addUserForm, role: v })}>
+                      <SelectTrigger className="bg-white/5 border-white/10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="guest">Guest</SelectItem>
+                        <SelectItem value="validated">Validated</SelectItem>
+                        <SelectItem value="superuser">Superuser</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAddUserOpen(false)}>Cancel</Button>
+                  <Button 
+                    onClick={() => createUserMutation.mutate(addUserForm)}
+                    disabled={createUserMutation.isPending || !addUserForm.email}
+                    data-testid="btn-create-user"
+                  >
+                    {createUserMutation.isPending ? 'Creating...' : 'Create User'}
                   </Button>
                 </DialogFooter>
               </DialogContent>
