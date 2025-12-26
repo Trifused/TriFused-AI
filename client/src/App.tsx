@@ -37,6 +37,11 @@ const Terms = lazy(() => import("@/pages/legal/terms"));
 const Cookies = lazy(() => import("@/pages/legal/cookies"));
 const CheckoutSuccess = lazy(() => import("@/pages/checkout-success"));
 const BackupCalculator = lazy(() => import("@/pages/backup-calculator"));
+const Docs = lazy(() => import("@/pages/docs/index"));
+const DocsTutorials = lazy(() => import("@/pages/docs/tutorials"));
+const DocsTrustBilling = lazy(() => import("@/pages/docs/trust-billing"));
+const DocsTeams = lazy(() => import("@/pages/docs/teams"));
+const DocsChangelog = lazy(() => import("@/pages/docs/changelog"));
 
 // Loading fallback for lazy components
 const PageLoader = () => (
@@ -75,6 +80,11 @@ function Router() {
         <Route path="/legal/terms" component={Terms} />
         <Route path="/legal/cookies" component={Cookies} />
         <Route path="/backup-calculator" component={BackupCalculator} />
+        <Route path="/docs" component={Docs} />
+        <Route path="/docs/tutorials" component={DocsTutorials} />
+        <Route path="/docs/trust-billing" component={DocsTrustBilling} />
+        <Route path="/docs/teams" component={DocsTeams} />
+        <Route path="/docs/changelog" component={DocsChangelog} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
