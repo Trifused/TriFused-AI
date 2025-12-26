@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Shield, Globe, Cpu, MapPin, Wifi, Lock, AlertTriangle, CheckCircle, RefreshCw, ExternalLink } from "lucide-react";
+import { X, Shield, Globe, Cpu, MapPin, Wifi, Lock, AlertTriangle, CheckCircle, RefreshCw, ExternalLink, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -23,24 +23,57 @@ interface SystemData {
   secure: boolean;
 }
 
+interface GraderResult {
+  overallScore: number;
+  letterGrade: string;
+  findings: Array<{ category: string; issue: string; priority: string; passed: boolean }>;
+}
+
+type FlowState = 'idle' | 'prompt' | 'dismissed' | 'urlInput' | 'fetching' | 'reportPrompt';
+
+function getGradeLetter(score: number): string {
+  if (score >= 90) return 'A';
+  if (score >= 80) return 'B';
+  if (score >= 70) return 'C';
+  if (score >= 60) return 'D';
+  return 'F';
+}
+
 export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [logs, setLogs] = useState<string[]>([]);
   const [data, setData] = useState<Partial<SystemData>>({});
   const [status, setStatus] = useState<'idle' | 'scanning' | 'complete'>('idle');
   const [scanProgress, setScanProgress] = useState(0);
-  const [showWebsitePrompt, setShowWebsitePrompt] = useState(false);
+  const [flowState, setFlowState] = useState<FlowState>('idle');
+  const [urlInput, setUrlInput] = useState('');
+  const [graderResult, setGraderResult] = useState<GraderResult | null>(null);
+  const [submittedUrl, setSubmittedUrl] = useState('');
   const [, setLocation] = useLocation();
+  const terminalRef = useRef<HTMLDivElement>(null);
 
   const addLog = (msg: string) => {
     setLogs(prev => [...prev, `> ${msg}`]);
   };
+
+  const scrollToBottom = () => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [logs, flowState]);
 
   const runDiagnostics = async () => {
     setStatus('scanning');
     setLogs([]);
     setData({});
     setScanProgress(0);
-    setShowWebsitePrompt(false);
+    setFlowState('idle');
+    setGraderResult(null);
+    setUrlInput('');
+    setSubmittedUrl('');
 
     // Step 1: System Info
     addLog("Initializing heuristic scan...");
@@ -73,7 +106,6 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
       setData(prev => ({ ...prev, ip: ipData.ip }));
       addLog(`Public Endpoint Identified: ${ipData.ip}`);
       
-      // Mock connection info if nav.connection exists
       if (nav.connection) {
          const conn = nav.connection;
          const connData = `${conn.effectiveType.toUpperCase()} (${conn.downlink} Mbps)`;
@@ -148,13 +180,97 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
       });
       
       addLog("Analytics synchronized.");
-      await new Promise(r => setTimeout(r, 800));
-      setShowWebsitePrompt(true);
     } catch (error) {
       console.error("Failed to save diagnostic data:", error);
-      await new Promise(r => setTimeout(r, 800));
-      setShowWebsitePrompt(true);
     }
+    
+    await new Promise(r => setTimeout(r, 800));
+    setFlowState('prompt');
+  };
+
+  const handleYes = () => {
+    setFlowState('urlInput');
+  };
+
+  const handleNo = () => {
+    addLog("OK, enjoy your day.");
+    setFlowState('dismissed');
+  };
+
+  const handleUrlSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!urlInput.trim()) return;
+
+    let url = urlInput.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+
+    setSubmittedUrl(url);
+    setFlowState('fetching');
+    addLog(`Initiating website scan: ${url}`);
+    addLog("Connecting to target server...");
+
+    try {
+      await new Promise(r => setTimeout(r, 500));
+      addLog("Analyzing page structure...");
+      
+      const response = await fetch('/api/grade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Scan failed');
+      }
+
+      const result = await response.json();
+      const letterGrade = getGradeLetter(result.overallScore);
+      
+      addLog("Scan complete.");
+      addLog("─".repeat(30));
+      addLog(`SCORE: ${result.overallScore}/100 (Grade: ${letterGrade})`);
+      addLog("─".repeat(30));
+      
+      // Show top findings (issues that didn't pass)
+      const issues = result.findings?.filter((f: any) => !f.passed && (f.priority === 'critical' || f.priority === 'important')) || [];
+      if (issues.length > 0) {
+        addLog(`ISSUES FOUND: ${issues.length}`);
+        issues.slice(0, 3).forEach((issue: any) => {
+          addLog(`  • [${issue.category.toUpperCase()}] ${issue.issue}`);
+        });
+        if (issues.length > 3) {
+          addLog(`  ... and ${issues.length - 3} more`);
+        }
+      } else {
+        addLog("No critical issues detected.");
+      }
+      
+      addLog("─".repeat(30));
+      
+      setGraderResult({
+        overallScore: result.overallScore,
+        letterGrade,
+        findings: result.findings || [],
+      });
+      
+      setFlowState('reportPrompt');
+    } catch (error) {
+      addLog("ERROR: Failed to complete scan.");
+      addLog("Check URL and try again.");
+      setFlowState('urlInput');
+    }
+  };
+
+  const handleViewReport = () => {
+    onOpenChange(false);
+    setLocation(`/grader?url=${encodeURIComponent(submittedUrl)}`);
+  };
+
+  const handleSkipReport = () => {
+    addLog("Report skipped. Enjoy your day.");
+    setFlowState('dismissed');
   };
 
   useEffect(() => {
@@ -163,7 +279,10 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
     } else if (!open) {
       setStatus('idle');
       setLogs([]);
-      setShowWebsitePrompt(false);
+      setFlowState('idle');
+      setGraderResult(null);
+      setUrlInput('');
+      setSubmittedUrl('');
     }
   }, [open]);
 
@@ -181,15 +300,15 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
             </span>
           </div>
           <div className="font-mono text-xs text-primary">
-            {status === 'scanning' ? 'SCANNING...' : 'COMPLETE'}
+            {status === 'scanning' ? 'SCANNING...' : flowState === 'fetching' ? 'GRADING...' : 'COMPLETE'}
           </div>
         </div>
 
         <div className="flex flex-col md:grid md:grid-cols-2 h-[80vh] md:h-[500px]">
           {/* Terminal Output */}
-          <div className="bg-black p-4 md:p-6 font-mono text-xs md:text-sm overflow-y-auto border-b md:border-b-0 md:border-r border-white/10 relative h-[35%] md:h-full">
+          <div className="bg-black p-4 md:p-6 font-mono text-xs md:text-sm overflow-y-auto border-b md:border-b-0 md:border-r border-white/10 relative h-[35%] md:h-full flex flex-col" ref={terminalRef}>
              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none" />
-             <div className="relative z-10 space-y-1 md:space-y-2">
+             <div className="relative z-10 space-y-1 md:space-y-2 flex-1">
                {logs.map((log, i) => (
                  <motion.div 
                    key={i}
@@ -208,7 +327,9 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                    className="w-2 h-4 bg-primary"
                  />
                )}
-               {showWebsitePrompt && (
+               
+               {/* Test Website Prompt */}
+               {flowState === 'prompt' && (
                  <motion.div 
                    initial={{ opacity: 0, x: -10 }}
                    animate={{ opacity: 1, x: 0 }}
@@ -217,10 +338,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                    <span className="text-primary mr-2">➜</span>
                    {'>'} Test your website? [
                    <button 
-                     onClick={() => {
-                       onOpenChange(false);
-                       setLocation('/grader');
-                     }}
+                     onClick={handleYes}
                      className="text-green-400 hover:text-green-300 underline cursor-pointer font-bold"
                      data-testid="button-test-website-yes"
                    >
@@ -228,7 +346,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                    </button>
                    /
                    <button 
-                     onClick={() => onOpenChange(false)}
+                     onClick={handleNo}
                      className="text-red-400 hover:text-red-300 underline cursor-pointer font-bold"
                      data-testid="button-test-website-no"
                    >
@@ -237,7 +355,80 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                    ]
                  </motion.div>
                )}
+
+               {/* View Full Report Prompt */}
+               {flowState === 'reportPrompt' && (
+                 <motion.div 
+                   initial={{ opacity: 0, x: -10 }}
+                   animate={{ opacity: 1, x: 0 }}
+                   className="text-white/80 break-words mt-2"
+                 >
+                   <span className="text-primary mr-2">➜</span>
+                   {'>'} View full report? [
+                   <button 
+                     onClick={handleViewReport}
+                     className="text-green-400 hover:text-green-300 underline cursor-pointer font-bold"
+                     data-testid="button-view-report-yes"
+                   >
+                     Y
+                   </button>
+                   /
+                   <button 
+                     onClick={handleSkipReport}
+                     className="text-red-400 hover:text-red-300 underline cursor-pointer font-bold"
+                     data-testid="button-view-report-no"
+                   >
+                     N
+                   </button>
+                   ]
+                 </motion.div>
+               )}
+
+               {/* Fetching indicator */}
+               {flowState === 'fetching' && (
+                 <motion.div 
+                   animate={{ opacity: [0, 1, 0] }}
+                   transition={{ repeat: Infinity, duration: 0.8 }}
+                   className="w-2 h-4 bg-primary mt-2"
+                 />
+               )}
              </div>
+
+             {/* URL Input Box - Unfolds from bottom */}
+             <AnimatePresence>
+               {flowState === 'urlInput' && (
+                 <motion.div
+                   initial={{ height: 0, opacity: 0 }}
+                   animate={{ height: 'auto', opacity: 1 }}
+                   exit={{ height: 0, opacity: 0 }}
+                   transition={{ duration: 0.3, ease: 'easeOut' }}
+                   className="relative z-10 mt-3 overflow-hidden"
+                 >
+                   <form onSubmit={handleUrlSubmit} className="bg-white/5 border border-primary/30 rounded-lg p-3">
+                     <div className="text-[10px] text-primary mb-2 uppercase tracking-wider">Enter Website URL</div>
+                     <div className="flex gap-2">
+                       <input
+                         type="text"
+                         value={urlInput}
+                         onChange={(e) => setUrlInput(e.target.value)}
+                         placeholder="example.com"
+                         className="flex-1 bg-black/50 border border-white/20 rounded px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-primary"
+                         autoFocus
+                         data-testid="input-website-url"
+                       />
+                       <button
+                         type="submit"
+                         className="bg-primary/20 hover:bg-primary/30 border border-primary/50 text-primary px-3 py-2 rounded text-sm font-mono flex items-center gap-1"
+                         data-testid="button-scan-url"
+                       >
+                         <Search className="w-3 h-3" />
+                         Scan
+                       </button>
+                     </div>
+                   </form>
+                 </motion.div>
+               )}
+             </AnimatePresence>
           </div>
 
           {/* Visual Data Visualization */}
@@ -249,7 +440,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                 
                 {/* Center Visualization */}
                 <div className="flex-1 flex items-center justify-center min-h-[160px]">
-                   {status === 'scanning' ? (
+                   {status === 'scanning' || flowState === 'fetching' ? (
                      <div className="relative scale-75 md:scale-100">
                        <motion.div 
                          animate={{ rotate: 360 }}
@@ -262,9 +453,25 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                          className="absolute inset-2 border-2 border-purple-500/30 rounded-full border-b-purple-500"
                        />
                        <div className="absolute inset-0 flex items-center justify-center font-mono text-xl md:text-2xl font-bold text-white">
-                         {scanProgress}%
+                         {flowState === 'fetching' ? (
+                           <Search className="w-8 h-8 text-primary" />
+                         ) : (
+                           `${scanProgress}%`
+                         )}
                        </div>
                      </div>
+                   ) : graderResult ? (
+                     <motion.div 
+                       initial={{ scale: 0.8, opacity: 0 }}
+                       animate={{ scale: 1, opacity: 1 }}
+                       className="text-center scale-90 md:scale-100"
+                     >
+                        <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-2 md:mb-4 rounded-full border-4 border-primary flex items-center justify-center">
+                          <span className="text-2xl md:text-3xl font-bold text-white">{graderResult.letterGrade}</span>
+                        </div>
+                        <h3 className="text-lg md:text-xl font-bold text-white">{graderResult.overallScore}/100</h3>
+                        <p className="text-xs md:text-sm text-muted-foreground mt-1 md:mt-2">{submittedUrl}</p>
+                     </motion.div>
                    ) : (
                      <motion.div 
                        initial={{ scale: 0.8, opacity: 0 }}
@@ -292,7 +499,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                 </div>
 
                 {/* Geo Location Display */}
-                {status === 'complete' && data.location && (
+                {status === 'complete' && data.location && !graderResult && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -346,43 +553,45 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                 )}
 
                 {/* Data Grid */}
-                <div className="grid grid-cols-2 gap-2 md:gap-3">
-                  <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
-                      <Globe className="w-3 h-3" /> Public IP
+                {!graderResult && (
+                  <div className="grid grid-cols-2 gap-2 md:gap-3">
+                    <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
+                        <Globe className="w-3 h-3" /> Public IP
+                      </div>
+                      <div className="font-mono text-xs md:text-sm text-white truncate">
+                        {data.ip || "---.---.---.---"}
+                      </div>
                     </div>
-                    <div className="font-mono text-xs md:text-sm text-white truncate">
-                      {data.ip || "---.---.---.---"}
-                    </div>
-                  </div>
 
-                  <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
-                      <Cpu className="w-3 h-3" /> System
+                    <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
+                        <Cpu className="w-3 h-3" /> System
+                      </div>
+                      <div className="font-mono text-xs md:text-sm text-white truncate">
+                        {data.platform || "Unknown"}
+                      </div>
                     </div>
-                    <div className="font-mono text-xs md:text-sm text-white truncate">
-                      {data.platform || "Unknown"}
-                    </div>
-                  </div>
 
-                  <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
-                      <Wifi className="w-3 h-3" /> Network
+                    <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
+                        <Wifi className="w-3 h-3" /> Network
+                      </div>
+                      <div className="font-mono text-xs md:text-sm text-white truncate">
+                        {data.connection || "Detecting..."}
+                      </div>
                     </div>
-                    <div className="font-mono text-xs md:text-sm text-white truncate">
-                      {data.connection || "Detecting..."}
-                    </div>
-                  </div>
 
-                  <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
-                    <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
-                      <Lock className="w-3 h-3" /> Connection
-                    </div>
-                    <div className="font-mono text-xs md:text-sm text-green-400 truncate">
-                      {data.secure ? "Encrypted (SSL)" : "Unsecured"}
+                    <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
+                        <Lock className="w-3 h-3" /> Connection
+                      </div>
+                      <div className="font-mono text-xs md:text-sm text-green-400 truncate">
+                        {data.secure ? "Encrypted (SSL)" : "Unsecured"}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Close Button */}
                 <Button
