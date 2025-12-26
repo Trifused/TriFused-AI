@@ -634,8 +634,15 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
                     placeholder="example.com"
-                    className="flex-1 bg-slate-800 border-2 border-cyan-500 rounded px-4 py-3 text-base font-mono placeholder:text-gray-500"
-                    style={{ color: '#ffffff', fontSize: '16px', WebkitTextFillColor: '#ffffff' }}
+                    className="flex-1 rounded px-4 py-3 text-base font-mono"
+                    style={{ 
+                      backgroundColor: '#1e293b',
+                      border: '2px solid #06b6d4',
+                      color: '#ffffff',
+                      fontSize: '16px',
+                      WebkitTextFillColor: '#ffffff',
+                      opacity: 1,
+                    }}
                     autoFocus
                     data-testid="input-website-url"
                   />
