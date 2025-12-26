@@ -24,6 +24,25 @@ export class StripeService {
     });
   }
 
+  async createGuestCheckoutSession(
+    priceId: string,
+    mode: 'subscription' | 'payment',
+    successUrl: string,
+    cancelUrl: string,
+    metadata?: Record<string, string>
+  ) {
+    const stripe = await getUncachableStripeClient();
+    return await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata,
+      allow_promotion_codes: true,
+    });
+  }
+
   async createCustomerPortalSession(customerId: string, returnUrl: string) {
     const stripe = await getUncachableStripeClient();
     return await stripe.billingPortal.sessions.create({

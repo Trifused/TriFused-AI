@@ -5281,6 +5281,58 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Guest checkout for API subscription (no auth required)
+  app.get("/api/checkout/api-subscription", async (req: Request, res: Response) => {
+    try {
+      // Find the API subscription product by metadata or name pattern
+      const rows = await stripeService.listProductsWithPrices();
+      let apiPriceId: string | null = null;
+      
+      for (const row of rows as any[]) {
+        // Match by product metadata or name containing API
+        const metadata = row.product_metadata || {};
+        const isApiProduct = metadata.product_type === 'api_subscription' || 
+                             (row.product_name && row.product_name.toLowerCase().includes('api'));
+        const isYearly = row.recurring?.interval === 'year' || 
+                         (row.product_name && row.product_name.toLowerCase().includes('year'));
+        
+        // Prefer yearly API subscription, fallback to any API subscription
+        if (isApiProduct && row.price_id) {
+          if (isYearly) {
+            apiPriceId = row.price_id;
+            break;
+          } else if (!apiPriceId) {
+            apiPriceId = row.price_id;
+          }
+        }
+      }
+      
+      if (!apiPriceId) {
+        console.error("API subscription product not found in Stripe. Available products:", 
+          (rows as any[]).map(r => ({ name: r.product_name, price_id: r.price_id })));
+        return res.redirect('/pricing?error=product_not_found');
+      }
+
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const session = await stripeService.createGuestCheckoutSession(
+        apiPriceId,
+        'subscription',
+        `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        `${baseUrl}/grader`,
+        { product: 'api_subscription' }
+      );
+
+      if (session.url) {
+        res.redirect(session.url);
+      } else {
+        res.redirect('/pricing?error=checkout_failed');
+      }
+    } catch (error) {
+      console.error("Guest checkout error:", error);
+      res.redirect('/pricing?error=checkout_error');
+    }
+  });
+
   // Get user subscription status
   app.get("/api/stripe/subscription", isAuthenticated, async (req: any, res: Response) => {
     try {

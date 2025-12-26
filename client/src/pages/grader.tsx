@@ -39,11 +39,12 @@ import {
   History,
   ExternalLink,
   Trash2,
-  Smartphone
+  Smartphone,
+  ShoppingCart
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { trackEvent, trackPageView } from "@/lib/analytics";
-import { FEATURE_FLAGS, type FeatureStatus } from "@shared/feature-flags";
+import { FEATURE_FLAGS, isFeatureAvailable, type FeatureStatus } from "@shared/feature-flags";
 
 interface Finding {
   category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "mobile" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr";
@@ -996,6 +997,19 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                         <RefreshCw className="w-4 h-4" />
                         Scan Again
                       </Button>
+                      {isFeatureAvailable('SALE_API_SUBSCRIPTION') && (
+                        <Button
+                          onClick={() => {
+                            trackEvent('grader_api_subscription_click', 'website_grader', result.url);
+                            window.location.href = '/api/checkout/api-subscription';
+                          }}
+                          className="gap-2 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-500 hover:to-emerald-400 text-white font-bold animate-pulse"
+                          data-testid="button-buy-api"
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                          API Access - $25.67/yr
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

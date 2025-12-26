@@ -223,6 +223,15 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     status: 'free',
     category: 'payments',
   },
+  SALE_API_SUBSCRIPTION: {
+    id: 'sale_api_subscription',
+    name: 'API Subscription Sale Button',
+    description: 'Show the $25.67/year API subscription sale button on grader results',
+    status: 'free',
+    category: 'payments',
+    tier: 'api',
+    price: '$25.67/year',
+  },
   PAYMENTS_ONE_TIME: {
     id: 'payments_one_time',
     name: 'One-Time Purchases',
