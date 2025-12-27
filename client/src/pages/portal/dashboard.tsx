@@ -1611,7 +1611,7 @@ export default function Dashboard() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <a 
-                            href={grade.shareToken ? `/report/${grade.shareToken}` : grade.url} 
+                            href={grade.shareToken ? `${window.location.origin}/report/${grade.shareToken}` : grade.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-white font-medium hover:text-primary transition-colors truncate text-sm sm:text-base"
