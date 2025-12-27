@@ -500,8 +500,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
             ) : (
               <>
                 <h1 className="text-3xl md:text-5xl font-bold font-heading mb-4">
-                  Instant Website Performance Audit for{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-500">Google Search</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-500">Website Grader</span>
                 </h1>
                 <p className="text-lg text-muted-foreground max-w-3xl mx-auto mb-6">
                   Analyze your site's performance across <span className="text-white font-semibold">17+ key metrics</span> in under 30 seconds. Get actionable recommendations for site speed, mobile optimization, security, and SEO—delivered instantly without technical expertise.
