@@ -1177,6 +1177,10 @@ export default function Admin() {
                 <Settings className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">Feature Flags</span>
               </TabsTrigger>
+              <TabsTrigger value="quickbooks" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-quickbooks">
+                <Receipt className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">QuickBooks</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -2582,6 +2586,10 @@ export default function Admin() {
             </motion.div>
           </TabsContent>
 
+          <TabsContent value="quickbooks">
+            <QuickBooksTab />
+          </TabsContent>
+
           <TabsContent value="commerce">
             <CommerceTab />
           </TabsContent>
@@ -3218,6 +3226,271 @@ export default function Admin() {
         </Tabs>
       </main>
     </div>
+  );
+}
+
+function QuickBooksTab() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: qbStatus, isLoading: statusLoading } = useQuery({
+    queryKey: ["admin-quickbooks-status"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/quickbooks/status", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch QuickBooks status");
+      return response.json();
+    },
+  });
+
+  const { data: syncLogs, isLoading: logsLoading } = useQuery({
+    queryKey: ["admin-quickbooks-logs"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/quickbooks/sync-logs", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch sync logs");
+      return response.json();
+    },
+    enabled: qbStatus?.connected,
+  });
+
+  const connectMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/admin/quickbooks/auth-url", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to get auth URL");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+    onError: (error: any) => {
+      toast({ title: "Connection failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const disconnectMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/admin/quickbooks/disconnect", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to disconnect");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Disconnected", description: "QuickBooks has been disconnected" });
+      queryClient.invalidateQueries({ queryKey: ["admin-quickbooks-status"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Disconnect failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const testSyncMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/admin/quickbooks/test-sync", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to test sync");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        toast({ title: "Test sync successful", description: `Invoice created: ${data.invoiceId}` });
+      } else {
+        toast({ title: "Test sync failed", description: data.error, variant: "destructive" });
+      }
+      queryClient.invalidateQueries({ queryKey: ["admin-quickbooks-logs"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Test sync failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="space-y-6"
+    >
+      <div className="glass-panel rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-green-400" />
+              QuickBooks Integration
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Sync Stripe payments to QuickBooks for automatic invoice creation
+            </p>
+          </div>
+        </div>
+
+        {statusLoading ? (
+          <div className="py-8 text-center">
+            <Clock className="w-8 h-8 animate-spin mx-auto text-primary mb-4" />
+            <p className="text-muted-foreground">Loading QuickBooks status...</p>
+          </div>
+        ) : !qbStatus?.configured ? (
+          <div className="p-6 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+            <AlertTriangle className="w-6 h-6 text-amber-400 mb-3" />
+            <h3 className="font-semibold text-white mb-2">QuickBooks Not Configured</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              To use QuickBooks integration, you need to set up the following environment variables:
+            </p>
+            <ul className="text-sm text-muted-foreground space-y-1 mb-4">
+              <li className="font-mono text-cyan-400">QUICKBOOKS_CLIENT_ID</li>
+              <li className="font-mono text-cyan-400">QUICKBOOKS_CLIENT_SECRET</li>
+              <li className="font-mono text-cyan-400">QUICKBOOKS_REDIRECT_URI</li>
+            </ul>
+            <p className="text-sm text-muted-foreground">
+              Get these from the{" "}
+              <a 
+                href="https://developer.intuit.com/app/developer/homepage" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Intuit Developer Portal
+              </a>
+            </p>
+          </div>
+        ) : qbStatus?.connected ? (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="w-6 h-6 text-green-400" />
+                <div>
+                  <p className="font-semibold text-white">Connected to QuickBooks</p>
+                  <p className="text-sm text-muted-foreground">
+                    {qbStatus.connection?.companyName || "Unknown Company"} ({qbStatus.connection?.environment})
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => testSyncMutation.mutate()}
+                  disabled={testSyncMutation.isPending}
+                  data-testid="btn-test-qb-sync"
+                >
+                  {testSyncMutation.isPending ? (
+                    <Clock className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 mr-1" />
+                      Test Sync
+                    </>
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => disconnectMutation.mutate()}
+                  disabled={disconnectMutation.isPending}
+                  data-testid="btn-disconnect-qb"
+                >
+                  {disconnectMutation.isPending ? (
+                    <Clock className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Disconnect"
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-primary" />
+                Recent Sync Activity ({qbStatus.recentSyncs} syncs)
+              </h3>
+              {logsLoading ? (
+                <div className="py-4 text-center">
+                  <Clock className="w-6 h-6 animate-spin mx-auto text-primary" />
+                </div>
+              ) : !syncLogs?.length ? (
+                <div className="p-4 bg-white/5 rounded-lg text-center">
+                  <p className="text-muted-foreground">No sync activity yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {syncLogs.map((log: any) => (
+                    <div
+                      key={log.id}
+                      className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
+                      data-testid={`sync-log-${log.id}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {log.status === "success" ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-400" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-400" />
+                        )}
+                        <div>
+                          <p className="text-sm text-white">
+                            {log.syncType.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {log.metadata?.customerEmail || log.metadata?.email || "—"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(log.createdAt), "MMM d, h:mm a")}
+                        </p>
+                        {log.quickbooksId && (
+                          <p className="text-xs font-mono text-cyan-400">QB: {log.quickbooksId}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Receipt className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="font-semibold text-white mb-2">Not Connected</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Connect your QuickBooks account to automatically sync Stripe payments as invoices
+            </p>
+            <Button
+              onClick={() => connectMutation.mutate()}
+              disabled={connectMutation.isPending}
+              data-testid="btn-connect-qb"
+            >
+              {connectMutation.isPending ? (
+                <Clock className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <ExternalLink className="w-4 h-4 mr-2" />
+              )}
+              Connect QuickBooks
+            </Button>
+          </div>
+        )}
+
+        <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-lg">
+          <h4 className="font-medium text-white mb-2">How it works</h4>
+          <ul className="text-sm text-muted-foreground space-y-2">
+            <li className="flex items-start gap-2">
+              <span className="text-primary">1.</span>
+              When a Stripe payment is completed, the system automatically creates a customer in QuickBooks (if not exists)
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary">2.</span>
+              An invoice is created in QuickBooks with the product details and amount
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary">3.</span>
+              All sync activity is logged here for reference and debugging
+            </li>
+          </ul>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
