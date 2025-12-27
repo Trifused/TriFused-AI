@@ -773,6 +773,18 @@ export async function registerRoutes(
     }
   });
 
+  app.get('/api/admin/email-logs', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const result = await storage.getEmailLogs(limit, offset);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching email logs:", error);
+      res.status(500).json({ message: "Failed to fetch email logs" });
+    }
+  });
+
   app.post('/api/admin/users/:id/send-welcome-email', isAuthenticated, isSuperuser, async (req: any, res) => {
     try {
       const { id } = req.params;

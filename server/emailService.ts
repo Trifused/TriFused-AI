@@ -212,3 +212,71 @@ export async function sendTestEmail(toEmail: string): Promise<{ success: boolean
     return { success: false, error: error.message || 'Failed to send test email' };
   }
 }
+
+// Email logging wrapper - logs all sent emails to the database
+import { storage } from './storage';
+import type { InsertEmailLog } from '@shared/schema';
+
+export async function sendAndLogEmail(options: {
+  to: string;
+  subject: string;
+  html: string;
+  emailType: string;
+  metadata?: Record<string, any>;
+}): Promise<{ success: boolean; emailLogId?: string; resendId?: string; error?: string }> {
+  const { to, subject, html, emailType, metadata } = options;
+  
+  try {
+    const { client, fromEmail } = await getResendClient();
+    const from = fromEmail || 'TriFused <noreply@mailout1.trifused.com>';
+    
+    const result = await client.emails.send({
+      from,
+      to,
+      subject,
+      html,
+    });
+
+    const resendId = result.data?.id || undefined;
+    const status = result.error ? 'failed' : 'sent';
+    const errorMessage = result.error?.message || undefined;
+
+    // Log the email
+    const emailLog = await storage.createEmailLog({
+      to,
+      from,
+      subject,
+      emailType,
+      status,
+      resendId,
+      errorMessage,
+      metadata: metadata || null,
+    });
+
+    if (result.error) {
+      return { success: false, emailLogId: emailLog.id, error: result.error.message };
+    }
+
+    return { success: true, emailLogId: emailLog.id, resendId };
+  } catch (error: any) {
+    // Log the failed email attempt
+    try {
+      const { fromEmail } = await getCredentials().catch(() => ({ fromEmail: 'unknown' }));
+      const from = fromEmail || 'TriFused <noreply@mailout1.trifused.com>';
+      
+      const emailLog = await storage.createEmailLog({
+        to,
+        from,
+        subject,
+        emailType,
+        status: 'failed',
+        errorMessage: error.message || 'Unknown error',
+        metadata: metadata || null,
+      });
+      return { success: false, emailLogId: emailLog.id, error: error.message };
+    } catch (logError) {
+      console.error('Failed to log email error:', logError);
+      return { success: false, error: error.message || 'Failed to send email' };
+    }
+  }
+}
