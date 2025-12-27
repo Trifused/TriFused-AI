@@ -2,7 +2,7 @@ import { storage } from './storage';
 import { sendAndLogEmail } from './emailService';
 import { format, subMinutes } from 'date-fns';
 
-const REPORT_RECIPIENTS = ['crmdev@trifused.com', 'crmbot@trifused.com'];
+const REPORT_RECIPIENTS = ['trifused@gmail.com'];
 const REPORT_INTERVAL_MS = 1 * 60 * 1000; // 1 minute (for testing)
 const INITIAL_LOOKBACK_MINUTES = 1; // Only look back 1 min on first run
 
