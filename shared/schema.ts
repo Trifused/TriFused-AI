@@ -606,3 +606,48 @@ export const insertBacklinkSchema = createInsertSchema(backlinks).omit({
 
 export type InsertBacklink = z.infer<typeof insertBacklinkSchema>;
 export type Backlink = typeof backlinks.$inferSelect;
+
+// QuickBooks OAuth tokens storage
+export const quickbooksTokens = pgTable("quickbooks_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  realmId: varchar("realm_id").notNull().unique(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  accessTokenExpiresAt: timestamp("access_token_expires_at").notNull(),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at").notNull(),
+  companyName: text("company_name"),
+  environment: varchar("environment").default("sandbox").notNull(),
+  isActive: integer("is_active").default(1).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertQuickbooksTokensSchema = createInsertSchema(quickbooksTokens).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertQuickbooksTokens = z.infer<typeof insertQuickbooksTokensSchema>;
+export type QuickbooksTokens = typeof quickbooksTokens.$inferSelect;
+
+// QuickBooks sync log for tracking invoice/customer syncs
+export const quickbooksSyncLog = pgTable("quickbooks_sync_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  realmId: varchar("realm_id").notNull(),
+  syncType: varchar("sync_type").notNull(),
+  stripeId: varchar("stripe_id"),
+  quickbooksId: varchar("quickbooks_id"),
+  status: varchar("status").default("pending").notNull(),
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertQuickbooksSyncLogSchema = createInsertSchema(quickbooksSyncLog).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertQuickbooksSyncLog = z.infer<typeof insertQuickbooksSyncLogSchema>;
+export type QuickbooksSyncLog = typeof quickbooksSyncLog.$inferSelect;
