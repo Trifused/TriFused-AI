@@ -737,3 +737,26 @@ export const insertScheduledReportSchema = createInsertSchema(scheduledReports).
 
 export type InsertScheduledReport = z.infer<typeof insertScheduledReportSchema>;
 export type ScheduledReport = typeof scheduledReports.$inferSelect;
+
+// Email logs for tracking all sent emails
+export const emailLogs = pgTable("email_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  to: varchar("to").notNull(),
+  from: varchar("from").notNull(),
+  subject: varchar("subject").notNull(),
+  emailType: varchar("email_type").notNull(), // welcome, magic_link, password_reset, invite, contact, etc.
+  status: varchar("status").default("sent").notNull(), // sent, delivered, failed, bounced
+  resendId: varchar("resend_id"), // ID from Resend API response
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata"), // Additional context like userId, templateName, etc.
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+  deliveredAt: timestamp("delivered_at"),
+});
+
+export const insertEmailLogSchema = createInsertSchema(emailLogs).omit({
+  id: true,
+  sentAt: true,
+});
+
+export type InsertEmailLog = z.infer<typeof insertEmailLogSchema>;
+export type EmailLog = typeof emailLogs.$inferSelect;
