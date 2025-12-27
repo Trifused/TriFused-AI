@@ -1,36 +1,7 @@
 import { db } from '../db';
 import { scheduledReports } from '@shared/schema';
 import { eq, and, lte, sql } from 'drizzle-orm';
-import { Resend } from 'resend';
-
-async function getResendClient() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  if (!xReplitToken) {
-    throw new Error('Resend token not available');
-  }
-
-  const connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
-    }
-  ).then(res => res.json()).then(data => data.items?.[0]);
-
-  if (!connectionSettings?.settings?.api_key) {
-    throw new Error('Resend not connected');
-  }
-
-  return new Resend(connectionSettings.settings.api_key);
-}
+import { sendAndLogEmail } from './emailService';
 
 async function getStatusReportData() {
   const leadStats = await db.execute(sql`
@@ -183,13 +154,17 @@ export async function sendScheduledReport(reportId: string): Promise<{ success: 
     const data = await getStatusReportData();
     const html = generateStatusReportHtml(data, report.name);
     
-    const resend = await getResendClient();
-    await resend.emails.send({
-      from: 'TriFused Reports <reports@mailout1.trifused.com>',
+    const result = await sendAndLogEmail({
       to: report.recipientEmail,
       subject: `📊 ${report.name} - ${new Date().toLocaleDateString()}`,
-      html
+      html,
+      emailType: 'scheduled_report',
+      metadata: { reportId, reportName: report.name },
     });
+
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
 
     const nextRun = calculateNextRun(report.schedule);
     await db.update(scheduledReports)

@@ -3,41 +3,13 @@ import crypto from 'crypto';
 import { db } from '../db';
 import { users, emailVerificationTokens, passwordResetTokens, magicLinkTokens } from '@shared/schema';
 import { eq, and, gt } from 'drizzle-orm';
-import { Resend } from 'resend';
+import { sendAndLogEmail } from './emailService';
 
 const SALT_ROUNDS = 12;
 const TOKEN_EXPIRY_HOURS = 24;
 const MAGIC_LINK_EXPIRY_MINUTES = 15;
 const APP_BASE_URL = process.env.APP_BASE_URL || 'https://trifused.com';
 
-async function getResendClient() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  if (!xReplitToken) {
-    throw new Error('Resend token not available');
-  }
-
-  const connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
-    }
-  ).then(res => res.json()).then(data => data.items?.[0]);
-
-  if (!connectionSettings?.settings?.api_key) {
-    throw new Error('Resend not connected');
-  }
-
-  return new Resend(connectionSettings.settings.api_key);
-}
 
 function generateSecureToken(): string {
   return crypto.randomBytes(32).toString('hex');
@@ -137,16 +109,16 @@ export async function sendVerificationEmail(userId: string, email: string): Prom
     });
 
     const verifyUrl = `${APP_BASE_URL}/auth/verify-email?token=${token}`;
-    const resend = await getResendClient();
 
-    await resend.emails.send({
-      from: 'TriFused <noreply@mailout1.trifused.com>',
+    const result = await sendAndLogEmail({
       to: email,
       subject: 'Verify your email address - TriFused',
       html: generateVerificationEmailHtml(verifyUrl),
+      emailType: 'verification',
+      metadata: { userId },
     });
 
-    return { success: true };
+    return { success: result.success, error: result.error };
   } catch (error: any) {
     console.error('Send verification email error:', error);
     return { success: false, error: error.message };
@@ -210,16 +182,16 @@ export async function sendPasswordResetEmail(email: string): Promise<{ success: 
     });
 
     const resetUrl = `${APP_BASE_URL}/auth/reset-password?token=${token}`;
-    const resend = await getResendClient();
 
-    await resend.emails.send({
-      from: 'TriFused <noreply@mailout1.trifused.com>',
+    const result = await sendAndLogEmail({
       to: email,
       subject: 'Reset your password - TriFused',
       html: generatePasswordResetEmailHtml(resetUrl),
+      emailType: 'password_reset',
+      metadata: { userId: user.id },
     });
 
-    return { success: true };
+    return { success: result.success, error: result.error };
   } catch (error: any) {
     console.error('Send password reset email error:', error);
     return { success: false, error: error.message };
@@ -273,16 +245,16 @@ export async function sendMagicLink(email: string): Promise<{ success: boolean; 
     });
 
     const magicUrl = `${APP_BASE_URL}/auth/magic-link?token=${token}`;
-    const resend = await getResendClient();
 
-    await resend.emails.send({
-      from: 'TriFused <noreply@mailout1.trifused.com>',
+    const result = await sendAndLogEmail({
       to: email,
       subject: 'Your login link - TriFused',
       html: generateMagicLinkEmailHtml(magicUrl),
+      emailType: 'magic_link',
+      metadata: { email: email.toLowerCase() },
     });
 
-    return { success: true };
+    return { success: result.success, error: result.error };
   } catch (error: any) {
     console.error('Send magic link error:', error);
     return { success: false, error: error.message };
