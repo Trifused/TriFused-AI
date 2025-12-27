@@ -1607,143 +1607,98 @@ export default function Dashboard() {
                     className="glass-panel rounded-lg p-3 sm:p-4 border border-white/5"
                     data-testid={`grader-${grade.id}`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className={`text-2xl font-bold flex-shrink-0 ${
+                        grade.overallScore >= 90 ? 'text-green-400' :
+                        grade.overallScore >= 80 ? 'text-cyan-400' :
+                        grade.overallScore >= 70 ? 'text-yellow-400' :
+                        grade.overallScore >= 60 ? 'text-orange-400' :
+                        'text-red-400'
+                      }`}>
+                        {grade.overallScore}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <a 
-                            href={grade.shareToken ? `${window.location.origin}/report/${grade.shareToken}` : grade.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-white font-medium hover:text-primary transition-colors truncate text-sm sm:text-base"
-                          >
-                            {grade.domain || grade.url}
-                          </a>
-                          <div className="flex items-center gap-2 sm:hidden">
-                            <div className={`text-xl font-bold ${
-                              grade.overallScore >= 90 ? 'text-green-400' :
-                              grade.overallScore >= 80 ? 'text-cyan-400' :
-                              grade.overallScore >= 70 ? 'text-yellow-400' :
-                              grade.overallScore >= 60 ? 'text-orange-400' :
-                              'text-red-400'
-                            }`}>
-                              {grade.overallScore}
-                            </div>
-                            <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                          </div>
-                          <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0 hidden sm:block" />
-                        </div>
+                        <a 
+                          href={grade.shareToken ? `${window.location.origin}/report/${grade.shareToken}` : grade.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-white font-medium hover:text-primary transition-colors truncate text-sm sm:text-base flex items-center gap-1"
+                        >
+                          {grade.domain || grade.url}
+                          <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                        </a>
                         {grade.companyName && (
-                          <p className="text-sm text-orange-400 mb-1">{grade.companyName}</p>
-                        )}
-                        {grade.companyDescription && (
-                          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{grade.companyDescription}</p>
-                        )}
-                        <div className="grid grid-cols-5 gap-1 text-[10px] sm:text-xs mb-2 max-w-[320px]">
-                          <span className="px-1 py-0.5 rounded bg-white/10 text-muted-foreground text-center whitespace-nowrap">
-                            {grade.seoScore}
-                          </span>
-                          <span className="px-1 py-0.5 rounded bg-white/10 text-muted-foreground text-center whitespace-nowrap">
-                            {grade.securityScore}
-                          </span>
-                          <span className="px-1 py-0.5 rounded bg-white/10 text-muted-foreground text-center whitespace-nowrap">
-                            {grade.performanceScore}
-                          </span>
-                          <span className="px-1 py-0.5 rounded bg-white/10 text-muted-foreground text-center whitespace-nowrap">
-                            {grade.keywordsScore}
-                          </span>
-                          <span className="px-1 py-0.5 rounded bg-white/10 text-muted-foreground text-center whitespace-nowrap">
-                            {grade.accessibilityScore}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-5 gap-1 text-[8px] sm:text-[10px] mb-2 max-w-[320px] text-muted-foreground/70">
-                          <span className="text-center">SEO</span>
-                          <span className="text-center">Sec</span>
-                          <span className="text-center">Perf</span>
-                          <span className="text-center">Keys</span>
-                          <span className="text-center">A11y</span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-muted-foreground mb-2">
-                          <span>{format(new Date(grade.createdAt), 'MMM d, yyyy h:mm a')}</span>
-                          {grade.ipAddress && <span className="hidden sm:inline">IP: {grade.ipAddress}</span>}
-                        </div>
-                        {grade.shareToken && (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs gap-1"
-                              onClick={() => {
-                                const shareUrl = `${window.location.origin}/report/${grade.shareToken}`;
-                                navigator.clipboard.writeText(shareUrl);
-                                toast({ title: "Link copied!", description: "Share link copied to clipboard" });
-                              }}
-                              data-testid={`copy-link-${grade.id}`}
-                            >
-                              <Copy className="w-3 h-3" />
-                              Copy Link
-                            </Button>
-                            {grade.qrCodeData && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs gap-1"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(grade.qrCodeData!);
-                                  toast({ title: "QR copied!", description: "QR code data copied to clipboard" });
-                                }}
-                                data-testid={`copy-qr-${grade.id}`}
-                              >
-                                <QrCode className="w-3 h-3" />
-                                Copy QR
-                              </Button>
-                            )}
-                            <div className="flex items-center gap-3 ml-2 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1" title="Views">
-                                <Eye className="w-3 h-3" />
-                                {grade.viewCount || 0}
-                              </span>
-                              <span className="flex items-center gap-1" title="Downloads">
-                                <Download className="w-3 h-3" />
-                                {grade.downloadCount || 0}
-                              </span>
-                            </div>
-                          </div>
+                          <p className="text-sm text-orange-400 truncate">{grade.companyName}</p>
                         )}
                       </div>
-                      {grade.shareToken ? (
-                        <a 
-                          href={`${window.location.origin}/report/${grade.shareToken}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
-                        >
-                          <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                          <div className={`text-3xl font-bold ${
-                            grade.overallScore >= 90 ? 'text-green-400' :
-                            grade.overallScore >= 80 ? 'text-cyan-400' :
-                            grade.overallScore >= 70 ? 'text-yellow-400' :
-                            grade.overallScore >= 60 ? 'text-orange-400' :
-                            'text-red-400'
-                          }`}>
-                            {grade.overallScore}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Score</div>
-                        </a>
-                      ) : (
-                        <div className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0">
-                          <div className={`text-3xl font-bold ${
-                            grade.overallScore >= 90 ? 'text-green-400' :
-                            grade.overallScore >= 80 ? 'text-cyan-400' :
-                            grade.overallScore >= 70 ? 'text-yellow-400' :
-                            grade.overallScore >= 60 ? 'text-orange-400' :
-                            'text-red-400'
-                          }`}>
-                            {grade.overallScore}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Score</div>
-                        </div>
-                      )}
                     </div>
+                    {grade.companyDescription && (
+                      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{grade.companyDescription}</p>
+                    )}
+                    <div className="flex flex-wrap gap-1.5 text-xs mb-2">
+                      <span className="px-1.5 py-0.5 rounded bg-white/10 text-muted-foreground">
+                        SEO: {grade.seoScore}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-white/10 text-muted-foreground">
+                        Sec: {grade.securityScore}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-white/10 text-muted-foreground">
+                        Perf: {grade.performanceScore}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-white/10 text-muted-foreground">
+                        Keys: {grade.keywordsScore}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-white/10 text-muted-foreground">
+                        A11y: {grade.accessibilityScore}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-muted-foreground mb-2">
+                      <span>{format(new Date(grade.createdAt), 'MMM d, yyyy h:mm a')}</span>
+                      {grade.ipAddress && <span>IP: {grade.ipAddress}</span>}
+                    </div>
+                    {grade.shareToken && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1"
+                          onClick={() => {
+                            const shareUrl = `${window.location.origin}/report/${grade.shareToken}`;
+                            navigator.clipboard.writeText(shareUrl);
+                            toast({ title: "Link copied!", description: "Share link copied to clipboard" });
+                          }}
+                          data-testid={`copy-link-${grade.id}`}
+                        >
+                          <Copy className="w-3 h-3" />
+                          Copy Link
+                        </Button>
+                        {grade.qrCodeData && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => {
+                              navigator.clipboard.writeText(grade.qrCodeData!);
+                              toast({ title: "QR copied!", description: "QR code data copied to clipboard" });
+                            }}
+                            data-testid={`copy-qr-${grade.id}`}
+                          >
+                            <QrCode className="w-3 h-3" />
+                            Copy QR
+                          </Button>
+                        )}
+                        <div className="flex items-center gap-3 ml-2 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1" title="Views">
+                            <Eye className="w-3 h-3" />
+                            {grade.viewCount || 0}
+                          </span>
+                          <span className="flex items-center gap-1" title="Downloads">
+                            <Download className="w-3 h-3" />
+                            {grade.downloadCount || 0}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
