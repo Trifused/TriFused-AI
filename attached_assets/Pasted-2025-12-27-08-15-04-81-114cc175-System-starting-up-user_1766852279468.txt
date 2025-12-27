@@ -1,0 +1,92 @@
+2025-12-27 08:15:04.81
+114cc175
+System
+starting up user application
+2025-12-27 08:15:04.81
+114cc175
+System
+metasidecar: loaded enterprise status from environment is_enterprise=false
+2025-12-27 08:15:04.81
+114cc175
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2025-12-27 08:15:06.16
+114cc175
+User
+> rest-express@1.0.0 start
+2025-12-27 08:15:06.16
+114cc175
+User
+> NODE_ENV=production node dist/index.cjs
+2025-12-27 08:15:06.94
+0c434188
+User
+[Grader Debug] First 200 chars: <!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8" /> <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /> <meta property="og:title" cont
+2025-12-27 08:15:06.94
+0c434188
+User
+[Grader Debug] Potentially incomplete response for https://spacevana.com:
+2025-12-27 08:15:06.94
+0c434188
+User
+[Grader Debug] Status: 200, Length: 1215
+2025-12-27 08:15:10.83
+114cc175
+User
+Initializing Stripe schema...
+2025-12-27 08:15:11.57
+114cc175
+User
+Stripe schema ready
+2025-12-27 08:15:11.76
+114cc175
+User
+{ autoExpandLists: undefined, stripeApiVersion: undefined } StripeSync initialized
+2025-12-27 08:15:11.76
+114cc175
+User
+Setting up managed webhook...
+2025-12-27 08:15:14.60
+114cc175
+User
+Syncing Stripe data...
+2025-12-27 08:15:14.60
+114cc175
+User
+Webhook configured: created
+2025-12-27 08:15:14.64
+114cc175
+User
+Stripe data synced
+2025-12-27 08:15:14.79
+114cc175
+User
+4:15:14 PM [express] serving on port 5000
+2025-12-27 08:15:24.84
+0c434188
+System
+system: received signal terminated
+2025-12-27 08:15:45.64
+114cc175
+User
+4:15:45 PM [express] GET /api/auth/user 401 in 2ms :: {"message":"Unauthorized"}
+2025-12-27 08:15:48.39
+114cc175
+User
+4:15:48 PM [express] GET /api/auth/user 401 in 1ms :: {"message":"Unauthorized"}
+2025-12-27 08:15:52.53
+114cc175
+User
+4:15:52 PM [express] POST /api/diagnostics 200 in 244ms :: {"success":true,"id":"1d1f108d-eff1-4be3-a826-606af6a9d381"}
+2025-12-27 08:16:04.78
+114cc175
+User
+[Grader Debug] Status: 200, Length: 1215
+2025-12-27 08:16:04.78
+114cc175
+User
+[Grader Debug] First 200 chars: <!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8" /> <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /> <meta property="og:title" cont
+2025-12-27 08:16:04.78
+114cc175
+User
+[Grader Debug] Potentially incomplete response for https://spacevana.com:
