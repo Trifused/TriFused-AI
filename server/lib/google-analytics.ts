@@ -1,13 +1,16 @@
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
 
 let analyticsClient: BetaAnalyticsDataClient | null = null;
+let clientInitAttempted = false;
 
 function getClient(): BetaAnalyticsDataClient | null {
   if (analyticsClient) return analyticsClient;
+  if (clientInitAttempted) return null; // Prevent repeated init attempts
+  
+  clientInitAttempted = true;
   
   const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
   if (!credentialsJson) {
-    console.warn("GOOGLE_APPLICATION_CREDENTIALS_JSON not set");
     return null;
   }
   
@@ -16,7 +19,7 @@ function getClient(): BetaAnalyticsDataClient | null {
     analyticsClient = new BetaAnalyticsDataClient({ credentials });
     return analyticsClient;
   } catch (error) {
-    console.error("Failed to parse GA credentials:", error);
+    console.error("Failed to parse GA credentials - check GOOGLE_APPLICATION_CREDENTIALS_JSON format");
     return null;
   }
 }
