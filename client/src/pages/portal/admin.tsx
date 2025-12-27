@@ -320,6 +320,8 @@ export default function Admin() {
   const [activityLogOpen, setActivityLogOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [confirmPurgeOpen, setConfirmPurgeOpen] = useState(false);
+  const [showSetPassword, setShowSetPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [suspendReason, setSuspendReason] = useState("");
   const [editForm, setEditForm] = useState({ firstName: "", lastName: "", email: "", role: "guest" });
@@ -1024,6 +1026,51 @@ export default function Admin() {
     },
   });
 
+  const sendWelcomeEmailMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await fetch(`/api/admin/users/${userId}/send-welcome-email`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to send welcome email');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Email Sent", description: data.message });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const setPasswordMutation = useMutation({
+    mutationFn: async ({ userId, password }: { userId: string; password: string }) => {
+      const res = await fetch(`/api/admin/users/${userId}/set-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ password }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to set password');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setShowSetPassword(false);
+      setNewPassword("");
+      setSelectedUser(null);
+      toast({ title: "Password Set", description: "Password has been updated successfully." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       toast({
@@ -1398,6 +1445,15 @@ export default function Admin() {
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => sendWelcomeEmailMutation.mutate(u.id)}>
+                                      <Mail className="w-4 h-4 mr-2" />
+                                      Send Welcome Email
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => { setSelectedUser(u); setShowSetPassword(true); }}>
+                                      <Shield className="w-4 h-4 mr-2" />
+                                      Set Password
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
                                     {u.status === 'active' && u.id !== user?.id && (
                                       <DropdownMenuItem onClick={() => openSuspendDialog(u)} className="text-orange-500">
                                         <Ban className="w-4 h-4 mr-2" />
@@ -1755,6 +1811,42 @@ export default function Admin() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+
+            <Dialog open={showSetPassword} onOpenChange={(open) => { setShowSetPassword(open); if (!open) setNewPassword(""); }}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Set Password</DialogTitle>
+                  <DialogDescription>
+                    Set a new password for {selectedUser?.firstName || selectedUser?.email || "this user"}. Password must be at least 8 characters.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">New Password</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      placeholder="Enter new password (min 8 characters)"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="bg-white/5 border-white/10"
+                      data-testid="input-new-password"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => { setShowSetPassword(false); setNewPassword(""); }}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => selectedUser && setPasswordMutation.mutate({ userId: selectedUser.id, password: newPassword })}
+                    disabled={newPassword.length < 8 || setPasswordMutation.isPending}
+                  >
+                    {setPasswordMutation.isPending ? 'Setting...' : 'Set Password'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="chat">

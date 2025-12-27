@@ -773,6 +773,75 @@ export async function registerRoutes(
     }
   });
 
+  app.post('/api/admin/users/:id/send-welcome-email', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      if (!user.email) {
+        return res.status(400).json({ message: "User has no email address" });
+      }
+
+      const { sendMagicLink } = await import('./localAuth');
+      const result = await sendMagicLink(user.email);
+      
+      if (!result.success) {
+        return res.status(500).json({ message: result.error || "Failed to send welcome email" });
+      }
+
+      await storage.createUserActivityLog({
+        userId: id,
+        action: 'welcome_email_sent',
+        details: { email: user.email },
+        performedBy: req.user.claims.sub,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+
+      res.json({ success: true, message: `Welcome email sent to ${user.email}` });
+    } catch (error: any) {
+      console.error("Error sending welcome email:", error);
+      res.status(500).json({ message: error.message || "Failed to send welcome email" });
+    }
+  });
+
+  const setPasswordSchema = z.object({
+    password: z.string().min(8, "Password must be at least 8 characters")
+  });
+
+  app.post('/api/admin/users/:id/set-password', isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { password } = setPasswordSchema.parse(req.body);
+      
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { hashPassword } = await import('./localAuth');
+      const passwordHash = await hashPassword(password);
+      
+      await storage.updateUser(id, { passwordHash });
+
+      await storage.createUserActivityLog({
+        userId: id,
+        action: 'password_set_by_admin',
+        details: { setByAdmin: true },
+        performedBy: req.user.claims.sub,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+
+      res.json({ success: true, message: "Password set successfully" });
+    } catch (error: any) {
+      console.error("Error setting password:", error);
+      res.status(400).json({ message: error.message || "Failed to set password" });
+    }
+  });
+
   // ==========================================
   // Local Authentication Routes
   // ==========================================
