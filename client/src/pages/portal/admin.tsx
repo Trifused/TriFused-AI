@@ -2765,9 +2765,25 @@ export default function Admin() {
                                     Portal: {order.portal_user_status || 'unknown'}
                                   </span>
                                 ) : (
-                                  <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
-                                    No portal account
-                                  </span>
+                                  <>
+                                    <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
+                                      No portal account
+                                    </span>
+                                    {order.customer?.startsWith('cus_') && (
+                                      <button
+                                        onClick={() => setShowLinkCustomer({
+                                          customerId: order.customer!,
+                                          customerName: order.customer_name || '',
+                                          customerEmail: order.customer_email || ''
+                                        })}
+                                        className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 flex items-center gap-1"
+                                        data-testid={`btn-link-order-${order.session_id}`}
+                                      >
+                                        <Link2 className="w-3 h-3" />
+                                        Link to Account
+                                      </button>
+                                    )}
+                                  </>
                                 )}
                               </div>
                               <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
@@ -2861,9 +2877,25 @@ export default function Admin() {
                                     Portal: {sub.portal_user_status || 'unknown'}
                                   </span>
                                 ) : (
-                                  <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
-                                    No portal account
-                                  </span>
+                                  <>
+                                    <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
+                                      No portal account
+                                    </span>
+                                    {sub.customer?.startsWith('cus_') && (
+                                      <button
+                                        onClick={() => setShowLinkCustomer({
+                                          customerId: sub.customer!,
+                                          customerName: sub.customer_name || '',
+                                          customerEmail: sub.customer_email || ''
+                                        })}
+                                        className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 flex items-center gap-1"
+                                        data-testid={`btn-link-subscription-${sub.subscription_id}`}
+                                      >
+                                        <Link2 className="w-3 h-3" />
+                                        Link to Account
+                                      </button>
+                                    )}
+                                  </>
                                 )}
                               </div>
                               <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
