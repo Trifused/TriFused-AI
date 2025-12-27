@@ -32,6 +32,7 @@ interface GraderResult {
   performanceScore?: number;
   keywordsScore?: number;
   accessibilityScore?: number;
+  shareToken?: string | null;
 }
 
 function getScoreColor(score: number): string {
@@ -338,6 +339,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
         performanceScore: result.performanceScore || 0,
         keywordsScore: result.keywordsScore || 0,
         accessibilityScore: result.accessibilityScore || 0,
+        shareToken: result.shareToken || null,
       });
       
       setFlowState('reportPrompt');
@@ -361,7 +363,11 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
 
   const handleViewReport = () => {
     onOpenChange(false);
-    setLocation(`/grader?url=${encodeURIComponent(submittedUrl)}`);
+    if (graderResult?.shareToken) {
+      setLocation(`/report/${graderResult.shareToken}`);
+    } else {
+      setLocation(`/grader?url=${encodeURIComponent(submittedUrl)}`);
+    }
   };
 
   const handleSkipReport = () => {
