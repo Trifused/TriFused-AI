@@ -27,6 +27,56 @@ interface GraderResult {
   overallScore: number;
   letterGrade: string;
   findings: Array<{ category: string; issue: string; priority: string; passed: boolean }>;
+  seoScore?: number;
+  securityScore?: number;
+  performanceScore?: number;
+  keywordsScore?: number;
+  accessibilityScore?: number;
+}
+
+function getScoreColor(score: number): string {
+  if (score >= 80) return '#22c55e';
+  if (score >= 60) return '#eab308';
+  if (score >= 40) return '#f97316';
+  return '#ef4444';
+}
+
+function MiniScoreCircle({ score, label, size = 40 }: { score: number; label: string; size?: number }) {
+  const color = getScoreColor(score);
+  const circumference = 2 * Math.PI * (size / 2 - 3);
+  const strokeDashoffset = circumference - (score / 100) * circumference;
+  
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="transform -rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={size / 2 - 3}
+            fill="transparent"
+            stroke="rgba(255,255,255,0.1)"
+            strokeWidth={3}
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={size / 2 - 3}
+            fill="transparent"
+            stroke={color}
+            strokeWidth={3}
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[10px] font-bold text-white">{score}</span>
+        </div>
+      </div>
+      <span className="text-[9px] text-muted-foreground uppercase tracking-wide">{label}</span>
+    </div>
+  );
 }
 
 type FlowState = 'idle' | 'prompt' | 'dismissed' | 'urlInput' | 'fetching' | 'reportPrompt';
@@ -283,6 +333,11 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
         overallScore: result.overallScore,
         letterGrade,
         findings: result.findings || [],
+        seoScore: result.seoScore || 0,
+        securityScore: result.securityScore || 0,
+        performanceScore: result.performanceScore || 0,
+        keywordsScore: result.keywordsScore || 0,
+        accessibilityScore: result.accessibilityScore || 0,
       });
       
       setFlowState('reportPrompt');
@@ -470,13 +525,83 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                      <motion.div 
                        initial={{ scale: 0.8, opacity: 0 }}
                        animate={{ scale: 1, opacity: 1 }}
-                       className="text-center scale-90 md:scale-100"
+                       className="w-full px-2"
                      >
-                        <div className="w-20 h-20 md:w-24 md:h-24 mx-auto mb-2 md:mb-4 rounded-full border-4 border-primary flex items-center justify-center">
-                          <span className="text-2xl md:text-3xl font-bold text-white">{graderResult.letterGrade}</span>
+                        {/* Main Score Header */}
+                        <div className="flex items-center gap-4 mb-4">
+                          <div className="relative w-16 h-16 flex-shrink-0">
+                            <svg width={64} height={64} className="transform -rotate-90">
+                              <circle cx={32} cy={32} r={28} fill="transparent" stroke="rgba(255,255,255,0.1)" strokeWidth={4} />
+                              <circle 
+                                cx={32} cy={32} r={28} 
+                                fill="transparent" 
+                                stroke={getScoreColor(graderResult.overallScore)} 
+                                strokeWidth={4}
+                                strokeDasharray={2 * Math.PI * 28}
+                                strokeDashoffset={2 * Math.PI * 28 - (graderResult.overallScore / 100) * 2 * Math.PI * 28}
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <span className="text-lg font-bold text-white">{graderResult.letterGrade}</span>
+                              <span className="text-[10px] text-muted-foreground">{graderResult.overallScore}</span>
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground truncate">{submittedUrl}</p>
+                            <p className="text-sm font-semibold text-white mt-1">Website Score</p>
+                          </div>
                         </div>
-                        <h3 className="text-lg md:text-xl font-bold text-white">{graderResult.overallScore}/100</h3>
-                        <p className="text-xs md:text-sm text-muted-foreground mt-1 md:mt-2">{submittedUrl}</p>
+                        
+                        {/* Mini Score Cards Grid */}
+                        <div className="grid grid-cols-5 gap-2 bg-white/5 rounded-lg p-3 border border-white/10">
+                          <MiniScoreCircle score={graderResult.seoScore || 0} label="SEO" />
+                          <MiniScoreCircle score={graderResult.securityScore || 0} label="Security" />
+                          <MiniScoreCircle score={graderResult.performanceScore || 0} label="Perf" />
+                          <MiniScoreCircle score={graderResult.keywordsScore || 0} label="Keywords" />
+                          <MiniScoreCircle score={graderResult.accessibilityScore || 0} label="A11y" />
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div className="mt-3 flex items-center justify-between text-[10px]">
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                            <span>{graderResult.findings.filter(f => !f.passed && f.priority === 'critical').length} Critical</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                            <span>{graderResult.findings.filter(f => !f.passed && f.priority === 'important').length} Important</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                            <span>{graderResult.findings.filter(f => f.passed).length} Passed</span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="mt-4 flex flex-col gap-2">
+                          <Button
+                            onClick={handleViewReport}
+                            className="w-full bg-primary text-black hover:bg-primary/90 font-semibold text-xs"
+                            size="sm"
+                            data-testid="button-view-live-report"
+                          >
+                            <ExternalLink className="w-3 h-3 mr-2" />
+                            View Live Report
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              onOpenChange(false);
+                              setLocation('/pricing');
+                            }}
+                            variant="outline"
+                            className="w-full border-primary/50 text-primary hover:bg-primary/10 font-semibold text-xs"
+                            size="sm"
+                            data-testid="button-api-access"
+                          >
+                            API Access - $25.67/yr
+                          </Button>
+                        </div>
                      </motion.div>
                    ) : (
                      <motion.div 
