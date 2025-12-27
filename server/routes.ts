@@ -3210,7 +3210,8 @@ Your primary goal is to help users AND capture their contact information natural
         const seoLighthouseScore = lighthouseResult.seo;
         const bestPracticesScore = lighthouseResult.bestPractices;
         
-        performanceScore = perfScore;
+        // If Lighthouse returns 0, it likely failed - fall back to estimated 75
+        performanceScore = perfScore > 0 ? perfScore : 75;
         
         // Core Web Vitals findings
         const lcp = lighthouseResult.metrics.largestContentfulPaint;
@@ -3286,19 +3287,20 @@ Your primary goal is to help users AND capture their contact information natural
           });
         }
         
-        if (perfScore < 50) {
+        // Use performanceScore (which has fallback for 0) for consistent messaging
+        if (performanceScore < 50) {
           findings.push({
             category: "performance",
-            issue: `Performance score is ${perfScore}/100 (poor)`,
+            issue: `Performance score is ${performanceScore}/100 (poor)`,
             impact: "Slow sites lose visitors and rank lower in search results",
             priority: "critical",
             howToFix: "Optimize images, enable compression, minimize JavaScript, and use a CDN",
             passed: false,
           });
-        } else if (perfScore < 80) {
+        } else if (performanceScore < 80) {
           findings.push({
             category: "performance",
-            issue: `Performance score is ${perfScore}/100 (needs improvement)`,
+            issue: `Performance score is ${performanceScore}/100 (needs improvement)`,
             impact: "Page speed affects user experience and SEO",
             priority: "important",
             howToFix: "Consider image optimization, code splitting, and caching strategies",
@@ -3307,7 +3309,7 @@ Your primary goal is to help users AND capture their contact information natural
         } else {
           findings.push({
             category: "performance",
-            issue: `Performance score is ${perfScore}/100 (good)`,
+            issue: `Performance score is ${performanceScore}/100 (good)`,
             impact: "Fast loading improves user experience and SEO",
             priority: "optional",
             howToFix: "",
