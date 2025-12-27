@@ -61,7 +61,10 @@ import {
   Backlink,
   InsertBacklink,
   UserActivityLog,
-  InsertUserActivityLog
+  InsertUserActivityLog,
+  emailLogs,
+  EmailLog,
+  InsertEmailLog
 } from "@shared/schema";
 
 export interface IStorage {
@@ -81,6 +84,11 @@ export interface IStorage {
   createUserActivityLog(data: InsertUserActivityLog): Promise<UserActivityLog>;
   getUserActivityLogs(userId: string, limit?: number): Promise<UserActivityLog[]>;
   getAllActivityLogs(limit?: number): Promise<UserActivityLog[]>;
+  
+  // Email log methods
+  createEmailLog(data: InsertEmailLog): Promise<EmailLog>;
+  getEmailLogs(limit?: number, offset?: number): Promise<{ logs: EmailLog[]; total: number }>;
+  updateEmailLogStatus(id: string, status: string, deliveredAt?: Date): Promise<EmailLog | undefined>;
   
   createContactSubmission(data: InsertContactSubmission): Promise<ContactSubmission>;
   createDiagnosticScan(data: InsertDiagnosticScan): Promise<DiagnosticScan>;
@@ -401,6 +409,35 @@ class Storage implements IStorage {
       .from(userActivityLogs)
       .orderBy(desc(userActivityLogs.createdAt))
       .limit(limit);
+  }
+
+  async createEmailLog(data: InsertEmailLog): Promise<EmailLog> {
+    const [log] = await db.insert(emailLogs).values(data).returning();
+    return log;
+  }
+
+  async getEmailLogs(limit: number = 50, offset: number = 0): Promise<{ logs: EmailLog[]; total: number }> {
+    const [countResult] = await db.select({ count: count() }).from(emailLogs);
+    const logs = await db
+      .select()
+      .from(emailLogs)
+      .orderBy(desc(emailLogs.sentAt))
+      .limit(limit)
+      .offset(offset);
+    return { logs, total: countResult?.count || 0 };
+  }
+
+  async updateEmailLogStatus(id: string, status: string, deliveredAt?: Date): Promise<EmailLog | undefined> {
+    const updateData: any = { status };
+    if (deliveredAt) {
+      updateData.deliveredAt = deliveredAt;
+    }
+    const [log] = await db
+      .update(emailLogs)
+      .set(updateData)
+      .where(eq(emailLogs.id, id))
+      .returning();
+    return log;
   }
 
   async createFileTransfer(data: InsertFileTransfer): Promise<FileTransfer> {
