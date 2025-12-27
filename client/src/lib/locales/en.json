@@ -1,0 +1,63 @@
+{
+  "nav": {
+    "home": "Home",
+    "services": "Services",
+    "ventures": "Ventures",
+    "blog": "Intelligence Logs",
+    "grader": "Website Grader",
+    "contact": "Contact",
+    "login": "Login",
+    "portal": "Client Portal",
+    "dashboard": "Dashboard",
+    "initialize_ai": "Initialize AI"
+  },
+  "hero": {
+    "tagline": "AI-Native Technology",
+    "title": "Building Tomorrow's Infrastructure",
+    "subtitle": "We engineer autonomous systems that secure, scale, and accelerate your digital transformation",
+    "cta_primary": "Start Your Analysis",
+    "cta_secondary": "View Services"
+  },
+  "services": {
+    "title": "Our Services",
+    "cybersecurity": "Cybersecurity",
+    "cybersecurity_desc": "Enterprise-grade security solutions powered by AI",
+    "infrastructure": "Autonomous Infrastructure",
+    "infrastructure_desc": "Self-healing systems that scale on demand",
+    "growth": "Generative Growth",
+    "growth_desc": "AI-driven marketing and business intelligence"
+  },
+  "grader": {
+    "title": "Website Health Check",
+    "subtitle": "Get a free analysis of your website's SEO, security, and performance",
+    "enter_url": "Enter your website URL",
+    "scan_button": "Scan Now",
+    "scanning": "Scanning...",
+    "score": "Score",
+    "grade": "Grade",
+    "seo": "SEO",
+    "security": "Security",
+    "performance": "Performance",
+    "accessibility": "Accessibility"
+  },
+  "common": {
+    "learn_more": "Learn More",
+    "get_started": "Get Started",
+    "contact_us": "Contact Us",
+    "read_more": "Read More",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "footer": {
+    "copyright": "All rights reserved",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service"
+  },
+  "currency": {
+    "usd": "USD",
+    "pkr": "PKR"
+  }
+}

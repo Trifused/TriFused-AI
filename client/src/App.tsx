@@ -8,6 +8,7 @@ import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
 import { CartProvider } from "./context/cart-context";
 import { HelpProvider } from "./context/help-context";
+import { LanguageProvider } from "./context/language-context";
 import { ImpersonationBanner } from "@/components/ui/impersonation-banner";
 
 // Eager load Home for fast initial paint
@@ -102,15 +103,17 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <CartProvider>
-        <HelpProvider>
-          <TooltipProvider>
-            <ImpersonationBanner />
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </HelpProvider>
-      </CartProvider>
+      <LanguageProvider>
+        <CartProvider>
+          <HelpProvider>
+            <TooltipProvider>
+              <ImpersonationBanner />
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </HelpProvider>
+        </CartProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

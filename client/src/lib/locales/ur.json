@@ -1,0 +1,63 @@
+{
+  "nav": {
+    "home": "ہوم",
+    "services": "خدمات",
+    "ventures": "منصوبے",
+    "blog": "انٹیلیجنس لاگز",
+    "grader": "ویب سائٹ گریڈر",
+    "contact": "رابطہ",
+    "login": "لاگ ان",
+    "portal": "کلائنٹ پورٹل",
+    "dashboard": "ڈیش بورڈ",
+    "initialize_ai": "AI شروع کریں"
+  },
+  "hero": {
+    "tagline": "AI-Native ٹیکنالوجی",
+    "title": "کل کا انفراسٹرکچر بنانا",
+    "subtitle": "ہم خود مختار نظام بناتے ہیں جو آپ کی ڈیجیٹل تبدیلی کو محفوظ، توسیع اور تیز کرتے ہیں",
+    "cta_primary": "اپنا تجزیہ شروع کریں",
+    "cta_secondary": "خدمات دیکھیں"
+  },
+  "services": {
+    "title": "ہماری خدمات",
+    "cybersecurity": "سائبر سیکیورٹی",
+    "cybersecurity_desc": "AI سے چلنے والے انٹرپرائز گریڈ سیکیورٹی حل",
+    "infrastructure": "خود مختار انفراسٹرکچر",
+    "infrastructure_desc": "خود کو ٹھیک کرنے والے نظام جو مانگ پر پھیلتے ہیں",
+    "growth": "جنریٹو گروتھ",
+    "growth_desc": "AI سے چلنے والی مارکیٹنگ اور کاروباری ذہانت"
+  },
+  "grader": {
+    "title": "ویب سائٹ ہیلتھ چیک",
+    "subtitle": "اپنی ویب سائٹ کے SEO، سیکیورٹی اور کارکردگی کا مفت تجزیہ حاصل کریں",
+    "enter_url": "اپنی ویب سائٹ کا URL درج کریں",
+    "scan_button": "ابھی اسکین کریں",
+    "scanning": "اسکین ہو رہا ہے...",
+    "score": "اسکور",
+    "grade": "گریڈ",
+    "seo": "SEO",
+    "security": "سیکیورٹی",
+    "performance": "کارکردگی",
+    "accessibility": "رسائی"
+  },
+  "common": {
+    "learn_more": "مزید جانیں",
+    "get_started": "شروع کریں",
+    "contact_us": "ہم سے رابطہ کریں",
+    "read_more": "مزید پڑھیں",
+    "submit": "جمع کرائیں",
+    "cancel": "منسوخ",
+    "loading": "لوڈ ہو رہا ہے...",
+    "error": "خرابی",
+    "success": "کامیابی"
+  },
+  "footer": {
+    "copyright": "جملہ حقوق محفوظ ہیں",
+    "privacy": "رازداری کی پالیسی",
+    "terms": "سروس کی شرائط"
+  },
+  "currency": {
+    "usd": "USD",
+    "pkr": "PKR"
+  }
+}

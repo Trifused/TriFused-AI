@@ -4,21 +4,24 @@ import { Sparkles, User, Menu, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { useTranslation } from "react-i18next";
 
 export function Navbar() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { t } = useTranslation();
   
   const isGraderSubdomain = typeof window !== 'undefined' && window.location.hostname === 'grader.trifused.com';
   const mainSiteUrl = 'https://trifused.com';
 
   const navLinks = [
-    { label: "Services", href: "/#services" },
-    { label: "Ventures", href: "/#ventures" },
-    { label: "Website Grader", href: "/grader", highlight: true },
+    { label: t('nav.services'), href: "/#services" },
+    { label: t('nav.ventures'), href: "/#ventures" },
+    { label: t('nav.grader'), href: "/grader", highlight: true },
     { label: "Backup Calculator", href: "/backup-calculator" },
-    { label: "Intelligence Logs", href: "/blog" },
+    { label: t('nav.blog'), href: "/blog" },
     { label: "About", href: "/#about" },
   ];
 
@@ -74,6 +77,7 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
+          <LanguageSwitcher />
           {isAuthenticated ? (
             <Button 
               variant="outline" 
@@ -86,7 +90,7 @@ export function Navbar() {
               ) : (
                 <User className="w-4 h-4 mr-2" />
               )}
-              Dashboard
+              {t('nav.dashboard')}
             </Button>
           ) : (
             <Button 
@@ -95,7 +99,7 @@ export function Navbar() {
               onClick={() => isGraderSubdomain ? window.location.href = mainSiteUrl + '/portal' : setLocation("/portal")}
               data-testid="button-nav-portal"
             >
-              Client Portal
+              {t('nav.portal')}
             </Button>
           )}
           <Button 
@@ -106,7 +110,7 @@ export function Navbar() {
             }}
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            Initialize AI
+            {t('nav.initialize_ai')}
           </Button>
           
           <button
