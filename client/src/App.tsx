@@ -43,6 +43,7 @@ const DocsTrustBilling = lazy(() => import("@/pages/docs/trust-billing"));
 const DocsTeams = lazy(() => import("@/pages/docs/teams"));
 const DocsChangelog = lazy(() => import("@/pages/docs/changelog"));
 const DocsScoring = lazy(() => import("@/pages/docs/scoring"));
+const Auth = lazy(() => import("@/pages/auth"));
 
 // Loading fallback for lazy components
 const PageLoader = () => (
@@ -60,6 +61,7 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/blog" component={Blog} />
         <Route path="/signup" component={Signup} />
+        <Route path="/auth" component={Auth} />
         <Route path="/grader" component={Grader} />
         <Route path="/report/:shareToken" component={Report} />
         <Route path="/store" component={Store} />
