@@ -5949,6 +5949,40 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // ==========================================
+  // Email Service Status Routes (Superuser Only)
+  // ==========================================
+
+  app.get("/api/admin/email/status", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { getEmailServiceStatus } = await import('./emailService');
+      const status = await getEmailServiceStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Email status error:", error);
+      res.status(500).json({ error: "Failed to get email service status" });
+    }
+  });
+
+  app.post("/api/admin/email/test", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email address required" });
+      }
+      const { sendTestEmail } = await import('./emailService');
+      const result = await sendTestEmail(email);
+      if (result.success) {
+        res.json({ success: true, message: "Test email sent successfully" });
+      } else {
+        res.status(400).json({ success: false, error: result.error });
+      }
+    } catch (error: any) {
+      console.error("Send test email error:", error);
+      res.status(500).json({ error: error.message || "Failed to send test email" });
+    }
+  });
+
   // Seed sample products (admin only)
   app.post("/api/admin/stripe/seed", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
     try {

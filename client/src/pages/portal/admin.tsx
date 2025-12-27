@@ -283,6 +283,21 @@ interface CSStats {
   total_revenue: number;
 }
 
+interface EmailDomain {
+  id: string;
+  name: string;
+  status: string;
+  region: string;
+  created_at: string;
+}
+
+interface EmailServiceStatus {
+  connected: boolean;
+  fromEmail: string | null;
+  domains: EmailDomain[];
+  error: string | null;
+}
+
 export default function Admin() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth();
