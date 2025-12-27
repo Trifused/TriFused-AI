@@ -571,6 +571,38 @@ export default function Admin() {
 
   const reportSubscriptions = reportSubsData?.data || [];
 
+  interface EmailLogEntry {
+    id: string;
+    to: string;
+    from: string;
+    subject: string;
+    emailType: string;
+    status: string;
+    resendId: string | null;
+    errorMessage: string | null;
+    metadata: Record<string, any> | null;
+    sentAt: string;
+    deliveredAt: string | null;
+  }
+
+  const [emailLogsPage, setEmailLogsPage] = useState(1);
+  const emailLogsPerPage = 20;
+
+  const { data: emailLogsData, isLoading: emailLogsLoading } = useQuery<{ logs: EmailLogEntry[]; total: number }>({
+    queryKey: ['/api/admin/email-logs', emailLogsPage],
+    queryFn: async () => {
+      const offset = (emailLogsPage - 1) * emailLogsPerPage;
+      const res = await fetch(`/api/admin/email-logs?limit=${emailLogsPerPage}&offset=${offset}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch email logs');
+      return res.json();
+    },
+    enabled: isAuthenticated && user?.role === 'superuser' && activeTab === 'emails',
+  });
+
+  const emailLogs = emailLogsData?.logs || [];
+  const emailLogsTotal = emailLogsData?.total || 0;
+  const emailLogsTotalPages = Math.ceil(emailLogsTotal / emailLogsPerPage);
+
   const createCustomerMutation = useMutation({
     mutationFn: async (data: { email: string; name: string }) => {
       const res = await fetch('/api/admin/cs/customers', {
@@ -1314,6 +1346,10 @@ export default function Admin() {
               <TabsTrigger value="quickbooks" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-quickbooks">
                 <Receipt className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">QuickBooks</span>
+              </TabsTrigger>
+              <TabsTrigger value="emails" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-emails">
+                <Mail className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Emails</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -3677,6 +3713,112 @@ export default function Admin() {
 
           <TabsContent value="backlinks">
             <BacklinksTab />
+          </TabsContent>
+
+          <TabsContent value="emails">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <div className="glass-panel rounded-2xl overflow-hidden">
+                <div className="p-4 border-b border-white/5 bg-white/5">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Mail className="w-5 h-5 text-primary" />
+                      Email Logs
+                    </h2>
+                    <div className="text-sm text-muted-foreground">
+                      {emailLogsTotal} emails sent
+                    </div>
+                  </div>
+                </div>
+
+                {emailLogsLoading ? (
+                  <div className="p-12 text-center">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-muted-foreground">Loading email logs...</p>
+                  </div>
+                ) : emailLogs.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Mail className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No emails sent yet</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-white/5">
+                    {emailLogs.map((log) => (
+                      <div key={log.id} className="p-4 hover:bg-white/5 transition-colors" data-testid={`row-email-${log.id}`}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                log.status === 'sent' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                                log.status === 'delivered' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                                log.status === 'failed' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                                'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                              }`}>
+                                {log.status}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-white/10 text-muted-foreground border border-white/10">
+                                {log.emailType}
+                              </span>
+                            </div>
+                            <div className="text-white font-medium truncate">{log.subject}</div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              To: <span className="text-white">{log.to}</span>
+                            </div>
+                            {log.errorMessage && (
+                              <div className="text-sm text-red-400 mt-1">
+                                Error: {log.errorMessage}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-xs text-muted-foreground">
+                              {format(new Date(log.sentAt), 'MMM d, yyyy')}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(new Date(log.sentAt), 'h:mm a')}
+                            </div>
+                            {log.resendId && (
+                              <div className="text-xs text-primary mt-1 font-mono">
+                                {log.resendId.slice(0, 8)}...
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {emailLogsTotalPages > 1 && (
+                  <div className="p-4 border-t border-white/5 flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      Page {emailLogsPage} of {emailLogsTotalPages}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEmailLogsPage(p => Math.max(1, p - 1))}
+                        disabled={emailLogsPage === 1}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEmailLogsPage(p => Math.min(emailLogsTotalPages, p + 1))}
+                        disabled={emailLogsPage >= emailLogsTotalPages}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </TabsContent>
         </Tabs>
       </main>
