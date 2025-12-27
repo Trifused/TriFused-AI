@@ -110,7 +110,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
     if (logQueueRef.current.length > 0) {
       const nextMsg = logQueueRef.current.shift()!;
       setLogs(prev => [...prev, nextMsg]);
-      logTimerRef.current = setTimeout(processLogQueue, 80 + Math.random() * 60);
+      logTimerRef.current = setTimeout(processLogQueue, 120 + Math.random() * 90);
     } else {
       logTimerRef.current = null;
     }
