@@ -4484,13 +4484,6 @@ Your primary goal is to help users AND capture their contact information natural
           apiKeyRecord.userId === userId || 
           (isImpersonating && apiKeyRecord.userId === originalUserId)
         );
-        console.log('API Key validation:', { 
-          keyUserId: apiKeyRecord?.userId, 
-          effectiveUserId: userId, 
-          originalUserId, 
-          isImpersonating,
-          validOwner 
-        });
         if (!apiKeyRecord || !validOwner) {
           return res.status(403).json({ error: "Invalid API key" });
         }
