@@ -3,8 +3,8 @@ import { sendAndLogEmail } from './emailService';
 import { format, subMinutes } from 'date-fns';
 
 const REPORT_RECIPIENTS = ['trifused@gmail.com'];
-const REPORT_INTERVAL_MS = 1 * 60 * 1000; // 1 minute (for testing)
-const INITIAL_LOOKBACK_MINUTES = 1; // Only look back 1 min on first run
+const REPORT_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+const INITIAL_LOOKBACK_MINUTES = 15; // Only look back 15 min on first run
 
 let lastReportSentAt: Date | null = null;
 
@@ -289,12 +289,12 @@ export function startLeadReportScheduler() {
     return;
   }
 
-  console.log(`[LeadReport] Starting scheduler - reports will be sent every 1 minute to ${REPORT_RECIPIENTS.join(', ')}`);
+  console.log(`[LeadReport] Starting scheduler - reports will be sent every 15 minutes to ${REPORT_RECIPIENTS.join(', ')}`);
   
-  // Send first report after 10 seconds to test quickly
+  // Send first report after 1 minute to allow system to fully initialize
   setTimeout(() => {
     sendLeadReport();
-  }, 10 * 1000);
+  }, 60 * 1000);
 
   // Then send every 15 minutes
   schedulerInterval = setInterval(() => {

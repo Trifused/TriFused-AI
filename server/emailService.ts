@@ -51,8 +51,12 @@ export async function sendPortalInviteEmail(
     
     const name = customerName || 'Valued Customer';
     
+    const verifiedFrom = (fromEmail && fromEmail.includes('mailout1.trifused.com')) 
+      ? fromEmail 
+      : 'TriFused <noreply@mailout1.trifused.com>';
+    
     const result = await client.emails.send({
-      from: fromEmail || 'TriFused <noreply@mailout1.trifused.com>',
+      from: verifiedFrom,
       to: toEmail,
       subject: 'Welcome to Your TriFused Portal Account',
       html: `
@@ -159,10 +163,13 @@ export async function getEmailServiceStatus(): Promise<EmailServiceStatus> {
 
 export async function sendTestEmail(toEmail: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const { client } = await getResendClient();
+    const { client, fromEmail } = await getResendClient();
+    const verifiedFrom = (fromEmail && fromEmail.includes('mailout1.trifused.com')) 
+      ? fromEmail 
+      : 'TriFused <noreply@mailout1.trifused.com>';
     
     const result = await client.emails.send({
-      from: 'TriFused <noreply@mailout1.trifused.com>',
+      from: verifiedFrom,
       to: toEmail,
       subject: 'TriFused Email Test',
       html: `
@@ -217,6 +224,8 @@ export async function sendTestEmail(toEmail: string): Promise<{ success: boolean
 import { storage } from './storage';
 import type { InsertEmailLog } from '@shared/schema';
 
+const VERIFIED_FROM_EMAIL = 'TriFused <noreply@mailout1.trifused.com>';
+
 export async function sendAndLogEmail(options: {
   to: string;
   subject: string;
@@ -228,7 +237,10 @@ export async function sendAndLogEmail(options: {
   
   try {
     const { client, fromEmail } = await getResendClient();
-    const from = fromEmail || 'TriFused <noreply@mailout1.trifused.com>';
+    // Always use the verified mailout1.trifused.com domain
+    const from = (fromEmail && fromEmail.includes('mailout1.trifused.com')) 
+      ? fromEmail 
+      : VERIFIED_FROM_EMAIL;
     
     const result = await client.emails.send({
       from,
