@@ -6072,6 +6072,84 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // ==========================================
+  // Scheduled Reports Routes (Superuser Only)
+  // ==========================================
+
+  app.get("/api/admin/reports/scheduled", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { getScheduledReports } = await import('./reportScheduler');
+      const reports = await getScheduledReports();
+      res.json(reports);
+    } catch (error: any) {
+      console.error("Get scheduled reports error:", error);
+      res.status(500).json({ error: error.message || "Failed to get scheduled reports" });
+    }
+  });
+
+  app.post("/api/admin/reports/scheduled", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { name, reportType, recipientEmail, schedule } = req.body;
+      if (!name || !recipientEmail || !schedule) {
+        return res.status(400).json({ error: "Name, email, and schedule are required" });
+      }
+      const { createScheduledReport } = await import('./reportScheduler');
+      const report = await createScheduledReport({ name, reportType, recipientEmail, schedule });
+      res.json(report);
+    } catch (error: any) {
+      console.error("Create scheduled report error:", error);
+      res.status(500).json({ error: error.message || "Failed to create scheduled report" });
+    }
+  });
+
+  app.delete("/api/admin/reports/scheduled/:id", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { deleteScheduledReport } = await import('./reportScheduler');
+      await deleteScheduledReport(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Delete scheduled report error:", error);
+      res.status(500).json({ error: error.message || "Failed to delete scheduled report" });
+    }
+  });
+
+  app.post("/api/admin/reports/scheduled/:id/toggle", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+      const { toggleScheduledReport } = await import('./reportScheduler');
+      await toggleScheduledReport(id, isActive);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Toggle scheduled report error:", error);
+      res.status(500).json({ error: error.message || "Failed to toggle scheduled report" });
+    }
+  });
+
+  app.post("/api/admin/reports/scheduled/:id/send", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { sendScheduledReport } = await import('./reportScheduler');
+      const result = await sendScheduledReport(id);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Send scheduled report error:", error);
+      res.status(500).json({ error: error.message || "Failed to send scheduled report" });
+    }
+  });
+
+  app.post("/api/admin/reports/run-due", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { runDueReports } = await import('./reportScheduler');
+      const result = await runDueReports();
+      res.json(result);
+    } catch (error: any) {
+      console.error("Run due reports error:", error);
+      res.status(500).json({ error: error.message || "Failed to run due reports" });
+    }
+  });
+
   // Seed sample products (admin only)
   app.post("/api/admin/stripe/seed", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
     try {

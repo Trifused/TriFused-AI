@@ -651,3 +651,28 @@ export const insertQuickbooksSyncLogSchema = createInsertSchema(quickbooksSyncLo
 
 export type InsertQuickbooksSyncLog = z.infer<typeof insertQuickbooksSyncLogSchema>;
 export type QuickbooksSyncLog = typeof quickbooksSyncLog.$inferSelect;
+
+// Scheduled reports for automated status reports
+export const scheduledReports = pgTable("scheduled_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  reportType: varchar("report_type").default("status").notNull(),
+  recipientEmail: varchar("recipient_email").notNull(),
+  schedule: varchar("schedule").default("daily").notNull(), // daily, weekly, monthly
+  isActive: integer("is_active").default(1).notNull(),
+  lastSentAt: timestamp("last_sent_at"),
+  nextRunAt: timestamp("next_run_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertScheduledReportSchema = createInsertSchema(scheduledReports).omit({
+  id: true,
+  lastSentAt: true,
+  nextRunAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertScheduledReport = z.infer<typeof insertScheduledReportSchema>;
+export type ScheduledReport = typeof scheduledReports.$inferSelect;
