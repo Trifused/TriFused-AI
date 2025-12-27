@@ -148,7 +148,6 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
     addLog("This demo scans basic device info");
     addLog("(browser, screen, connection speed).");
     addLog("No personal data is collected.");
-    addLog("Learn more: /privacy");
     addLog("─".repeat(30));
     addLog("Proceed with scan? [Y/N]");
   };
@@ -516,7 +515,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                    </button>
                    ] - 
                    <a 
-                     href="/privacy" 
+                     href="/legal/privacy" 
                      target="_blank"
                      className="text-primary hover:text-primary/80 underline ml-1"
                    >
