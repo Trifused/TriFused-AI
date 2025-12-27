@@ -1710,18 +1710,39 @@ export default function Dashboard() {
                           </div>
                         )}
                       </div>
-                      <div className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0">
-                        <div className={`text-3xl font-bold ${
-                          grade.overallScore >= 90 ? 'text-green-400' :
-                          grade.overallScore >= 80 ? 'text-cyan-400' :
-                          grade.overallScore >= 70 ? 'text-yellow-400' :
-                          grade.overallScore >= 60 ? 'text-orange-400' :
-                          'text-red-400'
-                        }`}>
-                          {grade.overallScore}
+                      {grade.shareToken ? (
+                        <a 
+                          href={`${window.location.origin}/report/${grade.shareToken}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
+                        >
+                          <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                          <div className={`text-3xl font-bold ${
+                            grade.overallScore >= 90 ? 'text-green-400' :
+                            grade.overallScore >= 80 ? 'text-cyan-400' :
+                            grade.overallScore >= 70 ? 'text-yellow-400' :
+                            grade.overallScore >= 60 ? 'text-orange-400' :
+                            'text-red-400'
+                          }`}>
+                            {grade.overallScore}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Score</div>
+                        </a>
+                      ) : (
+                        <div className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0">
+                          <div className={`text-3xl font-bold ${
+                            grade.overallScore >= 90 ? 'text-green-400' :
+                            grade.overallScore >= 80 ? 'text-cyan-400' :
+                            grade.overallScore >= 70 ? 'text-yellow-400' :
+                            grade.overallScore >= 60 ? 'text-orange-400' :
+                            'text-red-400'
+                          }`}>
+                            {grade.overallScore}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Score</div>
                         </div>
-                        <div className="text-xs text-muted-foreground">Score</div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 ))}
