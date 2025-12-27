@@ -2947,7 +2947,9 @@ export default function Admin() {
                                             await navigator.clipboard.writeText(data.inviteLink);
                                             toast({
                                               title: "Portal Account Created",
-                                              description: "Invite link copied to clipboard!"
+                                              description: data.emailSent 
+                                                ? "Invite email sent and link copied to clipboard!" 
+                                                : "Invite link copied to clipboard (email not sent)"
                                             });
                                             queryClient.invalidateQueries({ queryKey: ['/api/admin/cs/customers'] });
                                           } else {

@@ -5819,11 +5819,22 @@ Your primary goal is to help users AND capture their contact information natural
         : `https://${req.get('host')}`;
       const inviteLink = `${baseUrl}/portal/login?email=${encodeURIComponent(email)}&invite=true`;
       
+      // Send invite email
+      let emailSent = false;
+      try {
+        const { sendPortalInviteEmail } = await import('./emailService');
+        const emailResult = await sendPortalInviteEmail(email, customer.name || null, inviteLink);
+        emailSent = emailResult.success;
+      } catch (emailError) {
+        console.error("Failed to send invite email:", emailError);
+      }
+      
       res.json({ 
         success: true, 
         user: newUser,
         inviteLink,
-        message: "Portal account created successfully"
+        emailSent,
+        message: emailSent ? "Portal account created and invite email sent" : "Portal account created (email not sent)"
       });
     } catch (error) {
       console.error("Create portal account error:", error);
