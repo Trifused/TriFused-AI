@@ -6011,6 +6011,84 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Link Stripe customer to existing user account (for when emails don't match)
+  app.post("/api/admin/cs/customers/:customerId/link-to-user", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { customerId } = req.params;
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+      
+      // Verify the Stripe customer exists
+      const customer = await stripeService.getCustomer(customerId);
+      if (!customer) {
+        return res.status(404).json({ error: "Stripe customer not found" });
+      }
+      
+      // Verify the user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Check if user already has a different Stripe customer linked
+      if (user.stripeCustomerId && user.stripeCustomerId !== customerId) {
+        return res.status(400).json({ 
+          error: "User already has a different Stripe customer linked",
+          existingCustomerId: user.stripeCustomerId
+        });
+      }
+      
+      // Check if this Stripe customer is already linked to a different user
+      const existingUserWithCustomer = await storage.getUserByStripeCustomerId(customerId);
+      if (existingUserWithCustomer && existingUserWithCustomer.id !== userId) {
+        return res.status(400).json({ 
+          error: "This Stripe customer is already linked to a different user",
+          existingUserId: existingUserWithCustomer.id,
+          existingUserEmail: existingUserWithCustomer.email
+        });
+      }
+      
+      // Link the Stripe customer to the user
+      await storage.updateUser(userId, { stripeCustomerId: customerId });
+      
+      // Log the activity
+      await storage.createUserActivityLog({
+        userId: userId,
+        action: 'stripe_customer_linked',
+        details: { 
+          stripeCustomerId: customerId,
+          customerEmail: customer.email,
+          linkedBy: 'admin'
+        },
+        performedBy: (req as any).user?.claims?.sub || 'admin',
+        ipAddress: req.ip || null,
+        userAgent: req.headers['user-agent'] || null
+      });
+      
+      // Trigger a sync to update the cache
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+      
+      res.json({ 
+        success: true, 
+        message: `Stripe customer ${customer.email || customerId} linked to user ${user.email}`,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName
+        }
+      });
+    } catch (error) {
+      console.error("Link customer to user error:", error);
+      res.status(500).json({ error: "Failed to link customer to user" });
+    }
+  });
+
   // Update customer
   app.patch("/api/admin/cs/customers/:customerId", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
     try {
