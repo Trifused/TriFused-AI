@@ -277,6 +277,11 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
     setSubmittedUrl(url);
     setFlowState('fetching');
     setGraderProgress(0);
+    addLog("─".repeat(30));
+    addLog("DEMO MODE - Website Health Check");
+    addLog("This scan analyzes publicly available data only.");
+    addLog("No unauthorized access or penetration testing.");
+    addLog("─".repeat(30));
     addLog(`Initiating website scan: ${url}`);
     
     // Start progress animation
