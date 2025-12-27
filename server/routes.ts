@@ -2573,10 +2573,14 @@ Your primary goal is to help users AND capture their contact information natural
   }
 
   app.post("/api/grade", async (req: Request, res: Response) => {
+    const graderStart = Date.now();
+    console.log(`[Grader] START: ${req.body?.url}`);
+    
     try {
       const { url, email, complianceChecks, forceRefresh, blind, useLighthouse, useSecurityScan } = gradeUrlSchema.parse(req.body);
       
       // SSRF protection: validate URL before fetching
+      console.log(`[Grader] Validating URL...`);
       const urlValidation = await validateUrl(url);
       if (!urlValidation.valid) {
         return res.status(400).json({ error: urlValidation.error });
@@ -2659,10 +2663,9 @@ Your primary goal is to help users AND capture their contact information natural
         });
         
         // Debug logging for troubleshooting fetch issues
+        console.log(`[Grader] Fetched in ${Date.now() - graderStart}ms, HTML length: ${html.length}`);
         if (html.length < 500 || !html.includes('<title')) {
-          console.log(`[Grader Debug] Potentially incomplete response for ${url}:`);
-          console.log(`[Grader Debug] Status: ${response.status}, Length: ${html.length}`);
-          console.log(`[Grader Debug] First 200 chars: ${html.substring(0, 200).replace(/\n/g, ' ')}`);
+          console.log(`[Grader] WARNING: Potentially incomplete response`);
         }
       } catch (fetchError: any) {
         clearTimeout(timeout);
@@ -3261,9 +3264,12 @@ Your primary goal is to help users AND capture their contact information natural
       
       // Performance - Direct Lighthouse analysis (free, no API key needed)
       // Only run Lighthouse if explicitly enabled (superuser toggle)
+      console.log(`[Grader] Analysis done in ${Date.now() - graderStart}ms, useLighthouse: ${useLighthouse}`);
       if (useLighthouse) {
+        console.log(`[Grader] Starting Lighthouse audit...`);
         try {
           const lighthouseResult = await lighthouseService.runAudit(url);
+          console.log(`[Grader] Lighthouse complete in ${Date.now() - graderStart}ms`);
           
           // Populate Core Web Vitals
           coreWebVitals = {
