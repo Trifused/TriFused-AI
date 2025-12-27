@@ -103,9 +103,24 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
   const [, setLocation] = useLocation();
   const terminalRef = useRef<HTMLDivElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const logQueueRef = useRef<string[]>([]);
+  const logTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const processLogQueue = () => {
+    if (logQueueRef.current.length > 0) {
+      const nextMsg = logQueueRef.current.shift()!;
+      setLogs(prev => [...prev, nextMsg]);
+      logTimerRef.current = setTimeout(processLogQueue, 80 + Math.random() * 60);
+    } else {
+      logTimerRef.current = null;
+    }
+  };
 
   const addLog = (msg: string) => {
-    setLogs(prev => [...prev, `> ${msg}`]);
+    logQueueRef.current.push(`> ${msg}`);
+    if (!logTimerRef.current) {
+      processLogQueue();
+    }
   };
 
   const scrollToBottom = () => {
@@ -399,6 +414,11 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
       setGraderResult(null);
       setUrlInput('');
       setSubmittedUrl('');
+      logQueueRef.current = [];
+      if (logTimerRef.current) {
+        clearTimeout(logTimerRef.current);
+        logTimerRef.current = null;
+      }
     }
   }, [open]);
 
