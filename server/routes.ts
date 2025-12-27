@@ -1806,21 +1806,14 @@ export async function registerRoutes(
             WHEN response_time_ms < 500 THEN '< 500ms'
             WHEN response_time_ms < 1000 THEN '< 1000ms'
             ELSE '1000ms+'
-          END as bucket,
+          END as duration_bucket,
           COUNT(*) as count
         FROM api_usage_logs
         WHERE called_at >= NOW() - INTERVAL '24 hours'
           AND response_time_ms IS NOT NULL
-        GROUP BY bucket
+        GROUP BY 1
         ORDER BY 
-          CASE bucket
-            WHEN '< 50ms' THEN 1
-            WHEN '< 150ms' THEN 2
-            WHEN '< 300ms' THEN 3
-            WHEN '< 500ms' THEN 4
-            WHEN '< 1000ms' THEN 5
-            ELSE 6
-          END
+          MIN(COALESCE(response_time_ms, 0))
       `);
 
       // Get top endpoints
