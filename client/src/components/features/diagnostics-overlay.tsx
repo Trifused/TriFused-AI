@@ -266,6 +266,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
     
     // Start progress animation
     let progress = 0;
+    let elapsedSeconds = 0;
     const progressMessages = [
       { at: 10, msg: "Connecting to target server..." },
       { at: 25, msg: "Fetching page content..." },
@@ -275,15 +276,27 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
       { at: 85, msg: "Compiling results..." },
     ];
     let messageIndex = 0;
+    let showedWaitingMessage = false;
     
     progressIntervalRef.current = setInterval(() => {
       progress += Math.random() * 3 + 1;
+      elapsedSeconds += 0.2;
       if (progress > 95) progress = 95;
       setGraderProgress(Math.floor(progress));
       
       if (messageIndex < progressMessages.length && progress >= progressMessages[messageIndex].at) {
         addLog(progressMessages[messageIndex].msg);
         messageIndex++;
+      }
+      
+      // Show waiting message for long scans
+      if (elapsedSeconds > 15 && !showedWaitingMessage) {
+        showedWaitingMessage = true;
+        addLog("Deep analysis in progress... Please wait.");
+      }
+      if (elapsedSeconds > 30 && showedWaitingMessage) {
+        showedWaitingMessage = false; // Reset to show again
+        addLog("Still working... This site has a lot to analyze.");
       }
     }, 200);
 
