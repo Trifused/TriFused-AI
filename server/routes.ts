@@ -5983,6 +5983,95 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // ==========================================
+  // QuickBooks Integration Routes (Superuser Only)
+  // ==========================================
+
+  app.get("/api/admin/quickbooks/status", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { getStatus } = await import('./quickbooksService');
+      const status = await getStatus();
+      res.json(status);
+    } catch (error: any) {
+      console.error("QuickBooks status error:", error);
+      res.status(500).json({ error: error.message || "Failed to get QuickBooks status" });
+    }
+  });
+
+  app.get("/api/admin/quickbooks/auth-url", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { getAuthorizationUrl, isQuickBooksConfigured } = await import('./quickbooksService');
+      if (!isQuickBooksConfigured()) {
+        return res.status(400).json({ error: "QuickBooks credentials not configured" });
+      }
+      const url = getAuthorizationUrl();
+      res.json({ url });
+    } catch (error: any) {
+      console.error("QuickBooks auth URL error:", error);
+      res.status(500).json({ error: error.message || "Failed to generate auth URL" });
+    }
+  });
+
+  app.get("/api/quickbooks/callback", async (req: Request, res: Response) => {
+    try {
+      const { handleCallback } = await import('./quickbooksService');
+      const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+      const result = await handleCallback(fullUrl);
+      res.redirect(`/portal?qb_connected=true&company=${encodeURIComponent(result.companyName)}`);
+    } catch (error: any) {
+      console.error("QuickBooks callback error:", error);
+      res.redirect(`/portal?qb_error=${encodeURIComponent(error.message)}`);
+    }
+  });
+
+  app.post("/api/admin/quickbooks/disconnect", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { disconnect, getActiveConnection } = await import('./quickbooksService');
+      const connection = await getActiveConnection();
+      if (!connection) {
+        return res.status(400).json({ error: "No active QuickBooks connection" });
+      }
+      await disconnect(connection.realmId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("QuickBooks disconnect error:", error);
+      res.status(500).json({ error: error.message || "Failed to disconnect QuickBooks" });
+    }
+  });
+
+  app.get("/api/admin/quickbooks/sync-logs", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { getSyncLogs } = await import('./quickbooksService');
+      const limit = parseInt(req.query.limit as string) || 50;
+      const logs = await getSyncLogs(limit);
+      res.json(logs);
+    } catch (error: any) {
+      console.error("QuickBooks sync logs error:", error);
+      res.status(500).json({ error: error.message || "Failed to get sync logs" });
+    }
+  });
+
+  app.post("/api/admin/quickbooks/test-sync", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { syncStripePaymentToQuickBooks, getActiveConnection } = await import('./quickbooksService');
+      const connection = await getActiveConnection();
+      if (!connection) {
+        return res.status(400).json({ error: "QuickBooks not connected" });
+      }
+      const result = await syncStripePaymentToQuickBooks(
+        "test@example.com",
+        "Test Customer",
+        "Test Product",
+        999,
+        `test_${Date.now()}`
+      );
+      res.json(result);
+    } catch (error: any) {
+      console.error("QuickBooks test sync error:", error);
+      res.status(500).json({ error: error.message || "Failed to test sync" });
+    }
+  });
+
   // Seed sample products (admin only)
   app.post("/api/admin/stripe/seed", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
     try {
