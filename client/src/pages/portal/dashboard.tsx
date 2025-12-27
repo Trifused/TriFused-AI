@@ -1611,7 +1611,7 @@ export default function Dashboard() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <a 
-                            href={grade.url} 
+                            href={grade.shareToken ? `/report/${grade.shareToken}` : grade.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-white font-medium hover:text-primary transition-colors truncate text-sm sm:text-base"
@@ -1638,22 +1638,29 @@ export default function Dashboard() {
                         {grade.companyDescription && (
                           <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{grade.companyDescription}</p>
                         )}
-                        <div className="flex flex-wrap gap-1.5 sm:gap-2 text-xs mb-2">
-                          <span className="px-1.5 sm:px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
-                            SEO: {grade.seoScore}
+                        <div className="grid grid-cols-5 gap-1 text-[10px] sm:text-xs mb-2 max-w-[320px]">
+                          <span className="px-1 py-0.5 rounded bg-white/10 text-muted-foreground text-center whitespace-nowrap">
+                            {grade.seoScore}
                           </span>
-                          <span className="px-1.5 sm:px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
-                            Security: {grade.securityScore}
+                          <span className="px-1 py-0.5 rounded bg-white/10 text-muted-foreground text-center whitespace-nowrap">
+                            {grade.securityScore}
                           </span>
-                          <span className="px-1.5 sm:px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
-                            Perf: {grade.performanceScore}
+                          <span className="px-1 py-0.5 rounded bg-white/10 text-muted-foreground text-center whitespace-nowrap">
+                            {grade.performanceScore}
                           </span>
-                          <span className="px-1.5 sm:px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
-                            Keywords: {grade.keywordsScore}
+                          <span className="px-1 py-0.5 rounded bg-white/10 text-muted-foreground text-center whitespace-nowrap">
+                            {grade.keywordsScore}
                           </span>
-                          <span className="px-1.5 sm:px-2 py-0.5 rounded bg-white/10 text-muted-foreground">
-                            A11y: {grade.accessibilityScore}
+                          <span className="px-1 py-0.5 rounded bg-white/10 text-muted-foreground text-center whitespace-nowrap">
+                            {grade.accessibilityScore}
                           </span>
+                        </div>
+                        <div className="grid grid-cols-5 gap-1 text-[8px] sm:text-[10px] mb-2 max-w-[320px] text-muted-foreground/70">
+                          <span className="text-center">SEO</span>
+                          <span className="text-center">Sec</span>
+                          <span className="text-center">Perf</span>
+                          <span className="text-center">Keys</span>
+                          <span className="text-center">A11y</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-muted-foreground mb-2">
                           <span>{format(new Date(grade.createdAt), 'MMM d, yyyy h:mm a')}</span>
