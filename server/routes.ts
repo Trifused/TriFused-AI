@@ -4460,8 +4460,8 @@ Your primary goal is to help users AND capture their contact information natural
           "GET",
           statusCode,
           responseTime,
-          req.ip || null,
-          req.headers["user-agent"] || null,
+          req.ip || undefined,
+          req.headers["user-agent"] as string | undefined,
           {
             gradeId: grade.id,
             shareToken: grade.shareToken || undefined,
@@ -4590,13 +4590,13 @@ Your primary goal is to help users AND capture their contact information natural
       const responseTime = Date.now() - startTime;
       await apiService.consumeApiCall(
         chargeUserId,
-        apiKeyId || null,
+        apiKeyId || undefined,
         "/api/v1/test-score",
         "POST",
         response.status,
         responseTime,
-        req.ip || null,
-        req.headers["user-agent"] || null,
+        req.ip || undefined,
+        req.headers["user-agent"] as string | undefined,
         {
           gradeId: data.meta?.scanId,
           shareToken: data.meta?.shareToken,
@@ -5146,12 +5146,12 @@ Your primary goal is to help users AND capture their contact information natural
         'POST',
         gradeResponse.status,
         responseTime,
-        req.ip,
-        req.headers['user-agent']
+        req.ip || undefined,
+        req.headers['user-agent'] as string | undefined
       );
 
       if (!consumeResult.success) {
-        return res.status(403).json({ error: consumeResult.error, quotaExceeded: true });
+        return res.status(403).json({ error: "API call failed", quotaExceeded: true });
       }
 
       // Get updated quota
@@ -6007,7 +6007,7 @@ Your primary goal is to help users AND capture their contact information natural
       const { customerId } = req.params;
       
       // Get customer info from Stripe
-      const customer = await stripeService.getCustomer(customerId);
+      const customer = await stripeService.getCustomer(customerId) as { email?: string; name?: string; id: string } | null;
       if (!customer) {
         return res.status(404).json({ error: "Customer not found" });
       }
@@ -6040,7 +6040,8 @@ Your primary goal is to help users AND capture their contact information natural
       }
       
       // Create new user
-      const nameParts = customer.name?.split(' ') || [];
+      const customerName = customer.name || '';
+      const nameParts = customerName.split(' ');
       const firstName = nameParts[0] || null;
       const lastName = nameParts.slice(1).join(' ') || null;
       
@@ -6059,8 +6060,8 @@ Your primary goal is to help users AND capture their contact information natural
         action: 'user_created',
         details: { email, source: 'stripe_customer', stripeCustomerId: customerId },
         performedBy: (req as any).user?.claims?.sub || 'admin',
-        ipAddress: req.ip || null,
-        userAgent: req.headers['user-agent'] || null
+        ipAddress: req.ip || undefined,
+        userAgent: req.headers['user-agent'] as string | undefined
       });
       
       // Generate invite link
@@ -6073,7 +6074,7 @@ Your primary goal is to help users AND capture their contact information natural
       let emailSent = false;
       try {
         const { sendPortalInviteEmail } = await import('./emailService');
-        const emailResult = await sendPortalInviteEmail(email, customer.name || null, inviteLink);
+        const emailResult = await sendPortalInviteEmail(email, customerName || null, inviteLink);
         emailSent = emailResult.success;
       } catch (emailError) {
         console.error("Failed to send invite email:", emailError);

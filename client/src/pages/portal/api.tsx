@@ -828,7 +828,7 @@ export default function ApiPortal() {
                 <div className="flex justify-end">
                   <Button 
                     onClick={() => runGraderMutation.mutate({ url: testUrl, apiKey: testApiKey || undefined, threshold: testThreshold })}
-                    disabled={!testUrl || runGraderMutation.isPending || (!testApiKey && quota && quota.totalCalls - quota.usedCalls <= 0)}
+                    disabled={!testUrl || runGraderMutation.isPending || (!testApiKey && !!quota && quota.totalCalls - quota.usedCalls <= 0)}
                     data-testid="button-run-test"
                   >
                     {runGraderMutation.isPending ? (

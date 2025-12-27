@@ -3212,16 +3212,8 @@ export default function Admin() {
                                         role: customer.portal_user_role || 'user',
                                         status: customer.portal_user_status || 'active',
                                         stripeCustomerId: customer.id,
-                                        stripeSubscriptionId: null,
-                                        apiTier: null,
-                                        apiCallsUsed: 0,
-                                        apiCallsLimit: 0,
                                         createdAt: customer.created ? new Date(customer.created * 1000).toISOString() : new Date().toISOString(),
-                                        emailVerified: false,
-                                        termsAccepted: false,
-                                        termsVersion: null,
-                                        termsAcceptedAt: null
-                                      })}
+                                      } as User)}
                                       className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
                                     >
                                       <Users className="w-3 h-3" />
