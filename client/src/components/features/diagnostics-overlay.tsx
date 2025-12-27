@@ -276,7 +276,8 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
       { at: 85, msg: "Compiling results..." },
     ];
     let messageIndex = 0;
-    let showedWaitingMessage = false;
+    let showedWaitMsg1 = false;
+    let showedWaitMsg2 = false;
     
     progressIntervalRef.current = setInterval(() => {
       progress += Math.random() * 3 + 1;
@@ -289,13 +290,13 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
         messageIndex++;
       }
       
-      // Show waiting message for long scans
-      if (elapsedSeconds > 15 && !showedWaitingMessage) {
-        showedWaitingMessage = true;
+      // Show waiting messages for long scans (only once each)
+      if (elapsedSeconds > 15 && !showedWaitMsg1) {
+        showedWaitMsg1 = true;
         addLog("Deep analysis in progress... Please wait.");
       }
-      if (elapsedSeconds > 30 && showedWaitingMessage) {
-        showedWaitingMessage = false; // Reset to show again
+      if (elapsedSeconds > 30 && !showedWaitMsg2) {
+        showedWaitMsg2 = true;
         addLog("Still working... This site has a lot to analyze.");
       }
     }, 200);
