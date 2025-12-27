@@ -55,7 +55,8 @@ import {
   MoreVertical,
   Filter,
   ChevronUp,
-  Headphones
+  Headphones,
+  UserPlus
 } from "lucide-react";
 import { FEATURE_FLAGS, type FeatureFlag, type FeatureStatus, type FeatureCategory } from "@shared/feature-flags";
 import { FeatureBadge } from "@/components/ui/feature-badge";
@@ -513,6 +514,7 @@ export default function Admin() {
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ email: '', name: '' });
   const [showLinkCustomer, setShowLinkCustomer] = useState<{ customerId: string; customerName: string; customerEmail: string } | null>(null);
+  const [showCreateAndLinkCustomer, setShowCreateAndLinkCustomer] = useState<{ customerId: string; customerName: string; customerEmail: string } | null>(null);
   const [linkUserSearch, setLinkUserSearch] = useState("");
   const [selectedLinkUser, setSelectedLinkUser] = useState<{ id: string; email: string; firstName: string | null; lastName: string | null } | null>(null);
 
@@ -636,6 +638,45 @@ export default function Admin() {
     },
     onError: (error: Error) => {
       toast({ title: 'Failed to link customer', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const createAndLinkCustomerMutation = useMutation({
+    mutationFn: async (data: { customerId: string; firstName: string; lastName: string; email: string }) => {
+      const createRes = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ firstName: data.firstName, lastName: data.lastName, email: data.email, role: 'guest' }),
+      });
+      if (!createRes.ok) {
+        const error = await createRes.json();
+        throw new Error(error.message || 'Failed to create user');
+      }
+      const newUser = await createRes.json();
+      
+      const linkRes = await fetch(`/api/admin/cs/customers/${data.customerId}/link-to-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ userId: newUser.id }),
+      });
+      if (!linkRes.ok) {
+        const errData = await linkRes.json();
+        throw new Error(errData.error || 'User created but failed to link customer');
+      }
+      return linkRes.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: 'Account created and linked', description: data.message });
+      refetchCustomers();
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users/paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/cs/subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/cs/orders'] });
+      setShowCreateAndLinkCustomer(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Failed to create account', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -2770,18 +2811,32 @@ export default function Admin() {
                                       No portal account
                                     </span>
                                     {order.customer?.startsWith('cus_') && (
-                                      <button
-                                        onClick={() => setShowLinkCustomer({
-                                          customerId: order.customer!,
-                                          customerName: order.customer_name || '',
-                                          customerEmail: order.customer_email || ''
-                                        })}
-                                        className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 flex items-center gap-1"
-                                        data-testid={`btn-link-order-${order.session_id}`}
-                                      >
-                                        <Link2 className="w-3 h-3" />
-                                        Link to Account
-                                      </button>
+                                      <>
+                                        <button
+                                          onClick={() => setShowLinkCustomer({
+                                            customerId: order.customer!,
+                                            customerName: order.customer_name || '',
+                                            customerEmail: order.customer_email || ''
+                                          })}
+                                          className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 flex items-center gap-1"
+                                          data-testid={`btn-link-order-${order.session_id}`}
+                                        >
+                                          <Link2 className="w-3 h-3" />
+                                          Link
+                                        </button>
+                                        <button
+                                          onClick={() => setShowCreateAndLinkCustomer({
+                                            customerId: order.customer!,
+                                            customerName: order.customer_name || '',
+                                            customerEmail: order.customer_email || ''
+                                          })}
+                                          className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 flex items-center gap-1"
+                                          data-testid={`btn-create-order-${order.session_id}`}
+                                        >
+                                          <UserPlus className="w-3 h-3" />
+                                          Create
+                                        </button>
+                                      </>
                                     )}
                                   </>
                                 )}
@@ -2882,18 +2937,32 @@ export default function Admin() {
                                       No portal account
                                     </span>
                                     {sub.customer?.startsWith('cus_') && (
-                                      <button
-                                        onClick={() => setShowLinkCustomer({
-                                          customerId: sub.customer!,
-                                          customerName: sub.customer_name || '',
-                                          customerEmail: sub.customer_email || ''
-                                        })}
-                                        className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 flex items-center gap-1"
-                                        data-testid={`btn-link-subscription-${sub.subscription_id}`}
-                                      >
-                                        <Link2 className="w-3 h-3" />
-                                        Link to Account
-                                      </button>
+                                      <>
+                                        <button
+                                          onClick={() => setShowLinkCustomer({
+                                            customerId: sub.customer!,
+                                            customerName: sub.customer_name || '',
+                                            customerEmail: sub.customer_email || ''
+                                          })}
+                                          className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 flex items-center gap-1"
+                                          data-testid={`btn-link-subscription-${sub.subscription_id}`}
+                                        >
+                                          <Link2 className="w-3 h-3" />
+                                          Link
+                                        </button>
+                                        <button
+                                          onClick={() => setShowCreateAndLinkCustomer({
+                                            customerId: sub.customer!,
+                                            customerName: sub.customer_name || '',
+                                            customerEmail: sub.customer_email || ''
+                                          })}
+                                          className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 flex items-center gap-1"
+                                          data-testid={`btn-create-subscription-${sub.subscription_id}`}
+                                        >
+                                          <UserPlus className="w-3 h-3" />
+                                          Create
+                                        </button>
+                                      </>
                                     )}
                                   </>
                                 )}
@@ -3084,7 +3153,19 @@ export default function Admin() {
                                       data-testid={`btn-link-account-${customer.id}`}
                                     >
                                       <Link2 className="w-3 h-3" />
-                                      Link to Account
+                                      Link
+                                    </button>
+                                    <button
+                                      onClick={() => setShowCreateAndLinkCustomer({
+                                        customerId: customer.id,
+                                        customerName: customer.name || '',
+                                        customerEmail: customer.email || ''
+                                      })}
+                                      className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 flex items-center gap-1"
+                                      data-testid={`btn-create-account-${customer.id}`}
+                                    >
+                                      <UserPlus className="w-3 h-3" />
+                                      Create
                                     </button>
                                   </div>
                                 )}
@@ -3277,6 +3358,95 @@ export default function Admin() {
                               setSelectedLinkUser(null);
                               setLinkUserSearch("");
                             }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Create Account Modal */}
+                  {showCreateAndLinkCustomer && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+                      <div className="bg-zinc-900 border border-white/10 rounded-lg p-6 w-full max-w-md">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                            <UserPlus className="w-5 h-5 text-green-400" />
+                            Create Account
+                          </h3>
+                          <button
+                            onClick={() => setShowCreateAndLinkCustomer(null)}
+                            className="text-muted-foreground hover:text-white"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Create a new portal account for <span className="text-white font-medium">{showCreateAndLinkCustomer.customerName || showCreateAndLinkCustomer.customerEmail}</span> and link to Stripe customer.
+                        </p>
+                        
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-xs text-muted-foreground block mb-1">First Name</label>
+                              <Input
+                                id="create-first-name"
+                                defaultValue={showCreateAndLinkCustomer.customerName?.split(' ')[0] || ''}
+                                placeholder="First name"
+                                data-testid="input-create-first-name"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground block mb-1">Last Name</label>
+                              <Input
+                                id="create-last-name"
+                                defaultValue={showCreateAndLinkCustomer.customerName?.split(' ').slice(1).join(' ') || ''}
+                                placeholder="Last name"
+                                data-testid="input-create-last-name"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-xs text-muted-foreground block mb-1">Email</label>
+                            <Input
+                              id="create-email"
+                              defaultValue={showCreateAndLinkCustomer.customerEmail}
+                              placeholder="Email address"
+                              data-testid="input-create-email"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-3 mt-6">
+                          <Button
+                            onClick={() => {
+                              const firstName = (document.getElementById('create-first-name') as HTMLInputElement)?.value || '';
+                              const lastName = (document.getElementById('create-last-name') as HTMLInputElement)?.value || '';
+                              const email = (document.getElementById('create-email') as HTMLInputElement)?.value || '';
+                              
+                              if (!email) {
+                                toast({ title: 'Email required', variant: 'destructive' });
+                                return;
+                              }
+                              
+                              createAndLinkCustomerMutation.mutate({
+                                customerId: showCreateAndLinkCustomer.customerId,
+                                firstName,
+                                lastName,
+                                email
+                              });
+                            }}
+                            disabled={createAndLinkCustomerMutation.isPending}
+                            className="bg-green-600 hover:bg-green-700"
+                            data-testid="btn-confirm-create-account"
+                          >
+                            {createAndLinkCustomerMutation.isPending ? 'Creating...' : 'Create & Link'}
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            onClick={() => setShowCreateAndLinkCustomer(null)}
                           >
                             Cancel
                           </Button>
