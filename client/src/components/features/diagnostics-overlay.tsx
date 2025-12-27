@@ -80,7 +80,7 @@ function MiniScoreCircle({ score, label, size = 40 }: { score: number; label: st
   );
 }
 
-type FlowState = 'idle' | 'prompt' | 'dismissed' | 'urlInput' | 'fetching' | 'reportPrompt';
+type FlowState = 'idle' | 'consent' | 'prompt' | 'dismissed' | 'urlInput' | 'fetching' | 'reportPrompt';
 
 function getGradeLetter(score: number): string {
   if (score >= 90) return 'A';
@@ -133,16 +133,37 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
     scrollToBottom();
   }, [logs, flowState]);
 
-  const runDiagnostics = async () => {
+  const showConsentPrompt = () => {
     setStatus('scanning');
     setLogs([]);
     setData({});
     setScanProgress(0);
-    setFlowState('idle');
+    setFlowState('consent');
     setGraderResult(null);
     setUrlInput('');
     setSubmittedUrl('');
+    addLog("─".repeat(30));
+    addLog("TRIFUSED SYSTEM DIAGNOSTIC");
+    addLog("─".repeat(30));
+    addLog("This demo scans basic device info");
+    addLog("(browser, screen, connection speed).");
+    addLog("No personal data is collected.");
+    addLog("Learn more: /privacy");
+    addLog("─".repeat(30));
+    addLog("Proceed with scan? [Y/N]");
+  };
 
+  const handleConsentYes = () => {
+    setFlowState('idle');
+    runDiagnostics();
+  };
+
+  const handleConsentNo = () => {
+    addLog("Scan cancelled. Have a great day!");
+    setFlowState('dismissed');
+  };
+
+  const runDiagnostics = async () => {
     // Step 1: System Info
     addLog("Initializing heuristic scan...");
     await new Promise(r => setTimeout(r, 800));
@@ -411,7 +432,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
 
   useEffect(() => {
     if (open && status === 'idle') {
-      runDiagnostics();
+      showConsentPrompt();
     } else if (!open) {
       setStatus('idle');
       setLogs([]);
@@ -461,12 +482,47 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                    {log}
                  </motion.div>
                ))}
-               {status === 'scanning' && (
+               {status === 'scanning' && flowState !== 'consent' && (
                  <motion.div 
                    animate={{ opacity: [0, 1, 0] }}
                    transition={{ repeat: Infinity, duration: 0.8 }}
                    className="w-2 h-4 bg-primary"
                  />
+               )}
+               
+               {/* Consent Prompt - Before Device Scan */}
+               {flowState === 'consent' && (
+                 <motion.div 
+                   initial={{ opacity: 0, x: -10 }}
+                   animate={{ opacity: 1, x: 0 }}
+                   className="text-white/80 break-words mt-2"
+                 >
+                   <span className="text-primary mr-2">➜</span>
+                   {'>'} [
+                   <button 
+                     onClick={handleConsentYes}
+                     className="text-green-400 hover:text-green-300 underline cursor-pointer font-bold"
+                     data-testid="button-consent-yes"
+                   >
+                     Y
+                   </button>
+                   /
+                   <button 
+                     onClick={handleConsentNo}
+                     className="text-red-400 hover:text-red-300 underline cursor-pointer font-bold"
+                     data-testid="button-consent-no"
+                   >
+                     N
+                   </button>
+                   ] - 
+                   <a 
+                     href="/privacy" 
+                     target="_blank"
+                     className="text-primary hover:text-primary/80 underline ml-1"
+                   >
+                     Learn more
+                   </a>
+                 </motion.div>
                )}
                
                {/* Test Website Prompt */}
