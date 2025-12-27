@@ -8,6 +8,7 @@ import { Resend } from 'resend';
 const SALT_ROUNDS = 12;
 const TOKEN_EXPIRY_HOURS = 24;
 const MAGIC_LINK_EXPIRY_MINUTES = 15;
+const APP_BASE_URL = process.env.APP_BASE_URL || 'https://trifused.com';
 
 async function getResendClient() {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
@@ -135,7 +136,7 @@ export async function sendVerificationEmail(userId: string, email: string): Prom
       expiresAt,
     });
 
-    const verifyUrl = `https://trifused.com/auth/verify-email?token=${token}`;
+    const verifyUrl = `${APP_BASE_URL}/auth/verify-email?token=${token}`;
     const resend = await getResendClient();
 
     await resend.emails.send({
@@ -208,7 +209,7 @@ export async function sendPasswordResetEmail(email: string): Promise<{ success: 
       expiresAt,
     });
 
-    const resetUrl = `https://trifused.com/auth/reset-password?token=${token}`;
+    const resetUrl = `${APP_BASE_URL}/auth/reset-password?token=${token}`;
     const resend = await getResendClient();
 
     await resend.emails.send({
@@ -271,7 +272,7 @@ export async function sendMagicLink(email: string): Promise<{ success: boolean; 
       expiresAt,
     });
 
-    const magicUrl = `https://trifused.com/auth/magic-link?token=${token}`;
+    const magicUrl = `${APP_BASE_URL}/auth/magic-link?token=${token}`;
     const resend = await getResendClient();
 
     await resend.emails.send({
