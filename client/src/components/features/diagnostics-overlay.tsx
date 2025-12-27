@@ -500,7 +500,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
              <div className="relative z-10 h-full flex flex-col justify-between overflow-y-auto">
                 
                 {/* Center Visualization */}
-                <div className="flex-1 flex items-center justify-center min-h-[160px]">
+                <div className={`flex items-center justify-center ${graderResult ? 'flex-1' : 'py-4'}`}>
                    {status === 'scanning' || flowState === 'fetching' ? (
                      <div className="relative scale-75 md:scale-100">
                        <motion.div 
@@ -607,11 +607,11 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                      <motion.div 
                        initial={{ scale: 0.8, opacity: 0 }}
                        animate={{ scale: 1, opacity: 1 }}
-                       className="text-center scale-90 md:scale-100"
+                       className="text-center"
                      >
-                        <Shield className="w-16 h-16 md:w-20 md:h-20 text-primary mx-auto mb-2 md:mb-4" />
-                        <h3 className="text-lg md:text-xl font-bold text-white">System Secure</h3>
-                        <p className="text-xs md:text-sm text-muted-foreground mt-1 md:mt-2">No active threats detected.</p>
+                        <Shield className="w-12 h-12 lg:w-16 lg:h-16 text-primary mx-auto mb-2" />
+                        <h3 className="text-base lg:text-lg font-bold text-white">System Secure</h3>
+                        <p className="text-xs text-muted-foreground mt-1">No active threats detected.</p>
                         <Button
                           onClick={() => {
                             setStatus('idle');
@@ -619,7 +619,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                           }}
                           variant="outline"
                           size="sm"
-                          className="mt-4 border-primary/30 text-primary hover:bg-primary/10 font-mono text-xs"
+                          className="mt-3 border-primary/30 text-primary hover:bg-primary/10 font-mono text-xs"
                           data-testid="button-rescan"
                         >
                           <RefreshCw className="w-3 h-3 mr-2" />
