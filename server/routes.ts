@@ -770,6 +770,178 @@ export async function registerRoutes(
       res.status(500).json({ message: "Failed to fetch activity logs" });
     }
   });
+
+  // ==========================================
+  // Local Authentication Routes
+  // ==========================================
+
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
+    try {
+      const { email, password, firstName, lastName } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+      const { registerUser } = await import('./localAuth');
+      const result = await registerUser(email, password, firstName, lastName);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      res.json({ success: true, message: "Registration successful. Please check your email to verify your account." });
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      res.status(500).json({ error: "Registration failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+      const { loginUser } = await import('./localAuth');
+      const result = await loginUser(email, password);
+      if (!result.success) {
+        return res.status(401).json({ error: result.error });
+      }
+      (req.session as any).localUser = result.user;
+      res.json({ success: true, user: result.user });
+    } catch (error: any) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req: Request, res: Response) => {
+    (req.session as any).localUser = null;
+    res.json({ success: true });
+  });
+
+  app.get("/api/auth/me", (req: Request, res: Response) => {
+    const localUser = (req.session as any)?.localUser;
+    if (localUser) {
+      return res.json({ user: localUser, provider: 'local' });
+    }
+    const replitUser = req.user as any;
+    if (replitUser?.claims) {
+      return res.json({ 
+        user: {
+          id: replitUser.claims.sub,
+          email: replitUser.claims.email,
+          firstName: replitUser.claims.first_name,
+          lastName: replitUser.claims.last_name,
+        },
+        provider: 'replit'
+      });
+    }
+    res.status(401).json({ error: "Not authenticated" });
+  });
+
+  app.post("/api/auth/verify-email", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ error: "Token is required" });
+      }
+      const { verifyEmail } = await import('./localAuth');
+      const result = await verifyEmail(token);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      res.json({ success: true, message: "Email verified successfully. You can now log in." });
+    } catch (error: any) {
+      console.error("Email verification error:", error);
+      res.status(500).json({ error: "Verification failed" });
+    }
+  });
+
+  app.post("/api/auth/resend-verification", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      const { resendVerificationEmail } = await import('./localAuth');
+      const result = await resendVerificationEmail(email);
+      res.json({ success: true, message: "If an unverified account exists with this email, a verification link has been sent." });
+    } catch (error: any) {
+      console.error("Resend verification error:", error);
+      res.status(500).json({ error: "Failed to resend verification email" });
+    }
+  });
+
+  app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      const { sendPasswordResetEmail } = await import('./localAuth');
+      await sendPasswordResetEmail(email);
+      res.json({ success: true, message: "If an account exists with this email, a password reset link has been sent." });
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ error: "Failed to send reset email" });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
+    try {
+      const { token, password } = req.body;
+      if (!token || !password) {
+        return res.status(400).json({ error: "Token and new password are required" });
+      }
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+      const { resetPassword } = await import('./localAuth');
+      const result = await resetPassword(token, password);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      res.json({ success: true, message: "Password reset successfully. You can now log in with your new password." });
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ error: "Password reset failed" });
+    }
+  });
+
+  app.post("/api/auth/magic-link", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      const { sendMagicLink } = await import('./localAuth');
+      await sendMagicLink(email);
+      res.json({ success: true, message: "If this email is valid, a magic link has been sent. Check your inbox." });
+    } catch (error: any) {
+      console.error("Magic link error:", error);
+      res.status(500).json({ error: "Failed to send magic link" });
+    }
+  });
+
+  app.post("/api/auth/verify-magic-link", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ error: "Token is required" });
+      }
+      const { verifyMagicLink } = await import('./localAuth');
+      const result = await verifyMagicLink(token);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      (req.session as any).localUser = result.user;
+      res.json({ success: true, user: result.user });
+    } catch (error: any) {
+      console.error("Magic link verification error:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
   
   app.post("/api/contact", async (req, res) => {
     try {
