@@ -305,7 +305,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
       const response = await fetch('/api/grade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, useLighthouse: false }),
       });
 
       // Stop progress animation
