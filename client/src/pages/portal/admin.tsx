@@ -2828,7 +2828,7 @@ export default function Admin() {
                                           onClick={() => setShowCreateAndLinkCustomer({
                                             customerId: order.customer!,
                                             customerName: order.customer_name || '',
-                                            customerEmail: order.customer_email || ''
+                                            customerEmail: order.customer_email || (order as any).customer_email_stripe || ''
                                           })}
                                           className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 flex items-center gap-1"
                                           data-testid={`btn-create-order-${order.session_id}`}
@@ -3366,96 +3366,97 @@ export default function Admin() {
                     </div>
                   )}
                   
-                  {/* Create Account Modal */}
-                  {showCreateAndLinkCustomer && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-                      <div className="bg-zinc-900 border border-white/10 rounded-lg p-6 w-full max-w-md">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                            <UserPlus className="w-5 h-5 text-green-400" />
-                            Create Account
-                          </h3>
-                          <button
-                            onClick={() => setShowCreateAndLinkCustomer(null)}
-                            className="text-muted-foreground hover:text-white"
-                          >
-                            <X className="w-5 h-5" />
-                          </button>
-                        </div>
-                        
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Create a new portal account for <span className="text-white font-medium">{showCreateAndLinkCustomer.customerName || showCreateAndLinkCustomer.customerEmail}</span> and link to Stripe customer.
-                        </p>
-                        
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-xs text-muted-foreground block mb-1">First Name</label>
-                              <Input
-                                id="create-first-name"
-                                defaultValue={showCreateAndLinkCustomer.customerName?.split(' ')[0] || ''}
-                                placeholder="First name"
-                                data-testid="input-create-first-name"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs text-muted-foreground block mb-1">Last Name</label>
-                              <Input
-                                id="create-last-name"
-                                defaultValue={showCreateAndLinkCustomer.customerName?.split(' ').slice(1).join(' ') || ''}
-                                placeholder="Last name"
-                                data-testid="input-create-last-name"
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="text-xs text-muted-foreground block mb-1">Email</label>
-                            <Input
-                              id="create-email"
-                              defaultValue={showCreateAndLinkCustomer.customerEmail}
-                              placeholder="Email address"
-                              data-testid="input-create-email"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="flex gap-3 mt-6">
-                          <Button
-                            onClick={() => {
-                              const firstName = (document.getElementById('create-first-name') as HTMLInputElement)?.value || '';
-                              const lastName = (document.getElementById('create-last-name') as HTMLInputElement)?.value || '';
-                              const email = (document.getElementById('create-email') as HTMLInputElement)?.value || '';
-                              
-                              if (!email) {
-                                toast({ title: 'Email required', variant: 'destructive' });
-                                return;
-                              }
-                              
-                              createAndLinkCustomerMutation.mutate({
-                                customerId: showCreateAndLinkCustomer.customerId,
-                                firstName,
-                                lastName,
-                                email
-                              });
-                            }}
-                            disabled={createAndLinkCustomerMutation.isPending}
-                            className="bg-green-600 hover:bg-green-700"
-                            data-testid="btn-confirm-create-account"
-                          >
-                            {createAndLinkCustomerMutation.isPending ? 'Creating...' : 'Create & Link'}
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            onClick={() => setShowCreateAndLinkCustomer(null)}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </TabsContent>
               </Tabs>
+              
+              {/* Create Account Modal - outside inner Tabs so it works from any sub-tab */}
+              {showCreateAndLinkCustomer && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+                  <div className="bg-zinc-900 border border-white/10 rounded-lg p-6 w-full max-w-md mx-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <UserPlus className="w-5 h-5 text-green-400" />
+                        Create Account
+                      </h3>
+                      <button
+                        onClick={() => setShowCreateAndLinkCustomer(null)}
+                        className="text-muted-foreground hover:text-white"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Create a new portal account for <span className="text-white font-medium">{showCreateAndLinkCustomer.customerName || showCreateAndLinkCustomer.customerEmail}</span> and link to Stripe customer.
+                    </p>
+                    
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-muted-foreground block mb-1">First Name</label>
+                          <Input
+                            id="create-first-name"
+                            defaultValue={showCreateAndLinkCustomer.customerName?.split(' ')[0] || ''}
+                            placeholder="First name"
+                            data-testid="input-create-first-name"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground block mb-1">Last Name</label>
+                          <Input
+                            id="create-last-name"
+                            defaultValue={showCreateAndLinkCustomer.customerName?.split(' ').slice(1).join(' ') || ''}
+                            placeholder="Last name"
+                            data-testid="input-create-last-name"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Email</label>
+                        <Input
+                          id="create-email"
+                          defaultValue={showCreateAndLinkCustomer.customerEmail}
+                          placeholder="Email address"
+                          data-testid="input-create-email"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3 mt-6">
+                      <Button
+                        onClick={() => {
+                          const firstName = (document.getElementById('create-first-name') as HTMLInputElement)?.value || '';
+                          const lastName = (document.getElementById('create-last-name') as HTMLInputElement)?.value || '';
+                          const email = (document.getElementById('create-email') as HTMLInputElement)?.value || '';
+                          
+                          if (!email) {
+                            toast({ title: 'Email required', variant: 'destructive' });
+                            return;
+                          }
+                          
+                          createAndLinkCustomerMutation.mutate({
+                            customerId: showCreateAndLinkCustomer.customerId,
+                            firstName,
+                            lastName,
+                            email
+                          });
+                        }}
+                        disabled={createAndLinkCustomerMutation.isPending}
+                        className="bg-green-600 hover:bg-green-700"
+                        data-testid="btn-confirm-create-account"
+                      >
+                        {createAndLinkCustomerMutation.isPending ? 'Creating...' : 'Create & Link'}
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => setShowCreateAndLinkCustomer(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-8 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
                 <p className="text-sm text-emerald-400">
