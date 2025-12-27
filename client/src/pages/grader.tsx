@@ -413,6 +413,7 @@ export default function Grader() {
     
     const text = `# Website Grade Report for ${result.url}
 *(Free Tool - For informational purposes only)*
+**Source:** Grader Page
 
 ## Overall Score: ${result.overallScore}/100 (Grade: ${getGradeLetter(result.overallScore)})
 

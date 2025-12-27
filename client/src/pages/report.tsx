@@ -298,6 +298,7 @@ export default function Report() {
     
     const text = `Website Grade Report for ${result.url}
 (Free Tool - For informational purposes only)
+Source: Report Page
 
 Overall Score: ${result.overallScore}/100 (Grade: ${getGradeLetter(result.overallScore)})
 
