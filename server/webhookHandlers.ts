@@ -80,9 +80,15 @@ export class WebhookHandlers {
     // Get line items to check for call packs
     const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { expand: ['data.price.product'] });
     
+    let totalAmount = 0;
+    const productNames: string[] = [];
+    
     for (const item of lineItems.data) {
       const product = item.price?.product as Stripe.Product;
       if (!product || typeof product === 'string') continue;
+
+      productNames.push(product.name);
+      totalAmount += item.amount_total || 0;
 
       if (product.metadata?.product_type === 'call_pack') {
         const calls = parseInt(product.metadata?.calls || '0');
@@ -92,6 +98,28 @@ export class WebhookHandlers {
           console.log(`Added ${calls} API calls to user ${user.id} from call pack purchase`);
         }
       }
+    }
+
+    // Sync to QuickBooks if connected
+    try {
+      const { syncStripePaymentToQuickBooks, getActiveConnection } = await import('./quickbooksService');
+      const qbConnection = await getActiveConnection();
+      if (qbConnection) {
+        const result = await syncStripePaymentToQuickBooks(
+          user.email || '',
+          `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Customer',
+          productNames.join(', ') || 'TriFused Purchase',
+          totalAmount,
+          session.id
+        );
+        if (result.success) {
+          console.log(`QuickBooks invoice created: ${result.invoiceId} for session ${session.id}`);
+        } else {
+          console.error(`QuickBooks sync failed for session ${session.id}: ${result.error}`);
+        }
+      }
+    } catch (qbError) {
+      console.error('QuickBooks sync error:', qbError);
     }
   }
 
