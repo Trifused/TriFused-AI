@@ -484,11 +484,21 @@ export async function registerRoutes(
   // Accept terms and conditions
   app.post('/api/auth/accept-terms', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.session?.impersonatingUserId || req.user.claims.sub;
+      let userId = req.session?.impersonatingUserId || req.user.claims.sub;
+      const userEmail = req.user.claims.email;
       const { version } = req.body;
       
       if (!version) {
         return res.status(400).json({ message: "Terms version is required" });
+      }
+      
+      // Check if user exists by ID, if not try email (for admin-created accounts)
+      let user = await storage.getUser(userId);
+      if (!user && userEmail) {
+        user = await storage.getUserByEmail(userEmail);
+        if (user) {
+          userId = user.id;
+        }
       }
       
       const updatedUser = await storage.updateUserTermsAcceptance(userId, version);
