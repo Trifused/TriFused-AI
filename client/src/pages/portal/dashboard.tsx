@@ -893,8 +893,31 @@ export default function Dashboard() {
                   <div className="mt-3 flex items-center gap-4">
                     <button
                       onClick={() => {
-                        const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                        const text = `TriFused Website Grade\n${date}\n\n${quickGradeResult.domain || quickGradeResult.url} - ${quickGradeResult.overallScore}/100\nSEO: ${quickGradeResult.seoScore} | Security: ${quickGradeResult.securityScore} | Perf: ${quickGradeResult.performanceScore}\nAccess: ${quickGradeResult.accessibilityScore} | Email: ${quickGradeResult.emailSecurityScore} | Mobile: ${quickGradeResult.mobileScore}\n\nFree Tools:\nhttps://grader.trifused.com/\nhttps://pagespeed.web.dev/\nhttps://gtmetrix.com/\nhttps://website.grader.com/`;
+                        const domain = quickGradeResult.domain || new URL(quickGradeResult.url).hostname;
+                        const scores = [
+                          { name: 'SEO', score: quickGradeResult.seoScore },
+                          { name: 'Security', score: quickGradeResult.securityScore },
+                          { name: 'Perf', score: quickGradeResult.performanceScore },
+                          { name: 'Access', score: quickGradeResult.accessibilityScore },
+                          { name: 'Email', score: quickGradeResult.emailSecurityScore },
+                          { name: 'Mobile', score: quickGradeResult.mobileScore },
+                        ].sort((a, b) => b.score - a.score);
+                        const topTwo = scores.slice(0, 2);
+                        const bottomTwo = scores.slice(-2);
+                        const text = `Ran a quick website grade on ${domain} — ${quickGradeResult.overallScore}/100.
+
+${topTwo[0].name} (${topTwo[0].score}) and ${topTwo[1].name} (${topTwo[1].score}) are in good shape.
+Biggest upside is tightening ${bottomTwo[0].name} and ${bottomTwo[1].name}.
+
+Good news: most fixes are fast and free with the right tools + an AI agent.
+
+🔧 Free tools:
+\t•\thttps://grader.trifused.com/
+\t•\thttps://pagespeed.web.dev/
+\t•\thttps://gtmetrix.com/
+
+Crafted with vibe coding.
+Small tweaks → big gains.`;
                         navigator.clipboard.writeText(text);
                         toast({ title: "Copied!", description: "Scorecard copied to clipboard" });
                       }}
