@@ -1,0 +1,248 @@
+# Product Requirements Document: MCP Health Check Service
+
+## Overview
+
+Add Model Context Protocol (MCP) capabilities to existing website health check API, enabling LLM agents to automatically discover and utilize health monitoring functionality.
+
+## Objectives
+
+- Expose existing health check API through standardized MCP interface
+- Enable automatic discovery via .well-known/mcp endpoint
+- Maintain backwards compatibility with current API
+- Provide secure, rate-limited access for LLM agents
+
+## Technical Requirements
+
+### 1. MCP Server Implementation
+
+**Core Functionality**
+
+- Implement MCP server using TypeScript SDK (@modelcontextprotocol/sdk)
+- Expose health check as MCP tool: `check_website_health`
+- Support JSON-RPC 2.0 message format
+- Handle standard MCP capabilities negotiation
+
+**Tool Schema**
+
+```json
+{
+  "name": "check_website_health",
+  "description": "Checks the health status of a company website",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "Full URL of website to check"
+      },
+      "checks": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Optional: specific checks to run (ssl, performance, availability)"
+      }
+    },
+    "required": ["url"]
+  }
+}
+```
+
+### 2. Discovery Endpoint
+
+**Path**: `/.well-known/mcp`
+
+**Response Format**
+
+```json
+{
+  "version": "1.0",
+  "endpoints": {
+    "mcp": "https://yourdomain.com/mcp/v1"
+  },
+  "capabilities": {
+    "tools": ["check_website_health"],
+    "resources": [],
+    "prompts": []
+  },
+  "authentication": {
+    "type": "bearer",
+    "tokenEndpoint": "https://yourdomain.com/api/auth/token"
+  },
+  "rateLimit": {
+    "requests": 100,
+    "period": "hour"
+  }
+}
+```
+
+### 3. Authentication & Security
+
+- Implement API key authentication via Bearer tokens
+- Rate limiting: 100 requests/hour per API key
+- CORS configuration for web-based LLM clients
+- Input validation and sanitization for URLs
+- DDoS protection at edge layer
+
+### 4. Response Format
+
+```json
+{
+  "status": "healthy|degraded|unhealthy",
+  "timestamp": "2025-12-28T10:30:00Z",
+  "checks": {
+    "availability": {
+      "status": "pass",
+      "responseTime": 145
+    },
+    "ssl": {
+      "status": "pass",
+      "expiryDate": "2026-06-15"
+    },
+    "performance": {
+      "status": "pass",
+      "loadTime": 1.2
+    }
+  },
+  "message": "All systems operational"
+}
+```
+
+## Deployment Recommendations
+
+### Infrastructure
+
+**Option 1: Standalone MCP Service**
+
+- Deploy as separate Node.js microservice
+- Container: Docker with Alpine base image
+- Orchestration: Kubernetes or AWS ECS
+- Benefits: Isolated scaling, independent versioning
+
+**Option 2: Integrated with Existing API**
+
+- Add MCP endpoints to current application
+- Shared authentication and database
+- Benefits: Simpler deployment, reduced infrastructure
+
+**Recommended**: Option 1 for production scale
+
+### Hosting Architecture
+
+```
+Internet → CDN/Edge (Cloudflare/CloudFront)
+         ↓
+    Load Balancer (ALB/NLB)
+         ↓
+    MCP Service Cluster (2+ instances)
+         ↓
+    Existing Health Check API
+         ↓
+    Database/Cache Layer
+```
+
+### Best Practices
+
+**Performance**
+
+- Cache .well-known/mcp responses (TTL: 24 hours)
+- Implement response caching for repeated health checks (TTL: 5 minutes)
+- Use connection pooling for backend API calls
+- Async processing for long-running checks
+
+**Monitoring**
+
+- Track MCP request volumes and latency
+- Monitor tool invocation success rates
+- Alert on authentication failures
+- Log all LLM agent interactions for analytics
+
+**Scalability**
+
+- Horizontal scaling: 2-10 instances based on load
+- Auto-scaling triggers: CPU > 70% or request queue depth
+- Database connection pooling (min: 5, max: 20)
+- Implement circuit breakers for backend dependencies
+
+**Security Hardening**
+
+- TLS 1.3 only for all endpoints
+- Rotate API keys every 90 days
+- Implement request signing for sensitive operations
+- WAF rules for common attack patterns
+- Regular dependency updates and security scans
+
+**Observability**
+
+- Structured logging (JSON format)
+- Distributed tracing (OpenTelemetry)
+- Metrics: Prometheus + Grafana
+- Error tracking: Sentry or similar
+
+### Rollout Strategy
+
+**Phase 1: Alpha (Week 1-2)**
+
+- Deploy to staging environment
+- Internal testing with Claude/GPT
+- Document any integration issues
+- Refine rate limits and caching
+
+**Phase 2: Beta (Week 3-4)**
+
+- Limited production deployment
+- Whitelist 5-10 early adopter LLM applications
+- Gather usage metrics and feedback
+- Monitor performance under real load
+
+**Phase 3: General Availability (Week 5+)**
+
+- Public .well-known/mcp endpoint
+- Developer documentation published
+- API key self-service portal
+- Community support channels
+
+## Testing Requirements
+
+- Unit tests: 80%+ coverage for MCP handlers
+- Integration tests: Full tool invocation flows
+- Load testing: 1000 requests/minute sustained
+- Security testing: OWASP Top 10 validation
+- LLM compatibility: Test with Claude, GPT-4, Gemini
+
+## Documentation Deliverables
+
+- API reference for MCP endpoints
+- Quick start guide for LLM integration
+- Authentication setup instructions
+- Rate limit and quota documentation
+- Example tool invocations in multiple languages
+
+## Success Metrics
+
+- MCP endpoint availability: 99.9% uptime
+- P95 response time: < 500ms
+- Successful tool invocations: > 95%
+- Zero security incidents in first 90 days
+- 50+ unique LLM agent integrations in first quarter
+
+## Dependencies
+
+- Node.js 18+ runtime
+- @modelcontextprotocol/sdk npm package
+- Existing health check API access
+- SSL certificates for domain
+- Cloud hosting account (AWS/GCP/Azure)
+
+## Timeline
+
+- Setup & Development: 2 weeks
+- Testing & Hardening: 1 week
+- Alpha Deployment: 1 week
+- Beta & Iteration: 2 weeks
+- GA Launch: Week 6
+
+## Open Questions
+
+1. Should we expose additional tools beyond health checks?
+1. What authentication method do target LLM platforms prefer?
+1. Do we need webhook notifications for health status changes?
+1. Should we support streaming responses for real-time monitoring?
