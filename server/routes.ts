@@ -5790,12 +5790,55 @@ Your primary goal is to help users AND capture their contact information natural
       const userId = req.user?.claims?.sub;
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
       
+      const { captchaToken, recipientEmail } = req.body;
+      
+      // Verify reCAPTCHA if configured
+      const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY;
+      if (recaptchaSecretKey) {
+        if (!captchaToken) {
+          return res.status(400).json({ error: "Security verification required" });
+        }
+        
+        try {
+          const captchaResponse = await fetch(
+            'https://www.google.com/recaptcha/api/siteverify',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                secret: recaptchaSecretKey,
+                response: captchaToken
+              })
+            }
+          );
+          
+          const captchaResult = await captchaResponse.json() as { 
+            success: boolean;
+            score?: number;
+            action?: string;
+            'error-codes'?: string[];
+          };
+          
+          if (!captchaResult.success) {
+            console.error("reCAPTCHA verification failed:", captchaResult['error-codes']);
+            return res.status(400).json({ error: "Security verification failed" });
+          }
+          
+          const score = captchaResult.score || 0;
+          if (score < 0.5) {
+            return res.status(400).json({ error: "Verification failed - please try again" });
+          }
+        } catch (recaptchaError: any) {
+          console.error("reCAPTCHA error:", recaptchaError);
+          return res.status(400).json({ error: "Security verification failed" });
+        }
+      }
+      
       const website = await storage.getUserWebsite(req.params.id);
       if (!website || website.userId !== userId) {
         return res.status(404).json({ error: "Website not found" });
       }
       
-      const { recipientEmail } = req.body;
       const result = await sendInstantReport(req.params.id, userId, recipientEmail);
       
       if (result.success) {

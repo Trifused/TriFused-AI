@@ -23,9 +23,19 @@ import {
   Terminal,
   AlertTriangle,
   Mail,
-  Send
+  Send,
+  Shield
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (callback: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
+  }
+}
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -113,6 +123,40 @@ export default function WebsitesPortal() {
   const [testApiKey, setTestApiKey] = useState("");
   const [testManualKey, setTestManualKey] = useState("");
   const [testThreshold, setTestThreshold] = useState("70");
+  
+  // Send report dialog state
+  const [sendReportDialogOpen, setSendReportDialogOpen] = useState(false);
+  const [selectedWebsiteForReport, setSelectedWebsiteForReport] = useState<UserWebsite | null>(null);
+  const [recaptchaSiteKey, setRecaptchaSiteKey] = useState<string | null>(null);
+  const [recaptchaLoaded, setRecaptchaLoaded] = useState(false);
+  const [sendingWithCaptcha, setSendingWithCaptcha] = useState(false);
+
+  // Load reCAPTCHA site key and script
+  useEffect(() => {
+    fetch('/api/recaptcha-site-key')
+      .then(res => res.json())
+      .then(data => {
+        if (data.siteKey) {
+          setRecaptchaSiteKey(data.siteKey);
+        }
+      })
+      .catch(err => console.error('Failed to load reCAPTCHA config:', err));
+  }, []);
+
+  useEffect(() => {
+    if (!recaptchaSiteKey) return;
+    
+    const existingScript = document.querySelector('script[src*="recaptcha/api.js"]');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.src = `https://www.google.com/recaptcha/api.js?render=${recaptchaSiteKey}`;
+      script.async = true;
+      script.onload = () => setRecaptchaLoaded(true);
+      document.head.appendChild(script);
+    } else {
+      setRecaptchaLoaded(true);
+    }
+  }, [recaptchaSiteKey]);
   const [testResult, setTestResult] = useState<any>(null);
   const [testError, setTestError] = useState<string | null>(null);
 
@@ -224,13 +268,13 @@ export default function WebsitesPortal() {
   });
 
   const sendReportMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, captchaToken }: { id: string; captchaToken: string }) => {
       setSendingReportId(id);
       const res = await fetch(`/api/user/websites/${id}/send-report`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ captchaToken }),
       });
       if (!res.ok) {
         const error = await res.json();
@@ -240,6 +284,9 @@ export default function WebsitesPortal() {
     },
     onSuccess: () => {
       setSendingReportId(null);
+      setSendingWithCaptcha(false);
+      setSendReportDialogOpen(false);
+      setSelectedWebsiteForReport(null);
       toast({ 
         title: "Report Sent", 
         description: "Website report card has been emailed to you." 
@@ -247,6 +294,7 @@ export default function WebsitesPortal() {
     },
     onError: (error: Error) => {
       setSendingReportId(null);
+      setSendingWithCaptcha(false);
       toast({ 
         title: "Error", 
         description: error.message || "Failed to send report", 
@@ -254,6 +302,45 @@ export default function WebsitesPortal() {
       });
     },
   });
+
+  const handleSendReportClick = (website: UserWebsite) => {
+    setSelectedWebsiteForReport(website);
+    setSendReportDialogOpen(true);
+  };
+
+  const handleConfirmSendReport = async () => {
+    if (!selectedWebsiteForReport) return;
+    
+    // If reCAPTCHA is not available or not loaded, still allow sending (backend will decide)
+    if (!recaptchaSiteKey || !recaptchaLoaded || !window.grecaptcha) {
+      // Send without captcha token - backend will handle based on its configuration
+      sendReportMutation.mutate({ id: selectedWebsiteForReport.id, captchaToken: '' });
+      return;
+    }
+    
+    setSendingWithCaptcha(true);
+    
+    try {
+      await new Promise<void>((resolve, reject) => {
+        window.grecaptcha.ready(async () => {
+          try {
+            const token = await window.grecaptcha.execute(recaptchaSiteKey, { action: 'send_report' });
+            sendReportMutation.mutate({ id: selectedWebsiteForReport.id, captchaToken: token });
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        });
+      });
+    } catch (err) {
+      setSendingWithCaptcha(false);
+      toast({ 
+        title: "Verification Failed", 
+        description: "Could not complete security check. Please try again.", 
+        variant: "destructive" 
+      });
+    }
+  };
 
   const testApiMutation = useMutation({
     mutationFn: async ({ url, threshold, apiKeyId, manualKey }: { url: string; threshold: number; apiKeyId?: string; manualKey?: string }) => {
@@ -556,7 +643,7 @@ export default function WebsitesPortal() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => sendReportMutation.mutate(website.id)}
+                              onClick={() => handleSendReportClick(website)}
                               disabled={sendingReportId === website.id}
                               className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
                               data-testid={`btn-send-report-${website.id}`}
@@ -1297,6 +1384,80 @@ pipeline {
                 <Plus className="w-4 h-4 mr-2" />
               )}
               Add Website
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Report Confirmation Dialog */}
+      <Dialog open={sendReportDialogOpen} onOpenChange={(open) => {
+        setSendReportDialogOpen(open);
+        if (!open) {
+          setSelectedWebsiteForReport(null);
+          setSendingWithCaptcha(false);
+        }
+      }}>
+        <DialogContent className="bg-slate-900 border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Mail className="w-5 h-5 text-purple-400" />
+              Send Report Card
+            </DialogTitle>
+            <DialogDescription>
+              Email a copy of your website report card to yourself.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedWebsiteForReport && (
+            <div className="py-4 space-y-4">
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-sm text-muted-foreground mb-1">Website</p>
+                <p className="text-white font-medium">{selectedWebsiteForReport.url}</p>
+                {selectedWebsiteForReport.lastScore !== null && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Current Score: <span className="text-cyan-400 font-medium">{selectedWebsiteForReport.lastScore}/100</span>
+                  </p>
+                )}
+              </div>
+              
+              <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-sm text-muted-foreground mb-1">Send to</p>
+                <p className="text-white font-medium">{user?.email}</p>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Shield className="w-4 h-4" />
+                <span>Protected by reCAPTCHA</span>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setSendReportDialogOpen(false)}
+              className="text-muted-foreground"
+              disabled={sendingWithCaptcha}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmSendReport}
+              disabled={sendingWithCaptcha || sendReportMutation.isPending}
+              className="bg-purple-500 hover:bg-purple-600"
+              data-testid="btn-confirm-send-report"
+            >
+              {(sendingWithCaptcha || sendReportMutation.isPending) ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Send Report
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
