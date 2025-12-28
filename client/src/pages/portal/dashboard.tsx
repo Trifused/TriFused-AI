@@ -404,6 +404,7 @@ export default function Dashboard() {
 
   const quickActions = isSuperuser ? [
     { icon: Globe, label: "My Websites", description: "View your saved websites", status: "cyan", onClick: () => setLocation("/portal/websites"), featured: true },
+    { icon: CreditCard, label: "Billing & Purchases", description: "View your orders and subscriptions", status: "emerald", onClick: () => setLocation("/portal/billing") },
     { 
       icon: Globe, 
       label: "Website Grader", 
@@ -413,7 +414,7 @@ export default function Dashboard() {
       onClick: () => setShowGraderModal(true)
     },
     { 
-      icon: CreditCard, 
+      icon: Users, 
       label: "Customer Service", 
       description: `${csStats?.total_orders || 0} orders, ${csStats?.active_subscriptions || 0} subs`, 
       status: (csStats?.total_orders || 0) > 0 ? "emerald" : "gray",
