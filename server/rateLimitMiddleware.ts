@@ -46,19 +46,53 @@ export const apiKeyAuth = async (req: Request, res: Response, next: NextFunction
   }
 };
 
+export const optionalApiKeyAuth = async (req: Request, res: Response, next: NextFunction) => {
+  const apiKey = req.headers['x-api-key'] as string;
+  
+  if (!apiKey) {
+    res.locals.apiTier = 'anonymous';
+    res.locals.tierLimits = TIER_LIMITS.free;
+    return next();
+  }
+
+  try {
+    const validatedKey = await apiService.validateApiKey(apiKey);
+    
+    if (!validatedKey) {
+      return res.status(401).json({ 
+        error: 'Invalid or expired API key',
+        message: 'The provided API key is invalid, revoked, or expired'
+      });
+    }
+
+    const quota = await apiService.getUserQuota(validatedKey.userId);
+    const tier = await apiService.getUserTier(validatedKey.userId);
+    const tierName = tier?.name || 'free';
+
+    res.locals.apiKey = validatedKey;
+    res.locals.userId = validatedKey.userId;
+    res.locals.apiTier = tierName;
+    res.locals.apiQuota = quota;
+    res.locals.tierLimits = TIER_LIMITS[tierName] || TIER_LIMITS.free;
+
+    next();
+  } catch (error) {
+    console.error('API key validation error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
 export const apiRateLimit = (req: Request, res: Response, next: NextFunction) => {
   const apiKeyId = res.locals.apiKey?.id;
-  const tierName = res.locals.apiTier || 'free';
+  const tierName = res.locals.apiTier || 'anonymous';
   
-  if (!apiKeyId) {
-    return next();
-  }
-
   const limits = TIER_LIMITS[tierName] || TIER_LIMITS.free;
   const now = Date.now();
-  const windowKey = `${apiKeyId}:${Math.floor(now / limits.windowMs)}`;
+  
+  const identifier = apiKeyId || req.ip || 'unknown';
+  const windowKey = `${identifier}:${Math.floor(now / limits.windowMs)}`;
   
   let record = rateLimitStore.get(windowKey);
   

@@ -27,7 +27,7 @@ import { getStripePublishableKey } from "./stripeClient";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { getReportSettings, updateReportSettings, sendLeadReport } from "./leadReportScheduler";
-import { apiKeyAuth, apiRateLimit, generalApiRateLimit } from "./rateLimitMiddleware";
+import { apiKeyAuth, optionalApiKeyAuth, apiRateLimit, generalApiRateLimit } from "./rateLimitMiddleware";
 
 // AI Vision helper for FDIC badge detection
 async function detectFdicWithVision(url: string): Promise<{ found: boolean; confidence: string; location: string | null }> {
@@ -4353,24 +4353,13 @@ Your primary goal is to help users AND capture their contact information natural
 
   // CI/CD Pipeline JSON Report Card
   // Returns structured data with pass/fail thresholds for pipeline integration
-  app.get("/api/v1/score", async (req: Request, res: Response) => {
+  app.get("/api/v1/score", optionalApiKeyAuth, apiRateLimit, async (req: Request, res: Response) => {
     const startTime = Date.now();
-    let apiKeyUserId: string | null = null;
-    let apiKeyId: string | null = null;
+    const apiKeyUserId = res.locals.userId || null;
+    const apiKeyId = res.locals.apiKey?.id || null;
     
     try {
       const { url, threshold } = req.query;
-      
-      // API Key authentication (allow negative balance - don't block)
-      const apiKeyHeader = req.headers["x-api-key"] as string;
-      if (apiKeyHeader) {
-        const validatedKey = await apiService.validateApiKey(apiKeyHeader);
-        if (!validatedKey) {
-          return res.status(401).json({ error: "Invalid API key" });
-        }
-        apiKeyUserId = validatedKey.userId;
-        apiKeyId = validatedKey.id;
-      }
       
       if (!url || typeof url !== "string") {
         return res.status(400).json({
@@ -4512,7 +4501,7 @@ Your primary goal is to help users AND capture their contact information natural
   });
 
   // POST endpoint to run a scan and get CI/CD response
-  app.post("/api/v1/score", async (req: Request, res: Response) => {
+  app.post("/api/v1/score", optionalApiKeyAuth, apiRateLimit, async (req: Request, res: Response) => {
     try {
       const { url, threshold, forceRefresh } = req.body;
       

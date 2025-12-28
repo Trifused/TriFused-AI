@@ -210,3 +210,32 @@ The platform uses a feature flag system (`shared/feature-flags.ts`) to manage fr
 3. Use `FeatureBadge` component to show status in UI
 4. View all flags in Admin Panel → Features tab
 5. When ready to launch, change status to `free` or `paid`
+
+### API Rate Limiting
+
+The `/api/v1/score` endpoints use tier-based rate limiting:
+
+**Rate Limits by Tier:**
+- `free/anonymous` - 10 requests/minute, 100/day
+- `starter` - 30 requests/minute, 1000/day
+- `pro` - 60 requests/minute, 5000/day
+- `enterprise` - 300 requests/minute, 100,000/day
+
+**Implementation:**
+- `optionalApiKeyAuth` middleware validates API keys if provided (allows anonymous access)
+- `apiRateLimit` middleware applies tier-based limits using API key ID or IP address
+- Rate limit headers included in responses: X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-RateLimit-Tier
+
+**Files:**
+- `server/rateLimitMiddleware.ts` - Rate limiting and API key authentication middleware
+- `server/apiService.ts` - API key CRUD and quota management
+
+### Stripe Customer Linking
+
+When processing Stripe webhooks (checkout.session.completed, subscription events), the system:
+1. First looks up users by `stripeCustomerId`
+2. If not found, retrieves the Stripe customer email and looks up by email
+3. If found, automatically links the Stripe customer ID to the portal account
+4. Then processes the purchase (call packs, subscriptions, etc.)
+
+This ensures call pack purchases work even for new customers who haven't been explicitly linked yet.
