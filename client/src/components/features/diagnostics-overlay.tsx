@@ -465,7 +465,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
           </div>
         </div>
 
-        <div className={`flex flex-col lg:grid lg:grid-cols-2 ${flowState === 'urlInput' ? 'h-auto' : 'h-auto max-h-[280px]'} lg:h-[580px] xl:h-[620px]`}>
+        <div className={`flex flex-col lg:grid lg:grid-cols-2 ${flowState === 'urlInput' ? 'h-auto' : 'h-auto max-h-[280px]'} lg:h-[70vh] xl:h-[75vh]`}>
           {/* Terminal Output */}
           <div className="bg-black p-4 lg:p-6 xl:p-8 font-mono text-xs lg:text-sm overflow-y-auto border-b lg:border-b-0 lg:border-r border-white/10 relative min-h-[200px] max-h-[280px] lg:h-full flex flex-col" ref={terminalRef}>
              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none" />
