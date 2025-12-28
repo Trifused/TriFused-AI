@@ -12,6 +12,21 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
   {
+    version: "2.5.0",
+    date: "December 28, 2025",
+    type: "feature",
+    title: "MCP (Model Context Protocol) Integration",
+    description: "Added AI agent integration through the Model Context Protocol for automated website health checks.",
+    items: [
+      "MCP discovery endpoint at /.well-known/mcp",
+      "JSON-RPC 2.0 endpoint at /mcp/v1 for tool calls",
+      "New tools: check_website_health, get_website_grade, list_graded_websites",
+      "Company info tools: get_services, get_blog_posts, get_about, get_api_documentation",
+      "MCP interaction logging for admin visibility",
+      "API key authentication and tier-based rate limiting for MCP",
+    ]
+  },
+  {
     version: "2.4.0",
     date: "December 26, 2025",
     type: "feature",

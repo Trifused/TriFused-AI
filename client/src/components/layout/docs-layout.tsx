@@ -12,7 +12,8 @@ import {
   ChevronDown,
   ChevronRight,
   Menu,
-  X
+  X,
+  Building2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -30,6 +31,7 @@ const navItems: NavItem[] = [
   { label: "Trust & Billing", href: "/docs/trust-billing", icon: Shield, description: "Security & payments" },
   { label: "Teams", href: "/docs/teams", icon: Users, description: "Enterprise features" },
   { label: "Changelog", href: "/docs/changelog", icon: History, description: "Updates & releases" },
+  { label: "About", href: "/about", icon: Building2, description: "About TriFused" },
 ];
 
 interface DocsLayoutProps {

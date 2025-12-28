@@ -478,6 +478,12 @@ export class MCPHealthCheckService {
           curl: "curl -H 'Authorization: Bearer YOUR_KEY' 'https://api.trifused.com/mcp/v1/health?url=https://example.com'",
         },
       },
+      changelog: [
+        { version: "1.3.0", date: "2024-12-28", changes: ["Added MCP (Model Context Protocol) JSON-RPC endpoint", "New MCP discovery endpoint at /.well-known/mcp", "Added tools: check_website_health, get_website_grade, list_graded_websites, get_blog_posts, get_services, get_about, get_api_documentation"] },
+        { version: "1.2.0", date: "2024-12-20", changes: ["Added tier-based rate limiting (free, starter, pro, enterprise)", "API key authentication support", "Rate limit headers in responses"] },
+        { version: "1.1.0", date: "2024-12-15", changes: ["Added /api/v1/score endpoint for full website grades", "Lighthouse integration for performance metrics", "Security and accessibility scoring"] },
+        { version: "1.0.0", date: "2024-12-01", changes: ["Initial API release", "Website health check endpoint", "SEO analysis capabilities"] },
+      ],
     };
 
     if (section && docs[section as keyof typeof docs]) {
@@ -506,6 +512,14 @@ export class MCPHealthCheckService {
       ],
       website: "https://trifused.com",
       tagline: "AI-Native Technology Services",
+      changelog: [
+        { version: "2.5.0", date: "2024-12-28", changes: ["Added MCP (Model Context Protocol) integration for AI agents", "MCP interaction logging for admin visibility", "New tools: get_services, get_blog_posts, get_about, get_api_documentation"] },
+        { version: "2.4.0", date: "2024-12-27", changes: ["Automated website report card emails with scheduling", "Token-based payment system for premium features", "Self-service subscription cancellation"] },
+        { version: "2.3.0", date: "2024-12-20", changes: ["Multi-language support (i18n)", "Resend receipt functionality", "Expandable transaction management"] },
+        { version: "2.2.0", date: "2024-12-15", changes: ["API access with tier-based rate limiting", "Website grader with detailed scoring", "Admin management dashboard"] },
+        { version: "2.1.0", date: "2024-12-10", changes: ["Stripe subscription integration", "Customer portal accounts", "Automated lead analytics reporting"] },
+        { version: "2.0.0", date: "2024-12-01", changes: ["Complete platform redesign", "AI-native technology services launch", "Website health check API"] },
+      ],
     };
   }
 
