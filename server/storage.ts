@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { eq, desc, sql, count, inArray } from "drizzle-orm";
+import { eq, desc, sql, count, inArray, and } from "drizzle-orm";
 import { 
   contactSubmissions, 
   diagnosticScans, 
@@ -188,6 +188,7 @@ export interface IStorage {
   createUserWebsite(data: InsertUserWebsite): Promise<UserWebsite>;
   getUserWebsites(userId: string): Promise<UserWebsite[]>;
   getUserWebsite(id: string): Promise<UserWebsite | undefined>;
+  getUserWebsiteByUrl(userId: string, url: string): Promise<UserWebsite | undefined>;
   updateUserWebsite(id: string, data: Partial<UserWebsite>): Promise<UserWebsite | undefined>;
   deleteUserWebsite(id: string): Promise<void>;
   updateUserWebsiteScan(id: string, gradeId: string, shareToken: string, score: number): Promise<UserWebsite | undefined>;
@@ -881,6 +882,12 @@ class Storage implements IStorage {
 
   async getUserWebsite(id: string): Promise<UserWebsite | undefined> {
     const [website] = await db.select().from(userWebsites).where(eq(userWebsites.id, id));
+    return website;
+  }
+  
+  async getUserWebsiteByUrl(userId: string, url: string): Promise<UserWebsite | undefined> {
+    const [website] = await db.select().from(userWebsites)
+      .where(and(eq(userWebsites.userId, userId), eq(userWebsites.url, url)));
     return website;
   }
 

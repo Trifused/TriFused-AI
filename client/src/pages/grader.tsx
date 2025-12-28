@@ -1009,7 +1009,9 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                         <Button
                           onClick={() => {
                             trackEvent('grader_api_subscription_click', 'website_grader', result.url);
-                            window.location.href = '/api/checkout/api-subscription';
+                            // Pass the tested website URL to checkout so it can be saved to user's account
+                            const checkoutUrl = `/api/checkout/api-subscription?website=${encodeURIComponent(result.url)}`;
+                            window.location.href = checkoutUrl;
                           }}
                           className="gap-2 bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-500 hover:to-emerald-400 text-white font-bold animate-pulse"
                           data-testid="button-buy-api"

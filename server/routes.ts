@@ -6030,6 +6030,9 @@ Your primary goal is to help users AND capture their contact information natural
   // Guest checkout for API subscription (no auth required)
   app.get("/api/checkout/api-subscription", async (req: Request, res: Response) => {
     try {
+      // Capture the tested website URL if provided (from grader)
+      const testedWebsiteUrl = req.query.website as string | undefined;
+      
       // Find the API subscription product by metadata or name pattern
       const rows = await stripeService.listProductsWithPrices();
       let apiPriceId: string | null = null;
@@ -6060,12 +6063,19 @@ Your primary goal is to help users AND capture their contact information natural
       }
 
       const baseUrl = `${req.protocol}://${req.get('host')}`;
+      
+      // Include the tested website URL in metadata so it can be saved after purchase
+      const metadata: Record<string, string> = { product: 'api_subscription' };
+      if (testedWebsiteUrl) {
+        metadata.tested_website_url = testedWebsiteUrl;
+      }
+      
       const session = await stripeService.createGuestCheckoutSession(
         apiPriceId,
         'subscription',
         `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         `${baseUrl}/grader`,
-        { product: 'api_subscription' }
+        metadata
       );
 
       if (session.url) {
@@ -6104,12 +6114,51 @@ Your primary goal is to help users AND capture their contact information natural
         return res.status(404).json({ error: "Checkout session not found" });
       }
 
-      // Get or create Stripe customer for user
-      let customerId = user.stripeCustomerId;
+      // SECURITY: Validate session ownership - fail closed if we can't verify
+      const sessionEmail = checkoutSession.customer_email || checkoutSession.customer_details?.email;
       const sessionCustomerId = checkoutSession.customer as string;
+      let customerId = user.stripeCustomerId;
+      
+      // CORE SECURITY RULE: We must verify session belongs to authenticated user
+      // We can only trust a session if ONE of these conditions is met:
+      // 1. Session customer matches user's existing Stripe customer
+      // 2. Session email matches user's email (and user doesn't have conflicting customer)
+      
+      const emailsMatch = sessionEmail && user.email && 
+        sessionEmail.toLowerCase() === user.email.toLowerCase();
+      const customerIdsMatch = customerId && sessionCustomerId && 
+        customerId === sessionCustomerId;
+      
+      // If user has a Stripe customer, session must match that customer OR have matching email
+      if (customerId) {
+        if (sessionCustomerId && sessionCustomerId !== customerId && !emailsMatch) {
+          console.warn(`Session ownership denied: customer ${sessionCustomerId} != user customer ${customerId}, emails don't match`);
+          return res.status(403).json({ error: "Session does not belong to this user" });
+        }
+      }
+      
+      // If session has email, it MUST match user's email
+      if (sessionEmail && user.email && !emailsMatch) {
+        console.warn(`Session email mismatch: session ${sessionEmail} != user ${user.email}`);
+        return res.status(403).json({ error: "Session does not belong to this user" });
+      }
+      
+      // CRITICAL: When linking a NEW customer to user, require email verification
+      // This prevents attackers from linking their session to victim's account
+      if (!customerId && sessionCustomerId && !emailsMatch) {
+        console.warn(`Cannot link session customer ${sessionCustomerId} to user ${userId}: email verification required`);
+        return res.status(403).json({ error: "Unable to verify session ownership" });
+      }
+      
+      // Fail closed: if we have no way to verify (no matching customer, no email)
+      if (!customerId && !sessionCustomerId && !sessionEmail) {
+        console.warn(`Cannot verify session ownership for user ${userId}: no identifiers available`);
+        return res.status(403).json({ error: "Unable to verify session ownership" });
+      }
 
+      // Link or create Stripe customer (only if verified above)
       if (sessionCustomerId && !customerId) {
-        // Link the session's customer to our user
+        // At this point, emailsMatch is true (verified above)
         customerId = sessionCustomerId;
         await storage.updateUserStripeInfo(userId, { stripeCustomerId: customerId });
         
@@ -6135,8 +6184,44 @@ Your primary goal is to help users AND capture their contact information natural
       // Mark terms as accepted with timestamp
       await storage.updateUserTermsAccepted(userId, new Date(), "1.0");
 
+      // If there was a tested website URL in the session metadata, save it to user's account
+      const sessionMetadata = checkoutSession.metadata as Record<string, string> | null;
+      const testedWebsiteUrl = sessionMetadata?.tested_website_url;
+      let savedWebsite = null;
+      
+      if (testedWebsiteUrl) {
+        try {
+          // Validate and normalize the URL
+          const urlObj = new URL(testedWebsiteUrl);
+          if (!['http:', 'https:'].includes(urlObj.protocol)) {
+            throw new Error('Invalid URL protocol');
+          }
+          // Normalize: remove trailing slash, lowercase hostname
+          const normalizedUrl = `${urlObj.protocol}//${urlObj.hostname.toLowerCase()}${urlObj.pathname.replace(/\/$/, '') || ''}${urlObj.search}`;
+          
+          // Check if user already has this website
+          const existingWebsite = await storage.getUserWebsiteByUrl(userId, normalizedUrl);
+          if (!existingWebsite) {
+            // Save the website to the user's account
+            savedWebsite = await storage.createUserWebsite({
+              userId,
+              url: normalizedUrl,
+              name: urlObj.hostname.toLowerCase(),
+              isActive: 1,
+            });
+            console.log(`Saved website ${normalizedUrl} to user ${userId}'s account`);
+          } else {
+            savedWebsite = existingWebsite;
+            console.log(`Website ${normalizedUrl} already exists in user ${userId}'s account`);
+          }
+        } catch (websiteError) {
+          console.error("Failed to save website:", websiteError);
+          // Don't fail the whole request if website save fails
+        }
+      }
+
       console.log(`Linked purchase ${sessionId} to user ${userId}, customer ${customerId}`);
-      res.json({ success: true, customerId });
+      res.json({ success: true, customerId, websiteAdded: savedWebsite?.url || null });
     } catch (error) {
       console.error("Link purchase error:", error);
       res.status(500).json({ error: "Failed to link purchase" });
