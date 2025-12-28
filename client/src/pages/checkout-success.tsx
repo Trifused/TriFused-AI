@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { CheckCircle, Package, ArrowRight, FileText, LogIn, UserPlus, Loader2 } from "lucide-react";
+import { CheckCircle, Package, ArrowRight, LogIn, UserPlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function CheckoutSuccess() {
   const [, setLocation] = useLocation();
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
   const { user, isLoading, isAuthenticated } = useAuth();
 
@@ -22,7 +19,6 @@ export default function CheckoutSuccess() {
   const [linkError, setLinkError] = useState<string | null>(null);
 
   const handleGoToDashboard = async () => {
-    if (!termsAccepted) return;
     setLinkError(null);
     
     if (sessionId && isAuthenticated) {
@@ -137,48 +133,11 @@ export default function CheckoutSuccess() {
                 </p>
               </div>
 
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <Checkbox 
-                    id="terms" 
-                    checked={termsAccepted}
-                    onCheckedChange={(checked) => setTermsAccepted(checked === true)}
-                    data-testid="checkbox-accept-terms"
-                    className="mt-0.5"
-                  />
-                  <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-                    I agree to the{" "}
-                    <button 
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.open("/legal/terms", "_blank");
-                      }}
-                      className="text-primary hover:underline"
-                    >
-                      Terms of Service
-                    </button>
-                    {" "}and{" "}
-                    <button 
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.open("/legal/privacy", "_blank");
-                      }}
-                      className="text-primary hover:underline"
-                    >
-                      Privacy Policy
-                    </button>
-                    {" "}for using TriFused services.
-                  </Label>
-                </div>
-              </div>
-
               <div className="flex flex-col gap-3">
                 <Button 
                   onClick={handleGoToDashboard}
                   className="w-full"
-                  disabled={!termsAccepted || isLinking}
+                  disabled={isLinking}
                   data-testid="button-go-dashboard"
                 >
                   {isLinking ? (
@@ -209,13 +168,6 @@ export default function CheckoutSuccess() {
                     {linkError}. Please try again or contact support.
                   </p>
                 </div>
-              )}
-              
-              {!termsAccepted && !linkError && (
-                <p className="text-xs text-center text-muted-foreground">
-                  <FileText className="w-3 h-3 inline mr-1" />
-                  Please accept the terms to access your dashboard
-                </p>
               )}
             </>
           )}
