@@ -223,6 +223,7 @@ export async function sendTestEmail(toEmail: string): Promise<{ success: boolean
 // Email logging wrapper - logs all sent emails to the database
 import { storage } from './storage';
 import type { InsertEmailLog } from '@shared/schema';
+import { withCircuitBreaker } from './circuitBreaker';
 
 const VERIFIED_FROM_EMAIL = 'TriFused <noreply@mailout1.trifused.com>';
 
@@ -242,11 +243,14 @@ export async function sendAndLogEmail(options: {
       ? fromEmail 
       : VERIFIED_FROM_EMAIL;
     
-    const result = await client.emails.send({
-      from,
-      to,
-      subject,
-      html,
+    // Wrap email sending with circuit breaker
+    const result = await withCircuitBreaker('email', async () => {
+      return client.emails.send({
+        from,
+        to,
+        subject,
+        html,
+      });
     });
 
     const resendId = result.data?.id || undefined;

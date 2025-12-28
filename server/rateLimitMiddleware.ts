@@ -173,13 +173,14 @@ export const apiRateLimit = async (req: Request, res: Response, next: NextFuncti
   const startTime = Date.now();
   const apiKeyId = res.locals.apiKey?.id;
   const userId = res.locals.userId;
+  const sessionUserId = (req as any).user?.id;
   const tierName = res.locals.apiTier || 'anonymous';
   
   let limits = TIER_LIMITS[tierName] || TIER_LIMITS.free;
   const now = Date.now();
   
-  const identifier = apiKeyId || req.ip || 'unknown';
-  const identifierType = apiKeyId ? 'api_key' : 'ip';
+  const identifier = apiKeyId || sessionUserId || req.ip || 'unknown';
+  const identifierType = apiKeyId ? 'api_key' : sessionUserId ? 'session' : 'ip';
 
   const override = await getOverride(identifierType, identifier);
   if (override) {
@@ -223,12 +224,15 @@ export const apiRateLimit = async (req: Request, res: Response, next: NextFuncti
   }).catch(() => {});
   
   if (wasBlocked) {
+    res.setHeader('Retry-After', resetTime.toString());
     return res.status(429).json({
       error: 'Rate limit exceeded',
       message: `You have exceeded ${limits.max} requests per minute. Please wait ${resetTime} seconds.`,
       retryAfter: resetTime,
       tier: tierName,
       limit: limits.max,
+      hint: 'Use exponential backoff: wait 1s, then 2s, then 4s between retries',
+      documentation: '/docs/api#rate-limiting',
     });
   }
   

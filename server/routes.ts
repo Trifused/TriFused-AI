@@ -2088,6 +2088,32 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/circuit-breakers", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { getAllBreakerStats } = await import('./circuitBreaker');
+      const stats = getAllBreakerStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Get circuit breaker stats error:", error);
+      res.status(500).json({ error: "Failed to get circuit breaker stats" });
+    }
+  });
+
+  app.post("/api/admin/circuit-breakers/:name/reset", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { resetBreaker } = await import('./circuitBreaker');
+      const success = resetBreaker(req.params.name);
+      if (success) {
+        res.json({ success: true, message: `Circuit breaker ${req.params.name} reset` });
+      } else {
+        res.status(404).json({ error: "Circuit breaker not found" });
+      }
+    } catch (error: any) {
+      console.error("Reset circuit breaker error:", error);
+      res.status(500).json({ error: "Failed to reset circuit breaker" });
+    }
+  });
+
   app.get("/api/admin/analytics", isAuthenticated, isSuperuser, async (req: any, res) => {
     try {
       const dateRange = (req.query.range as string) || "30daysAgo";
