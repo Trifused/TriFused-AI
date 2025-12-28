@@ -1778,7 +1778,8 @@ export async function registerRoutes(
   app.put("/api/admin/lead-report/settings", isAuthenticated, isSuperuser, async (req: any, res) => {
     try {
       const { recipients, intervalMinutes } = req.body;
-      updateReportSettings({ recipients, intervalMinutes });
+      const userId = req.user?.id;
+      await updateReportSettings({ recipients, intervalMinutes, updatedBy: userId });
       res.json({ success: true, settings: getReportSettings() });
     } catch (error: any) {
       console.error("Update lead report settings error:", error);
