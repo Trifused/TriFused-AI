@@ -30,6 +30,8 @@ import { getReportSettings, updateReportSettings, sendLeadReport } from "./leadR
 import { apiKeyAuth, optionalApiKeyAuth, apiRateLimit, generalApiRateLimit, getTierLimits } from "./rateLimitMiddleware";
 import { tokenService } from "./tokenService";
 import { getRateLimitStats, getActiveOverrides, createOverride, deactivateOverride, sendHourlyRateLimitReport } from "./rateLimitReportService";
+import { sendInstantReport, startWebsiteReportScheduler } from "./websiteReportScheduler";
+import { websiteReportFrequencies } from "@shared/schema";
 import { tokenPricing } from "@shared/schema";
 
 // AI Vision helper for FDIC badge detection
@@ -5678,6 +5680,132 @@ Your primary goal is to help users AND capture their contact information natural
     } catch (error) {
       console.error("Get user assets error:", error);
       res.status(500).json({ error: "Failed to get assets" });
+    }
+  });
+
+  // ========== WEBSITE REPORT SCHEDULE ROUTES ==========
+
+  // Get all report schedules for user
+  app.get("/api/user/website-report-schedules", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      
+      const schedules = await storage.getUserWebsiteReportSchedules(userId);
+      res.json({ data: schedules });
+    } catch (error) {
+      console.error("Get website report schedules error:", error);
+      res.status(500).json({ error: "Failed to get report schedules" });
+    }
+  });
+
+  // Get schedule for a specific website
+  app.get("/api/user/websites/:id/report-schedule", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      
+      const website = await storage.getUserWebsite(req.params.id);
+      if (!website || website.userId !== userId) {
+        return res.status(404).json({ error: "Website not found" });
+      }
+      
+      const schedule = await storage.getWebsiteReportScheduleByWebsite(req.params.id);
+      res.json({ data: schedule || null });
+    } catch (error) {
+      console.error("Get website report schedule error:", error);
+      res.status(500).json({ error: "Failed to get report schedule" });
+    }
+  });
+
+  // Create or update report schedule for a website
+  app.post("/api/user/websites/:id/report-schedule", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      
+      const website = await storage.getUserWebsite(req.params.id);
+      if (!website || website.userId !== userId) {
+        return res.status(404).json({ error: "Website not found" });
+      }
+      
+      const { frequency, recipientEmail, includeFullReport } = req.body;
+      
+      if (frequency && !websiteReportFrequencies.includes(frequency)) {
+        return res.status(400).json({ error: "Invalid frequency. Must be: daily, weekly, monthly, or disabled" });
+      }
+      
+      const existingSchedule = await storage.getWebsiteReportScheduleByWebsite(req.params.id);
+      
+      if (existingSchedule) {
+        const updated = await storage.updateWebsiteReportSchedule(existingSchedule.id, {
+          frequency: frequency || existingSchedule.frequency,
+          recipientEmail: recipientEmail !== undefined ? recipientEmail : existingSchedule.recipientEmail,
+          includeFullReport: includeFullReport !== undefined ? (includeFullReport ? 1 : 0) : existingSchedule.includeFullReport,
+        });
+        res.json({ data: updated });
+      } else {
+        const schedule = await storage.createWebsiteReportSchedule({
+          userId,
+          userWebsiteId: req.params.id,
+          frequency: frequency || 'monthly',
+          recipientEmail: recipientEmail || null,
+          includeFullReport: includeFullReport !== undefined ? (includeFullReport ? 1 : 0) : 1,
+          isActive: 1,
+          nextScheduledAt: null,
+        });
+        res.json({ data: schedule });
+      }
+    } catch (error) {
+      console.error("Create/update website report schedule error:", error);
+      res.status(500).json({ error: "Failed to save report schedule" });
+    }
+  });
+
+  // Delete report schedule for a website
+  app.delete("/api/user/websites/:id/report-schedule", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      
+      const website = await storage.getUserWebsite(req.params.id);
+      if (!website || website.userId !== userId) {
+        return res.status(404).json({ error: "Website not found" });
+      }
+      
+      const schedule = await storage.getWebsiteReportScheduleByWebsite(req.params.id);
+      if (schedule) {
+        await storage.deleteWebsiteReportSchedule(schedule.id);
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete website report schedule error:", error);
+      res.status(500).json({ error: "Failed to delete report schedule" });
+    }
+  });
+
+  // Send instant report email for a website
+  app.post("/api/user/websites/:id/send-report", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      
+      const website = await storage.getUserWebsite(req.params.id);
+      if (!website || website.userId !== userId) {
+        return res.status(404).json({ error: "Website not found" });
+      }
+      
+      const { recipientEmail } = req.body;
+      const result = await sendInstantReport(req.params.id, userId, recipientEmail);
+      
+      if (result.success) {
+        res.json({ success: true, message: "Report email sent successfully" });
+      } else {
+        res.status(400).json({ error: result.error || "Failed to send report" });
+      }
+    } catch (error) {
+      console.error("Send instant report error:", error);
+      res.status(500).json({ error: "Failed to send report" });
     }
   });
 

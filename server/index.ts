@@ -6,6 +6,7 @@ import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { startLeadReportScheduler } from "./leadReportScheduler";
+import { startWebsiteReportScheduler } from "./websiteReportScheduler";
 
 const app = express();
 app.disable('x-powered-by');
@@ -177,6 +178,9 @@ app.use((req, res, next) => {
       
       // Start the lead report scheduler (sends reports every 15 minutes)
       startLeadReportScheduler();
+      
+      // Start the website report scheduler (sends scheduled report cards)
+      startWebsiteReportScheduler();
     },
   );
 })();
