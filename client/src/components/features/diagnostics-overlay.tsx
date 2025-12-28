@@ -593,7 +593,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
           </div>
 
           {/* Visual Data Visualization - Hidden on mobile when URL input is active */}
-          <div className={`p-4 lg:p-6 xl:p-8 bg-gradient-to-b from-slate-900 to-black relative overflow-hidden flex-1 flex flex-col ${flowState === 'urlInput' ? 'hidden lg:flex' : ''}`}>
+          <div className={`p-4 lg:p-6 xl:p-8 bg-gradient-to-b from-slate-900 to-black relative overflow-hidden flex-1 flex flex-col max-h-[120px] lg:max-h-none ${flowState === 'urlInput' ? 'hidden lg:flex' : ''}`}>
              {/* Scanning Grid Background */}
              <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.05)_1px,transparent_1px)] bg-[size:20px_20px]" />
              
