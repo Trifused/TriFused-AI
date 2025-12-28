@@ -4,7 +4,7 @@ import { format, subMinutes } from 'date-fns';
 
 // Configurable settings - can be overridden via environment variables
 let REPORT_RECIPIENTS = (process.env.LEAD_REPORT_RECIPIENTS || 'trifused@gmail.com').split(',').map(e => e.trim());
-let REPORT_INTERVAL_MINUTES = parseInt(process.env.LEAD_REPORT_INTERVAL_MINUTES || '15', 10);
+let REPORT_INTERVAL_MINUTES = parseInt(process.env.LEAD_REPORT_INTERVAL_MINUTES || '1', 10);
 let INITIAL_LOOKBACK_MINUTES = REPORT_INTERVAL_MINUTES;
 
 let lastReportSentAt: Date | null = null;
