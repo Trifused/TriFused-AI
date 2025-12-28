@@ -189,6 +189,7 @@ function generateLeadReportHtml(
       <div style="max-width: 800px; margin: 0 auto; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; border: 1px solid rgba(34, 211, 238, 0.2); padding: 40px;">
         
         <div style="text-align: center; margin-bottom: 32px;">
+          <span style="display: inline-block; background: ${process.env.NODE_ENV === 'production' ? '#10b981' : '#f59e0b'}; color: #000; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 4px; margin-bottom: 12px; text-transform: uppercase;">${process.env.NODE_ENV === 'production' ? 'PROD' : 'DEV'}</span>
           <h1 style="color: #22d3ee; font-size: 28px; margin: 0 0 8px 0;">TriFused Analytics Report</h1>
           <p style="color: #94a3b8; margin: 0;">${periodStart} → ${periodEnd}</p>
         </div>
@@ -378,9 +379,10 @@ async function sendLeadReport() {
 
     const totalActivity = totalNewLeads + usageStats.websiteGrades.recent.length + usageStats.diagnosticScans.recent.length;
 
+    const envPrefix = process.env.NODE_ENV === 'production' ? '[PROD]' : '[DEV]';
     const subject = totalActivity > 0 
-      ? `TriFused Analytics: ${totalNewLeads} Leads, ${usageStats.websiteGrades.recent.length} Grades, ${usageStats.diagnosticScans.recent.length} Scans`
-      : 'TriFused Analytics: No New Activity';
+      ? `${envPrefix} TriFused Analytics: ${totalNewLeads} Leads, ${usageStats.websiteGrades.recent.length} Grades, ${usageStats.diagnosticScans.recent.length} Scans`
+      : `${envPrefix} TriFused Analytics: No New Activity`;
 
     // Send to all recipients
     const sendPromises = REPORT_RECIPIENTS.map(recipient => 
