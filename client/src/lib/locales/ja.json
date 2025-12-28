@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "home": "ホーム",
+    "services": "サービス",
+    "ventures": "ベンチャー",
+    "blog": "インテリジェンスログ",
+    "grader": "ウェブサイト評価",
+    "contact": "お問い合わせ",
+    "login": "ログイン",
+    "portal": "クライアントポータル",
+    "dashboard": "ダッシュボード",
+    "initialize_ai": "AI初期化"
+  },
+  "hero": {
+    "system_online": "システムオンライン v4.0",
+    "we_build": "私たちは構築します",
+    "intelligent": "インテリジェント",
+    "futures": "な未来を。",
+    "tagline": "AIネイティブテクノロジー",
+    "title": "明日のインフラを構築",
+    "subtitle": "デジタルトランスフォーメーションを保護し、拡張し、加速する自律システムを設計します",
+    "cta_primary": "分析を開始",
+    "cta_secondary": "サービスを見る",
+    "start_transformation": "変革を開始",
+    "website_grader": "ウェブサイト評価",
+    "run_diagnostics": "診断を実行",
+    "backup_calculator": "バックアップ計算機",
+    "typewriter_1": "認知サイバーセキュリティを展開中...",
+    "typewriter_2": "自律インフラを最適化中...",
+    "typewriter_3": "成長エンジンを生成中...",
+    "typewriter_4": "LLMで企業を強化中...",
+    "system_status": "システム状態",
+    "optimal": "最適",
+    "active_nodes": "アクティブノード",
+    "threat_level": "脅威レベル",
+    "ai_compute": "AIコンピュート"
+  },
+  "services": {
+    "title": "サービス",
+    "cybersecurity": "サイバーセキュリティ",
+    "cybersecurity_desc": "AIを活用したエンタープライズグレードのセキュリティソリューション",
+    "infrastructure": "自律インフラ",
+    "infrastructure_desc": "需要に応じて拡張する自己修復システム",
+    "growth": "ジェネレーティブ成長",
+    "growth_desc": "AI駆動のマーケティングとビジネスインテリジェンス"
+  },
+  "grader": {
+    "title": "ウェブサイト健康診断",
+    "subtitle": "ウェブサイトのSEO、セキュリティ、パフォーマンスの無料分析を取得",
+    "enter_url": "ウェブサイトURLを入力",
+    "scan_button": "今すぐスキャン",
+    "scanning": "スキャン中...",
+    "score": "スコア",
+    "grade": "評価",
+    "seo": "SEO",
+    "security": "セキュリティ",
+    "performance": "パフォーマンス",
+    "accessibility": "アクセシビリティ"
+  },
+  "common": {
+    "learn_more": "詳細を見る",
+    "get_started": "始める",
+    "contact_us": "お問い合わせ",
+    "read_more": "続きを読む",
+    "submit": "送信",
+    "cancel": "キャンセル",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "success": "成功"
+  },
+  "footer": {
+    "copyright": "全著作権所有",
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約"
+  },
+  "currency": {
+    "usd": "米ドル",
+    "pkr": "パキスタンルピー"
+  }
+}

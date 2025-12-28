@@ -4,6 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 
 import en from './locales/en.json';
 import ur from './locales/ur.json';
+import ja from './locales/ja.json';
 
 i18n
   .use(LanguageDetector)
@@ -12,6 +13,7 @@ i18n
     resources: {
       en: { translation: en },
       ur: { translation: ur },
+      ja: { translation: ja },
     },
     fallbackLng: 'en',
     interpolation: {
@@ -28,6 +30,7 @@ export default i18n;
 export const languages = [
   { code: 'en', name: 'English', dir: 'ltr' },
   { code: 'ur', name: 'اردو', dir: 'rtl' },
+  { code: 'ja', name: '日本語', dir: 'ltr' },
 ];
 
 export function isRTL(lang: string): boolean {
