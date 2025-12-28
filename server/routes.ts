@@ -6352,7 +6352,7 @@ Your primary goal is to help users AND capture their contact information natural
         return res.status(400).json({ error: "No email address available" });
       }
 
-      await stripeService.resendReceipt(order.charge_id, recipientEmail);
+      await stripeService.resendReceipt(order.charge_id as string, recipientEmail as string);
       
       res.json({ success: true, message: `Receipt sent to ${recipientEmail}` });
     } catch (error) {
@@ -6515,7 +6515,7 @@ Your primary goal is to help users AND capture their contact information natural
         return res.status(400).json({ error: "No email address available. Please provide an email." });
       }
 
-      await stripeService.resendReceipt(order.charge_id, recipientEmail);
+      await stripeService.resendReceipt(order.charge_id as string, recipientEmail as string);
       
       res.json({ success: true, message: `Receipt sent to ${recipientEmail}` });
     } catch (error) {

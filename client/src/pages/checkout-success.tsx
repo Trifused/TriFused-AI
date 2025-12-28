@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { CheckCircle, Package, ArrowRight, LogIn, UserPlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ export default function CheckoutSuccess() {
   const [, setLocation] = useLocation();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLinking, setIsLinking] = useState(false);
+  const [linkComplete, setLinkComplete] = useState(false);
+  const linkAttempted = useRef(false);
   const { user, isLoading, isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -18,32 +20,36 @@ export default function CheckoutSuccess() {
 
   const [linkError, setLinkError] = useState<string | null>(null);
 
-  const handleGoToDashboard = async () => {
-    setLinkError(null);
-    
-    if (sessionId && isAuthenticated) {
+  // Auto-link purchase when user is authenticated and has a session ID
+  useEffect(() => {
+    if (sessionId && isAuthenticated && !isLoading && !linkAttempted.current && !linkComplete) {
+      linkAttempted.current = true;
       setIsLinking(true);
-      try {
-        const response = await fetch("/api/link-purchase", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId }),
-          credentials: "include",
+      
+      fetch("/api/link-purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+        credentials: "include",
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || "Failed to link purchase");
+          }
+          setLinkComplete(true);
+        })
+        .catch((error) => {
+          console.error("Auto-link purchase failed:", error);
+          setLinkError(error instanceof Error ? error.message : "Failed to link purchase");
+        })
+        .finally(() => {
+          setIsLinking(false);
         });
-        
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          throw new Error(data.error || "Failed to link purchase to your account");
-        }
-      } catch (error) {
-        console.error("Failed to link purchase:", error);
-        setLinkError(error instanceof Error ? error.message : "Failed to link purchase");
-        setIsLinking(false);
-        return;
-      }
-      setIsLinking(false);
     }
-    
+  }, [sessionId, isAuthenticated, isLoading, linkComplete]);
+
+  const handleGoToDashboard = () => {
     setLocation("/portal/dashboard");
   };
 
@@ -127,9 +133,15 @@ export default function CheckoutSuccess() {
             </div>
           ) : (
             <>
-              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
-                <p className="text-sm text-green-200 text-center">
-                  Welcome back, {user?.firstName || user?.email || 'there'}! Your purchase will be linked to your account.
+              <div className={`${linkComplete ? 'bg-green-500/10 border-green-500/30' : isLinking ? 'bg-blue-500/10 border-blue-500/30' : 'bg-green-500/10 border-green-500/30'} border rounded-lg p-3`}>
+                <p className={`text-sm text-center ${linkComplete ? 'text-green-200' : isLinking ? 'text-blue-200' : 'text-green-200'}`}>
+                  {isLinking ? (
+                    <>Linking your purchase to your account...</>
+                  ) : linkComplete ? (
+                    <>Your purchase has been linked to your account!</>
+                  ) : (
+                    <>Welcome back, {user?.firstName || user?.email || 'there'}!</>
+                  )}
                 </p>
               </div>
 
