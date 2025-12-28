@@ -973,3 +973,33 @@ export const insertWebsiteReportScheduleSchema = createInsertSchema(websiteRepor
 
 export type InsertWebsiteReportSchedule = z.infer<typeof insertWebsiteReportScheduleSchema>;
 export type WebsiteReportSchedule = typeof websiteReportSchedules.$inferSelect;
+
+// MCP (Model Context Protocol) interaction logs
+export const mcpInteractions = pgTable("mcp_interactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  method: varchar("method").notNull(), // tools/list, tools/call, etc.
+  toolName: varchar("tool_name"), // For tools/call requests
+  toolArgs: jsonb("tool_args"), // Arguments passed to tool
+  requestId: varchar("request_id"), // JSON-RPC request ID
+  apiKeyId: varchar("api_key_id"), // API key used (if any)
+  tier: varchar("tier").default("free").notNull(), // Rate limit tier
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  success: integer("success").default(1).notNull(), // 1 = success, 0 = error
+  errorMessage: text("error_message"),
+  durationMs: integer("duration_ms"),
+  responseSize: integer("response_size"), // Size of response in bytes
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_mcp_interactions_created").on(table.createdAt),
+  index("idx_mcp_interactions_tool").on(table.toolName),
+  index("idx_mcp_interactions_api_key").on(table.apiKeyId),
+]);
+
+export const insertMcpInteractionSchema = createInsertSchema(mcpInteractions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertMcpInteraction = z.infer<typeof insertMcpInteractionSchema>;
+export type McpInteraction = typeof mcpInteractions.$inferSelect;

@@ -33,6 +33,7 @@ import { getRateLimitStats, getActiveOverrides, createOverride, deactivateOverri
 import { sendInstantReport, startWebsiteReportScheduler } from "./websiteReportScheduler";
 import { websiteReportFrequencies } from "@shared/schema";
 import { tokenPricing } from "@shared/schema";
+import { mcpService, handleMCPRequest, MCPHealthCheckService } from "./mcpService";
 
 // AI Vision helper for FDIC badge detection
 async function detectFdicWithVision(url: string): Promise<{ found: boolean; confidence: string; location: string | null }> {
@@ -7523,6 +7524,169 @@ Your primary goal is to help users AND capture their contact information natural
     } catch (error) {
       console.error("Verify backlink error:", error);
       res.status(500).json({ error: "Failed to verify backlink" });
+    }
+  });
+
+  // ============================================
+  // Admin: MCP Interactions Logs (Superuser only)
+  // ============================================
+
+  app.get("/api/admin/mcp-interactions", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const interactions = await storage.getMcpInteractions(limit, offset);
+      const stats = await storage.getMcpInteractionStats();
+      
+      res.json({
+        interactions,
+        stats,
+        pagination: { limit, offset }
+      });
+    } catch (error: any) {
+      console.error("Error fetching MCP interactions:", error);
+      res.status(500).json({ error: "Failed to fetch MCP interactions" });
+    }
+  });
+
+  app.get("/api/admin/mcp-interactions/stats", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const stats = await storage.getMcpInteractionStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching MCP stats:", error);
+      res.status(500).json({ error: "Failed to fetch MCP stats" });
+    }
+  });
+
+  // ============================================
+  // MCP (Model Context Protocol) Endpoints
+  // ============================================
+
+  // MCP Discovery endpoint - tells AI agents what capabilities are available
+  app.get("/.well-known/mcp", (req: Request, res: Response) => {
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const baseUrl = `${protocol}://${host}`;
+    
+    const service = new MCPHealthCheckService(baseUrl);
+    const discovery = service.getDiscoveryDocument();
+    
+    console.log(`[MCP] Discovery request from ${req.ip}`);
+    
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+    res.json(discovery);
+  });
+
+  // MCP JSON-RPC endpoint - handles tool calls from AI agents
+  app.post("/mcp/v1", optionalApiKeyAuth, apiRateLimit, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    const requestId = req.body?.id || 'unknown';
+    const method = req.body?.method || 'unknown';
+    
+    // Get API key info for logging
+    const apiKeyInfo = (req as any).apiKeyInfo;
+    const keyId = apiKeyInfo?.keyId || null;
+    const tier = apiKeyInfo?.tier || 'free';
+    
+    // Extract tool info for logging
+    const toolName = method === 'tools/call' ? req.body?.params?.name : null;
+    const toolArgs = method === 'tools/call' ? req.body?.params?.arguments : null;
+    
+    console.log(`[MCP] Request: method=${method}, id=${requestId}, tier=${tier}, keyId=${keyId ? keyId.substring(0, 8) + '...' : 'anonymous'}`);
+    
+    try {
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers['x-forwarded-host'] || req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+      
+      const service = new MCPHealthCheckService(baseUrl);
+      const response = await handleMCPRequest(req.body, service);
+      
+      const duration = Date.now() - startTime;
+      const success = !response.error;
+      const responseSize = JSON.stringify(response).length;
+      
+      console.log(`[MCP] Response: method=${method}, id=${requestId}, success=${success}, duration=${duration}ms`);
+      
+      // Log to database
+      try {
+        await storage.createMcpInteraction({
+          method,
+          toolName,
+          toolArgs,
+          requestId: String(requestId),
+          apiKeyId: keyId,
+          tier,
+          ipAddress: req.ip || req.socket.remoteAddress || null,
+          userAgent: req.headers['user-agent'] || null,
+          success: success ? 1 : 0,
+          errorMessage: response.error?.message || null,
+          durationMs: duration,
+          responseSize,
+        });
+      } catch (logError) {
+        console.error('[MCP] Failed to log interaction:', logError);
+      }
+      
+      res.json(response);
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      console.error(`[MCP] Error: method=${method}, id=${requestId}, duration=${duration}ms, error=${error.message}`);
+      
+      // Log error to database
+      try {
+        await storage.createMcpInteraction({
+          method,
+          toolName,
+          toolArgs,
+          requestId: String(requestId),
+          apiKeyId: keyId,
+          tier,
+          ipAddress: req.ip || req.socket.remoteAddress || null,
+          userAgent: req.headers['user-agent'] || null,
+          success: 0,
+          errorMessage: error.message || 'Unknown error',
+          durationMs: duration,
+          responseSize: null,
+        });
+      } catch (logError) {
+        console.error('[MCP] Failed to log interaction error:', logError);
+      }
+      
+      res.json({
+        jsonrpc: "2.0",
+        id: requestId,
+        error: { code: -32000, message: error.message || "Internal error" },
+      });
+    }
+  });
+
+  // MCP tools list endpoint (REST fallback)
+  app.get("/mcp/v1/tools", optionalApiKeyAuth, (req: Request, res: Response) => {
+    console.log(`[MCP] Tools list request from ${req.ip}`);
+    res.json({ tools: mcpService.getTools() });
+  });
+
+  // Direct health check endpoint (REST wrapper for MCP tool)
+  app.get("/mcp/v1/health", optionalApiKeyAuth, apiRateLimit, async (req: Request, res: Response) => {
+    const url = req.query.url as string;
+    
+    if (!url) {
+      return res.status(400).json({ error: "url query parameter is required" });
+    }
+    
+    const apiKeyInfo = (req as any).apiKeyInfo;
+    console.log(`[MCP] Health check: url=${url}, tier=${apiKeyInfo?.tier || 'free'}`);
+    
+    try {
+      const checks = req.query.checks ? (req.query.checks as string).split(',') : undefined;
+      const result = await mcpService.checkWebsiteHealth(url, checks);
+      res.json(result);
+    } catch (error: any) {
+      console.error(`[MCP] Health check error: url=${url}, error=${error.message}`);
+      res.status(500).json({ error: error.message || "Health check failed" });
     }
   });
 

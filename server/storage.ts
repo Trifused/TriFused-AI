@@ -69,7 +69,10 @@ import {
   ReportSettings,
   websiteReportSchedules,
   WebsiteReportSchedule,
-  InsertWebsiteReportSchedule
+  InsertWebsiteReportSchedule,
+  mcpInteractions,
+  McpInteraction,
+  InsertMcpInteraction
 } from "@shared/schema";
 
 export interface IStorage {
@@ -165,6 +168,7 @@ export interface IStorage {
   getRecentGradeForUrl(url: string): Promise<WebsiteGrade | undefined>;
   getWebsiteGradesByUrl(url: string, limit?: number): Promise<WebsiteGrade[]>;
   getAllWebsiteGrades(): Promise<WebsiteGrade[]>;
+  getRecentGrades(limit?: number): Promise<WebsiteGrade[]>;
   getWebsiteGradesCount(): Promise<number>;
   updateWebsiteGradeShareInfo(id: string, shareToken: string, qrCodeData: string): Promise<WebsiteGrade | undefined>;
   
@@ -767,6 +771,14 @@ class Storage implements IStorage {
     return await db.select().from(websiteGrades).orderBy(desc(websiteGrades.createdAt));
   }
 
+  async getRecentGrades(limit: number = 10): Promise<WebsiteGrade[]> {
+    return await db
+      .select()
+      .from(websiteGrades)
+      .orderBy(desc(websiteGrades.createdAt))
+      .limit(limit);
+  }
+
   async getWebsiteGradesCount(): Promise<number> {
     const [result] = await db.select({ count: count() }).from(websiteGrades);
     return result?.count || 0;
@@ -1112,6 +1124,52 @@ class Storage implements IStorage {
       default:
         return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     }
+  }
+
+  // MCP Interaction logging methods
+  async createMcpInteraction(data: InsertMcpInteraction): Promise<McpInteraction> {
+    const [interaction] = await db.insert(mcpInteractions).values(data).returning();
+    return interaction;
+  }
+
+  async getMcpInteractions(limit: number = 100, offset: number = 0): Promise<McpInteraction[]> {
+    return await db
+      .select()
+      .from(mcpInteractions)
+      .orderBy(desc(mcpInteractions.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getMcpInteractionsByApiKey(apiKeyId: string, limit: number = 50): Promise<McpInteraction[]> {
+    return await db
+      .select()
+      .from(mcpInteractions)
+      .where(eq(mcpInteractions.apiKeyId, apiKeyId))
+      .orderBy(desc(mcpInteractions.createdAt))
+      .limit(limit);
+  }
+
+  async getMcpInteractionStats(): Promise<{
+    totalRequests: number;
+    successfulRequests: number;
+    toolCallCounts: Record<string, number>;
+    avgDuration: number;
+  }> {
+    const allInteractions = await db.select().from(mcpInteractions);
+    const totalRequests = allInteractions.length;
+    const successfulRequests = allInteractions.filter(i => i.success === 1).length;
+    const durations = allInteractions.filter(i => i.durationMs).map(i => i.durationMs!);
+    const avgDuration = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+    
+    const toolCallCounts: Record<string, number> = {};
+    allInteractions.forEach(i => {
+      if (i.toolName) {
+        toolCallCounts[i.toolName] = (toolCallCounts[i.toolName] || 0) + 1;
+      }
+    });
+    
+    return { totalRequests, successfulRequests, toolCallCounts, avgDuration };
   }
 }
 
