@@ -131,6 +131,14 @@ export default function WebsitesPortal() {
   const [recaptchaLoaded, setRecaptchaLoaded] = useState(false);
   const [sendingWithCaptcha, setSendingWithCaptcha] = useState(false);
 
+  // Reset captcha state when dialog closes
+  useEffect(() => {
+    if (!sendReportDialogOpen) {
+      setSendingWithCaptcha(false);
+      setSelectedWebsiteForReport(null);
+    }
+  }, [sendReportDialogOpen]);
+
   // Load reCAPTCHA site key and script
   useEffect(() => {
     fetch('/api/recaptcha-site-key')
@@ -1390,13 +1398,7 @@ pipeline {
       </Dialog>
 
       {/* Send Report Confirmation Dialog */}
-      <Dialog open={sendReportDialogOpen} onOpenChange={(open) => {
-        setSendReportDialogOpen(open);
-        if (!open) {
-          setSelectedWebsiteForReport(null);
-          setSendingWithCaptcha(false);
-        }
-      }}>
+      <Dialog open={sendReportDialogOpen} onOpenChange={setSendReportDialogOpen}>
         <DialogContent className="bg-slate-900 border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
