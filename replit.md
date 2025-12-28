@@ -36,6 +36,7 @@ The frontend uses React 18 with TypeScript, Wouter for routing, and Tailwind CSS
 - **Stripe Customer Linking:** Automatically links Stripe customers to portal accounts for purchases like call packs and subscriptions.
 - **Token Payment System:** A token-based system for purchasing and spending on premium features, managed through `token_packages`, `token_wallets`, `token_transactions`, and `token_pricing` database tables, integrated with Stripe.
 - **Circuit Breaker Pattern:** Uses the `opossum` library for external service calls (e.g., email, Stripe, OpenAI) to prevent cascading failures, with configurable timeouts and error thresholds.
+- **Website Report Scheduler:** Automated email delivery of website grade report cards to portal users. Supports instant sending and scheduled delivery (daily, weekly, monthly frequencies). Uses `website_report_schedules` table for persistence and `websiteReportScheduler.ts` for background processing.
 
 ## External Dependencies
 

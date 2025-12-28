@@ -62,7 +62,7 @@ export async function sendScheduledReport(scheduleId: string): Promise<{ success
   
   const baseUrl = process.env.BASE_URL || 'https://trifused.com';
   const viewReportLink = userWebsite.lastShareToken 
-    ? `${baseUrl}/website-report/${userWebsite.lastShareToken}`
+    ? `${baseUrl}/report/${userWebsite.lastShareToken}`
     : `${baseUrl}/portal`;
   
   const reportData: WebsiteReportEmailData = {
@@ -126,7 +126,7 @@ export async function sendInstantReport(
   
   const baseUrl = process.env.BASE_URL || 'https://trifused.com';
   const viewReportLink = userWebsite.lastShareToken 
-    ? `${baseUrl}/website-report/${userWebsite.lastShareToken}`
+    ? `${baseUrl}/report/${userWebsite.lastShareToken}`
     : `${baseUrl}/portal`;
   
   const reportData: WebsiteReportEmailData = {

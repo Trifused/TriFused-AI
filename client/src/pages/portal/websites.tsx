@@ -21,7 +21,9 @@ import {
   Code,
   Play,
   Terminal,
-  AlertTriangle
+  AlertTriangle,
+  Mail,
+  Send
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from "react";
@@ -105,6 +107,7 @@ export default function WebsitesPortal() {
   const [newUrl, setNewUrl] = useState("");
   const [newName, setNewName] = useState("");
   const [scanningId, setScanningId] = useState<string | null>(null);
+  const [sendingReportId, setSendingReportId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("websites");
   const [testUrl, setTestUrl] = useState("");
   const [testApiKey, setTestApiKey] = useState("");
@@ -217,6 +220,38 @@ export default function WebsitesPortal() {
     onError: () => {
       setScanningId(null);
       toast({ title: "Error", description: "Failed to scan website", variant: "destructive" });
+    },
+  });
+
+  const sendReportMutation = useMutation({
+    mutationFn: async (id: string) => {
+      setSendingReportId(id);
+      const res = await fetch(`/api/user/websites/${id}/send-report`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to send report");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setSendingReportId(null);
+      toast({ 
+        title: "Report Sent", 
+        description: "Website report card has been emailed to you." 
+      });
+    },
+    onError: (error: Error) => {
+      setSendingReportId(null);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to send report", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -514,6 +549,24 @@ export default function WebsitesPortal() {
                               data-testid={`btn-view-report-${website.id}`}
                             >
                               <ExternalLink className="w-4 h-4" />
+                            </Button>
+                          )}
+
+                          {website.lastScore !== null && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => sendReportMutation.mutate(website.id)}
+                              disabled={sendingReportId === website.id}
+                              className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                              data-testid={`btn-send-report-${website.id}`}
+                              title="Email report card to yourself"
+                            >
+                              {sendingReportId === website.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Mail className="w-4 h-4" />
+                              )}
                             </Button>
                           )}
 
