@@ -238,12 +238,18 @@ class Storage implements IStorage {
       const existingUserByEmail = await this.getUserByEmail(userData.email);
       if (existingUserByEmail && existingUserByEmail.id !== userData.id) {
         // User exists with different ID - update the existing user with new auth info
-        // This handles the case where user was created via admin and now logs in via Replit
+        // This handles the case where user was pre-created via purchase and now logs in via Replit
+        // PRESERVE important fields that were set during purchase: stripeCustomerId, stripeSubscriptionId
         const [updated] = await db
           .update(users)
           .set({
             ...userData,
             id: existingUserByEmail.id, // Keep the existing ID
+            // Preserve Stripe linking from pre-created account
+            stripeCustomerId: existingUserByEmail.stripeCustomerId || userData.stripeCustomerId,
+            stripeSubscriptionId: existingUserByEmail.stripeSubscriptionId || userData.stripeSubscriptionId,
+            // Update authProvider from 'pending' to actual provider
+            authProvider: userData.authProvider === 'pending' ? existingUserByEmail.authProvider : (userData.authProvider || existingUserByEmail.authProvider),
             updatedAt: new Date(),
           })
           .where(eq(users.id, existingUserByEmail.id))
@@ -812,8 +818,8 @@ class Storage implements IStorage {
   }
 
   async updateUserStripeInfo(userId: string, stripeInfo: {
-    stripeCustomerId?: string;
-    stripeSubscriptionId?: string;
+    stripeCustomerId?: string | null;
+    stripeSubscriptionId?: string | null;
   }): Promise<User | undefined> {
     const [user] = await db.update(users).set(stripeInfo).where(eq(users.id, userId)).returning();
     return user;

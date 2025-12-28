@@ -79,6 +79,7 @@ export class WebhookHandlers {
     let user = await storage.getUserByStripeCustomerId(customerId);
     
     // If not found by stripeCustomerId, try to find by email and link the account
+    // OR pre-create a new account for guest purchases
     if (!user && customerId) {
       try {
         const stripeCustomer = await stripe.customers.retrieve(customerId);
@@ -88,6 +89,49 @@ export class WebhookHandlers {
             // Link the Stripe customer to this portal account
             await storage.updateUser(user.id, { stripeCustomerId: customerId });
             console.log(`Linked Stripe customer ${customerId} to existing user ${user.id} (${stripeCustomer.email})`);
+          } else {
+            // PRE-CREATE a portal account for this guest purchase
+            // This allows them to claim assets when they sign up with this email
+            const newUserId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+            
+            // Extract name from Stripe customer if available
+            const customerName = stripeCustomer.name || '';
+            const nameParts = customerName.split(' ');
+            const firstName = nameParts[0] || null;
+            const lastName = nameParts.slice(1).join(' ') || null;
+            
+            user = await storage.upsertUser({
+              id: newUserId,
+              email: stripeCustomer.email,
+              firstName,
+              lastName,
+              authProvider: 'pending', // Mark as pending until they actually sign up
+              role: 'guest',
+              status: 'active',
+              stripeCustomerId: customerId,
+            });
+            
+            console.log(`Pre-created portal account ${newUserId} for guest purchase (${stripeCustomer.email})`);
+            
+            // Save the tested website URL if present in session metadata
+            const testedWebsiteUrl = session.metadata?.tested_website_url;
+            if (testedWebsiteUrl) {
+              try {
+                const urlObj = new URL(testedWebsiteUrl);
+                if (['http:', 'https:'].includes(urlObj.protocol)) {
+                  const normalizedUrl = `${urlObj.protocol}//${urlObj.hostname.toLowerCase()}${urlObj.pathname.replace(/\/$/, '') || ''}${urlObj.search}`;
+                  await storage.createUserWebsite({
+                    userId: newUserId,
+                    url: normalizedUrl,
+                    name: urlObj.hostname.toLowerCase(),
+                    isActive: 1,
+                  });
+                  console.log(`Saved tested website ${normalizedUrl} to pre-created account ${newUserId}`);
+                }
+              } catch (urlErr) {
+                console.error('Error saving tested website URL:', urlErr);
+              }
+            }
           }
         }
       } catch (err) {

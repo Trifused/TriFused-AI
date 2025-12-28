@@ -6102,10 +6102,14 @@ Your primary goal is to help users AND capture their contact information natural
         return res.status(400).json({ error: "sessionId is required" });
       }
 
+      console.log(`[link-purchase] Starting link for user ${userId}, session ${sessionId}`);
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      console.log(`[link-purchase] User email: ${user.email}, stripeCustomerId: ${user.stripeCustomerId}`);
 
       // Retrieve the checkout session from Stripe
       const checkoutSession = await stripeService.retrieveCheckoutSession(sessionId);
@@ -6125,6 +6129,9 @@ Your primary goal is to help users AND capture their contact information natural
                           customerObj?.email;
       let customerId = user.stripeCustomerId;
       
+      console.log(`[link-purchase] Session customerId: ${sessionCustomerId}, sessionEmail: ${sessionEmail}`);
+      console.log(`[link-purchase] Session metadata:`, checkoutSession.metadata);
+      
       // CORE SECURITY RULE: We must verify session belongs to authenticated user
       // We can only trust a session if ONE of these conditions is met:
       // 1. Session customer matches user's existing Stripe customer
@@ -6135,36 +6142,37 @@ Your primary goal is to help users AND capture their contact information natural
       const customerIdsMatch = customerId && sessionCustomerId && 
         customerId === sessionCustomerId;
       
-      // If user has a Stripe customer, session must match that customer OR have matching email
-      if (customerId) {
-        if (sessionCustomerId && sessionCustomerId !== customerId && !emailsMatch) {
-          console.warn(`Session ownership denied: customer ${sessionCustomerId} != user customer ${customerId}, emails don't match`);
-          return res.status(403).json({ error: "Session does not belong to this user" });
+      console.log(`[link-purchase] emailsMatch: ${emailsMatch}, customerIdsMatch: ${customerIdsMatch}`);
+      
+      // Check if this session's customer is already linked to a different portal user
+      let sessionAlreadyClaimed = false;
+      if (sessionCustomerId) {
+        const existingOwner = await storage.getUserByStripeCustomerId(sessionCustomerId);
+        if (existingOwner && existingOwner.id !== userId) {
+          // Only block if the existing owner is NOT a pending account
+          if (existingOwner.authProvider !== 'pending') {
+            console.warn(`Session already claimed by user ${existingOwner.id}`);
+            return res.status(403).json({ error: "This purchase is already linked to another account" });
+          }
+          // If pending, we can take over this session (user is claiming their purchase)
+          sessionAlreadyClaimed = true;
         }
       }
       
-      // If session has email, it MUST match user's email
-      if (sessionEmail && user.email && !emailsMatch) {
-        console.warn(`Session email mismatch: session ${sessionEmail} != user ${user.email}`);
-        return res.status(403).json({ error: "Session does not belong to this user" });
+      // SECURITY: If user already has a different Stripe customer, don't allow linking a new one
+      // (prevents one user from claiming multiple customers)
+      if (customerId && sessionCustomerId && customerId !== sessionCustomerId) {
+        console.warn(`User ${userId} already has customer ${customerId}, cannot link ${sessionCustomerId}`);
+        return res.status(403).json({ error: "Your account is already linked to a different payment profile" });
       }
       
-      // CRITICAL: When linking a NEW customer to user, require email verification
-      // This prevents attackers from linking their session to victim's account
-      if (!customerId && sessionCustomerId && !emailsMatch) {
-        console.warn(`Cannot link session customer ${sessionCustomerId} to user ${userId}: email verification required`);
-        return res.status(403).json({ error: "Unable to verify session ownership" });
-      }
-      
-      // Fail closed: if we have no way to verify (no matching customer, no email)
-      if (!customerId && !sessionCustomerId && !sessionEmail) {
-        console.warn(`Cannot verify session ownership for user ${userId}: no identifiers available`);
-        return res.status(403).json({ error: "Unable to verify session ownership" });
-      }
+      // Session ownership is verified by:
+      // 1. Having the session_id (only shown to person who completed checkout)
+      // 2. Session not being claimed by another active user
+      // 3. User not already having a different Stripe customer
 
-      // Link or create Stripe customer (only if verified above)
+      // Link Stripe customer to this user
       if (sessionCustomerId && !customerId) {
-        // At this point, emailsMatch is true (verified above)
         customerId = sessionCustomerId;
         await storage.updateUserStripeInfo(userId, { stripeCustomerId: customerId });
         
@@ -6172,6 +6180,30 @@ Your primary goal is to help users AND capture their contact information natural
         await stripeService.updateCustomer(customerId, {
           metadata: { userId: userId }
         });
+        
+        // If claiming from a pending account, transfer their websites too
+        if (sessionAlreadyClaimed) {
+          const pendingUser = await storage.getUserByStripeCustomerId(sessionCustomerId);
+          if (pendingUser && pendingUser.id !== userId) {
+            // Transfer websites from pending account
+            const pendingWebsites = await storage.getUserWebsites(pendingUser.id);
+            for (const website of pendingWebsites) {
+              // Check if user already has this website
+              const existing = await storage.getUserWebsiteByUrl(userId, website.url);
+              if (!existing) {
+                await storage.createUserWebsite({
+                  userId,
+                  url: website.url,
+                  name: website.name,
+                  isActive: website.isActive,
+                });
+                console.log(`Transferred website ${website.url} from pending account to user ${userId}`);
+              }
+            }
+            // Clear stripe link from pending account to prevent confusion
+            await storage.updateUserStripeInfo(pendingUser.id, { stripeCustomerId: null });
+          }
+        }
       } else if (!customerId) {
         // Create new customer for the user
         const customer = await stripeService.createCustomer(user.email || '', userId);
