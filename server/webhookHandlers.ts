@@ -70,8 +70,26 @@ export class WebhookHandlers {
     const stripe = await getUncachableStripeClient();
     const customerId = session.customer as string;
 
-    // Find user by stripeCustomerId
-    const user = await storage.getUserByStripeCustomerId(customerId);
+    // Find user by stripeCustomerId first
+    let user = await storage.getUserByStripeCustomerId(customerId);
+    
+    // If not found by stripeCustomerId, try to find by email and link the account
+    if (!user && customerId) {
+      try {
+        const stripeCustomer = await stripe.customers.retrieve(customerId);
+        if (stripeCustomer && !stripeCustomer.deleted && stripeCustomer.email) {
+          user = await storage.getUserByEmail(stripeCustomer.email);
+          if (user) {
+            // Link the Stripe customer to this portal account
+            await storage.updateUser(user.id, { stripeCustomerId: customerId });
+            console.log(`Linked Stripe customer ${customerId} to existing user ${user.id} (${stripeCustomer.email})`);
+          }
+        }
+      } catch (err) {
+        console.error('Error looking up Stripe customer for linking:', err);
+      }
+    }
+    
     if (!user) {
       console.log('No user found for customer:', customerId);
       return;
@@ -136,7 +154,24 @@ export class WebhookHandlers {
         const tierName = product.metadata?.tier_name;
         if (tierName) {
           const customerId = subscription.customer as string;
-          const user = await storage.getUserByStripeCustomerId(customerId);
+          let user = await storage.getUserByStripeCustomerId(customerId);
+          
+          // Fallback: try to find by email and link account
+          if (!user && customerId) {
+            try {
+              const stripeCustomer = await stripe.customers.retrieve(customerId);
+              if (stripeCustomer && !stripeCustomer.deleted && stripeCustomer.email) {
+                user = await storage.getUserByEmail(stripeCustomer.email);
+                if (user) {
+                  await storage.updateUser(user.id, { stripeCustomerId: customerId });
+                  console.log(`Linked Stripe customer ${customerId} to user ${user.id} for API tier`);
+                }
+              }
+            } catch (err) {
+              console.error('Error linking Stripe customer for API tier:', err);
+            }
+          }
+          
           if (user) {
             await apiService.setUserTier(user.id, tierName);
             console.log(`Assigned API tier '${tierName}' to user ${user.id}`);
@@ -147,8 +182,25 @@ export class WebhookHandlers {
       if (product.metadata?.product_type === 'report_subscription') {
         const customerId = subscription.customer as string;
         
-        // Find user by stripeCustomerId
-        const user = await storage.getUserByStripeCustomerId(customerId);
+        // Find user by stripeCustomerId first
+        let user = await storage.getUserByStripeCustomerId(customerId);
+        
+        // Fallback: try to find by email and link account
+        if (!user && customerId) {
+          try {
+            const stripeCustomer = await stripe.customers.retrieve(customerId);
+            if (stripeCustomer && !stripeCustomer.deleted && stripeCustomer.email) {
+              user = await storage.getUserByEmail(stripeCustomer.email);
+              if (user) {
+                await storage.updateUser(user.id, { stripeCustomerId: customerId });
+                console.log(`Linked Stripe customer ${customerId} to user ${user.id} for report subscription`);
+              }
+            }
+          } catch (err) {
+            console.error('Error linking Stripe customer for report subscription:', err);
+          }
+        }
+        
         if (!user) {
           console.log('No user found for customer:', customerId);
           continue;
