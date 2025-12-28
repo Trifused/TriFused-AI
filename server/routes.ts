@@ -6275,6 +6275,79 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Link user to Stripe customer by email lookup (admin only)
+  app.post("/api/admin/stripe/link-user", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.stripeCustomerId) {
+        return res.json({ success: true, message: "User already linked to Stripe customer", stripeCustomerId: user.stripeCustomerId });
+      }
+
+      if (!user.email) {
+        return res.status(400).json({ error: "User has no email address" });
+      }
+
+      // Look up Stripe customer by email
+      const stripe = await getUncachableStripeClient();
+      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+      
+      if (customers.data.length === 0) {
+        return res.status(404).json({ error: "No Stripe customer found with email: " + user.email });
+      }
+
+      const stripeCustomer = customers.data[0];
+      
+      // Link the customer to the user
+      await storage.updateUser(user.id, { stripeCustomerId: stripeCustomer.id });
+      
+      // Check if they have any active subscriptions
+      const subscriptions = await stripe.subscriptions.list({ 
+        customer: stripeCustomer.id, 
+        status: 'active',
+        limit: 10 
+      });
+      
+      let linkedSubscription = null;
+      for (const sub of subscriptions.data) {
+        // Update user with subscription ID
+        await storage.updateUser(user.id, { stripeSubscriptionId: sub.id });
+        linkedSubscription = sub.id;
+        
+        // Process subscription for report_subscriptions if needed
+        for (const item of sub.items.data) {
+          const product = await stripe.products.retrieve(item.price.product as string);
+          if (product.metadata?.product_type === 'report_subscription') {
+            // Create report subscription if doesn't exist
+            const existingSubs = await storage.getReportSubscriptionsByUser(user.id);
+            if (existingSubs.length === 0) {
+              console.log(`Would create report subscription for user ${user.id} - please manually configure`);
+            }
+          }
+        }
+        break; // Just link the first active subscription
+      }
+
+      res.json({ 
+        success: true, 
+        message: "User linked to Stripe customer", 
+        stripeCustomerId: stripeCustomer.id,
+        stripeSubscriptionId: linkedSubscription
+      });
+    } catch (error) {
+      console.error("Link user to Stripe error:", error);
+      res.status(500).json({ error: "Failed to link user to Stripe customer" });
+    }
+  });
+
   // Create product with price (admin only)
   app.post("/api/admin/stripe/products", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
     try {

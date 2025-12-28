@@ -25,9 +25,13 @@ export class WebhookHandlers {
   static async processCustomLogic(payload: Buffer, signature: string): Promise<void> {
     try {
       const stripe = await getUncachableStripeClient();
-      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      // Use STRIPE_WEBHOOK_SECRET or fall back to STRIPE_SYNC_WEBHOOK_SECRET
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || process.env.STRIPE_SYNC_WEBHOOK_SECRET;
       
-      if (!webhookSecret) return;
+      if (!webhookSecret) {
+        console.log('No webhook secret configured for custom logic - skipping subscription linking');
+        return;
+      }
 
       const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 
