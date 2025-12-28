@@ -6224,6 +6224,58 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Cancel user's own subscription (at period end)
+  app.post("/api/stripe/subscriptions/:subscriptionId/cancel", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { subscriptionId } = req.params;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.stripeCustomerId) {
+        return res.status(400).json({ error: "No billing account found" });
+      }
+
+      // Verify the subscription belongs to this user
+      const stripe = await getUncachableStripeClient();
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      
+      if (subscription.customer !== user.stripeCustomerId) {
+        return res.status(403).json({ error: "You can only cancel your own subscriptions" });
+      }
+
+      if (subscription.status !== 'active') {
+        return res.status(400).json({ error: "Subscription is not active" });
+      }
+
+      if (subscription.cancel_at_period_end) {
+        return res.status(400).json({ error: "Subscription is already set to cancel" });
+      }
+
+      // Cancel at period end (user keeps access until billing period ends)
+      const result = await stripe.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: true,
+      });
+
+      // Sync data
+      const { getStripeSync } = await import("./stripeClient");
+      const stripeSync = await getStripeSync();
+      await stripeSync.syncBackfill();
+
+      res.json({ 
+        success: true, 
+        message: "Subscription will be cancelled at the end of the billing period",
+        cancel_at: result.cancel_at
+      });
+    } catch (error) {
+      console.error("Cancel subscription error:", error);
+      res.status(500).json({ error: "Failed to cancel subscription" });
+    }
+  });
+
   // ========== ADMIN COMMERCE ROUTES ==========
 
   // Get all products including inactive (admin only)

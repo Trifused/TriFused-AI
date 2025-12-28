@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { TermsModal } from "@/components/terms-modal";
@@ -12,14 +12,29 @@ import {
   Package,
   Clock,
   ShoppingBag,
-  ArrowLeft
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  XCircle,
+  AlertTriangle,
+  Info,
+  Calendar,
+  Hash
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Order {
   session_id: string;
@@ -51,7 +66,35 @@ export default function Billing() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("purchases");
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [expandedSubs, setExpandedSubs] = useState<Set<string>>(new Set());
+  const [cancelDialog, setCancelDialog] = useState<{ open: boolean; subscription: Subscription | null }>({ open: false, subscription: null });
+
+  const toggleOrderExpand = (sessionId: string) => {
+    setExpandedOrders(prev => {
+      const next = new Set(prev);
+      if (next.has(sessionId)) {
+        next.delete(sessionId);
+      } else {
+        next.add(sessionId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSubExpand = (subId: string) => {
+    setExpandedSubs(prev => {
+      const next = new Set(prev);
+      if (next.has(subId)) {
+        next.delete(subId);
+      } else {
+        next.add(subId);
+      }
+      return next;
+    });
+  };
 
   const { data: ordersData, isLoading: ordersLoading } = useQuery({
     queryKey: ["/api/stripe/orders"],
@@ -106,6 +149,35 @@ export default function Billing() {
         description: error.message === "No Stripe customer found" 
           ? "You need to make a purchase first to access billing management."
           : error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async (subscriptionId: string) => {
+      const res = await fetch(`/api/stripe/subscriptions/${subscriptionId}/cancel`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to cancel subscription");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Subscription Cancelled",
+        description: "Your subscription has been set to cancel at the end of the current billing period.",
+      });
+      setCancelDialog({ open: false, subscription: null });
+      queryClient.invalidateQueries({ queryKey: ["/api/stripe/subscriptions"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Cancellation Failed",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -279,10 +351,14 @@ export default function Billing() {
                   {orders.map((order: Order) => (
                     <div
                       key={order.session_id}
-                      className="p-4 bg-white/5 rounded-lg border border-white/10 hover:border-white/20 transition-colors"
+                      className="bg-white/5 rounded-lg border border-white/10 hover:border-white/20 transition-colors overflow-hidden"
                       data-testid={`order-${order.session_id}`}
                     >
-                      <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => toggleOrderExpand(order.session_id)}
+                        className="w-full p-4 text-left flex items-center justify-between hover:bg-white/5 transition-colors"
+                        data-testid={`btn-expand-order-${order.session_id}`}
+                      >
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
                             <Package className="w-5 h-5 text-primary" />
@@ -311,7 +387,79 @@ export default function Billing() {
                             </span>
                           </div>
                         </div>
-                      </div>
+                        {expandedOrders.has(order.session_id) ? (
+                          <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </button>
+                      <AnimatePresence>
+                        {expandedOrders.has(order.session_id) && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="px-4 pb-4 pt-2 border-t border-white/10 bg-white/5">
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground flex items-center gap-2">
+                                    <Hash className="w-3 h-3" />
+                                    Order ID
+                                  </p>
+                                  <p className="text-white font-mono text-xs mt-1 break-all">
+                                    {order.session_id}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground flex items-center gap-2">
+                                    <Calendar className="w-3 h-3" />
+                                    Date
+                                  </p>
+                                  <p className="text-white mt-1">
+                                    {order.created ? format(new Date(order.created * 1000), 'PPpp') : '-'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground flex items-center gap-2">
+                                    <CreditCard className="w-3 h-3" />
+                                    Amount
+                                  </p>
+                                  <p className="text-white mt-1">
+                                    {order.amount_total ? `$${(order.amount_total / 100).toFixed(2)} ${order.currency?.toUpperCase() || 'USD'}` : '-'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground flex items-center gap-2">
+                                    <Info className="w-3 h-3" />
+                                    Status
+                                  </p>
+                                  <p className="text-white mt-1 capitalize">
+                                    {order.session_status || 'Complete'}
+                                  </p>
+                                </div>
+                              </div>
+                              {hasStripeCustomer && (
+                                <div className="mt-4 pt-3 border-t border-white/10">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => portalMutation.mutate()}
+                                    disabled={portalMutation.isPending}
+                                    className="border-white/20 hover:border-white/40"
+                                    data-testid={`btn-view-invoice-${order.session_id}`}
+                                  >
+                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                    View Invoice in Billing Portal
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   ))}
                 </div>
@@ -345,10 +493,14 @@ export default function Billing() {
                   {subscriptions.map((sub: Subscription) => (
                     <div
                       key={sub.subscription_id}
-                      className="p-4 bg-white/5 rounded-lg border border-white/10 hover:border-white/20 transition-colors"
+                      className="bg-white/5 rounded-lg border border-white/10 hover:border-white/20 transition-colors overflow-hidden"
                       data-testid={`subscription-${sub.subscription_id}`}
                     >
-                      <div className="flex items-start justify-between">
+                      <button
+                        onClick={() => toggleSubExpand(sub.subscription_id)}
+                        className="w-full p-4 text-left flex items-center justify-between hover:bg-white/5 transition-colors"
+                        data-testid={`btn-expand-sub-${sub.subscription_id}`}
+                      >
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
                             <RefreshCw className="w-5 h-5 text-purple-400" />
@@ -369,9 +521,6 @@ export default function Billing() {
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {sub.product_description}
-                          </p>
                           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                             <span className="text-white">
                               {sub.unit_amount ? `$${(sub.unit_amount / 100).toFixed(2)}` : '-'}
@@ -379,50 +528,132 @@ export default function Billing() {
                             </span>
                             {sub.current_period_end && (
                               <span>
-                                {sub.status === 'active' ? 'Renews' : 'Ends'}: {format(new Date(sub.current_period_end * 1000), 'MMM d, yyyy')}
+                                {sub.cancel_at_period_end ? 'Ends' : sub.status === 'active' ? 'Renews' : 'Ends'}: {format(new Date(sub.current_period_end * 1000), 'MMM d, yyyy')}
                               </span>
                             )}
                           </div>
-                          {quota && quota.totalCalls > 0 && sub.status === 'active' && (
-                            <div className="mt-3 flex items-center gap-3">
-                              <div className="flex-1 max-w-xs">
-                                <div className="flex items-center justify-between text-xs mb-1">
-                                  <span className="text-muted-foreground">API Usage</span>
-                                  <span className={`font-mono ${
-                                    quota.usedCalls / quota.totalCalls > 0.9 ? 'text-red-400' :
-                                    quota.usedCalls / quota.totalCalls > 0.7 ? 'text-orange-400' :
-                                    'text-cyan-400'
-                                  }`}>
-                                    {quota.usedCalls.toLocaleString()} / {quota.totalCalls >= 1000 ? `${(quota.totalCalls / 1000).toFixed(0)}K` : quota.totalCalls}
-                                  </span>
+                        </div>
+                        {expandedSubs.has(sub.subscription_id) ? (
+                          <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </button>
+                      <AnimatePresence>
+                        {expandedSubs.has(sub.subscription_id) && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="px-4 pb-4 pt-2 border-t border-white/10 bg-white/5">
+                              {sub.product_description && (
+                                <p className="text-sm text-muted-foreground mb-4">
+                                  {sub.product_description}
+                                </p>
+                              )}
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground flex items-center gap-2">
+                                    <Hash className="w-3 h-3" />
+                                    Subscription ID
+                                  </p>
+                                  <p className="text-white font-mono text-xs mt-1 break-all">
+                                    {sub.subscription_id}
+                                  </p>
                                 </div>
-                                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                  <div 
-                                    className={`h-full rounded-full transition-all ${
-                                      quota.usedCalls / quota.totalCalls > 0.9 ? 'bg-red-500' :
-                                      quota.usedCalls / quota.totalCalls > 0.7 ? 'bg-orange-500' :
-                                      'bg-cyan-500'
-                                    }`}
-                                    style={{ width: `${Math.min((quota.usedCalls / quota.totalCalls) * 100, 100)}%` }}
-                                  />
+                                <div>
+                                  <p className="text-muted-foreground flex items-center gap-2">
+                                    <Calendar className="w-3 h-3" />
+                                    Started
+                                  </p>
+                                  <p className="text-white mt-1">
+                                    {sub.created ? format(new Date(sub.created * 1000), 'PPP') : '-'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground flex items-center gap-2">
+                                    <CreditCard className="w-3 h-3" />
+                                    Amount
+                                  </p>
+                                  <p className="text-white mt-1">
+                                    {sub.unit_amount ? `$${(sub.unit_amount / 100).toFixed(2)} ${sub.currency?.toUpperCase() || 'USD'}` : '-'}
+                                    {sub.recurring?.interval && ` / ${sub.recurring.interval}`}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground flex items-center gap-2">
+                                    <Calendar className="w-3 h-3" />
+                                    Current Period
+                                  </p>
+                                  <p className="text-white mt-1">
+                                    {sub.current_period_start && sub.current_period_end ? (
+                                      `${format(new Date(sub.current_period_start * 1000), 'MMM d')} - ${format(new Date(sub.current_period_end * 1000), 'MMM d, yyyy')}`
+                                    ) : '-'}
+                                  </p>
                                 </div>
                               </div>
+                              
+                              {quota && quota.totalCalls > 0 && sub.status === 'active' && (
+                                <div className="mt-4 pt-3 border-t border-white/10">
+                                  <div className="flex-1 max-w-md">
+                                    <div className="flex items-center justify-between text-xs mb-1">
+                                      <span className="text-muted-foreground">API Usage</span>
+                                      <span className={`font-mono ${
+                                        quota.usedCalls / quota.totalCalls > 0.9 ? 'text-red-400' :
+                                        quota.usedCalls / quota.totalCalls > 0.7 ? 'text-orange-400' :
+                                        'text-cyan-400'
+                                      }`}>
+                                        {quota.usedCalls.toLocaleString()} / {quota.totalCalls >= 1000 ? `${(quota.totalCalls / 1000).toFixed(0)}K` : quota.totalCalls}
+                                      </span>
+                                    </div>
+                                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                      <div 
+                                        className={`h-full rounded-full transition-all ${
+                                          quota.usedCalls / quota.totalCalls > 0.9 ? 'bg-red-500' :
+                                          quota.usedCalls / quota.totalCalls > 0.7 ? 'bg-orange-500' :
+                                          'bg-cyan-500'
+                                        }`}
+                                        style={{ width: `${Math.min((quota.usedCalls / quota.totalCalls) * 100, 100)}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="mt-4 pt-3 border-t border-white/10 flex gap-3">
+                                {hasStripeCustomer && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => portalMutation.mutate()}
+                                    disabled={portalMutation.isPending}
+                                    className="border-white/20 hover:border-white/40"
+                                    data-testid={`btn-manage-${sub.subscription_id}`}
+                                  >
+                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                    Manage in Billing Portal
+                                  </Button>
+                                )}
+                                {sub.status === 'active' && !sub.cancel_at_period_end && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCancelDialog({ open: true, subscription: sub })}
+                                    className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
+                                    data-testid={`btn-cancel-${sub.subscription_id}`}
+                                  >
+                                    <XCircle className="w-4 h-4 mr-2" />
+                                    Cancel Subscription
+                                  </Button>
+                                )}
+                              </div>
                             </div>
-                          )}
-                        </div>
-                        {sub.status === 'active' && hasStripeCustomer && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => portalMutation.mutate()}
-                            disabled={portalMutation.isPending}
-                            className="border-white/20 hover:border-white/40"
-                            data-testid={`btn-manage-${sub.subscription_id}`}
-                          >
-                            Manage
-                          </Button>
+                          </motion.div>
                         )}
-                      </div>
+                      </AnimatePresence>
                     </div>
                   ))}
                 </div>
@@ -438,6 +669,57 @@ export default function Billing() {
           </div>
         </motion.div>
       </main>
+
+      <Dialog open={cancelDialog.open} onOpenChange={(open) => setCancelDialog({ open, subscription: open ? cancelDialog.subscription : null })}>
+        <DialogContent className="bg-card border-white/10">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <AlertTriangle className="w-5 h-5 text-red-400" />
+              Cancel Subscription
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Are you sure you want to cancel your subscription to <span className="text-white font-medium">{cancelDialog.subscription?.product_name || 'this plan'}</span>?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+              <p className="text-sm text-yellow-200">
+                Your subscription will remain active until the end of your current billing period on{' '}
+                <span className="font-medium">
+                  {cancelDialog.subscription?.current_period_end ? 
+                    format(new Date(cancelDialog.subscription.current_period_end * 1000), 'MMMM d, yyyy') : 
+                    'the end of the period'}
+                </span>. After that, you will lose access to premium features.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setCancelDialog({ open: false, subscription: null })}
+              className="border-white/20"
+            >
+              Keep Subscription
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => cancelDialog.subscription && cancelMutation.mutate(cancelDialog.subscription.subscription_id)}
+              disabled={cancelMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="btn-confirm-cancel"
+            >
+              {cancelMutation.isPending ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Cancelling...
+                </>
+              ) : (
+                'Yes, Cancel Subscription'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
