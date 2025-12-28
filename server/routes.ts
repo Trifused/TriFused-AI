@@ -27,6 +27,7 @@ import { getStripePublishableKey } from "./stripeClient";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { getReportSettings, updateReportSettings, sendLeadReport } from "./leadReportScheduler";
+import { apiKeyAuth, apiRateLimit, generalApiRateLimit } from "./rateLimitMiddleware";
 
 // AI Vision helper for FDIC badge detection
 async function detectFdicWithVision(url: string): Promise<{ found: boolean; confidence: string; location: string | null }> {
