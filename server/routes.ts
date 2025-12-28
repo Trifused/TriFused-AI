@@ -6028,9 +6028,30 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
-  // Guest checkout for API subscription (no auth required)
+  // API subscription checkout (requires authentication)
   app.get("/api/checkout/api-subscription", async (req: Request, res: Response) => {
     try {
+      // Check if user is authenticated
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        // Redirect to login with return URL
+        const returnUrl = req.originalUrl;
+        return res.redirect(`/api/login?returnTo=${encodeURIComponent(returnUrl)}`);
+      }
+      
+      // Get or create Stripe customer for authenticated user
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.redirect('/pricing?error=user_not_found');
+      }
+      
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripeService.createCustomer(user.email || '', userId);
+        await storage.updateUserStripeInfo(userId, { stripeCustomerId: customer.id });
+        customerId = customer.id;
+      }
+      
       // Capture the tested website URL if provided (from grader)
       const testedWebsiteUrl = req.query.website as string | undefined;
       
@@ -6066,12 +6087,13 @@ Your primary goal is to help users AND capture their contact information natural
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       
       // Include the tested website URL in metadata so it can be saved after purchase
-      const metadata: Record<string, string> = { product: 'api_subscription' };
+      const metadata: Record<string, string> = { product: 'api_subscription', userId };
       if (testedWebsiteUrl) {
         metadata.tested_website_url = testedWebsiteUrl;
       }
       
-      const session = await stripeService.createGuestCheckoutSession(
+      const session = await stripeService.createCheckoutSession(
+        customerId,
         apiPriceId,
         'subscription',
         `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -6085,7 +6107,7 @@ Your primary goal is to help users AND capture their contact information natural
         res.redirect('/pricing?error=checkout_failed');
       }
     } catch (error) {
-      console.error("Guest checkout error:", error);
+      console.error("Checkout error:", error);
       res.redirect('/pricing?error=checkout_error');
     }
   });
