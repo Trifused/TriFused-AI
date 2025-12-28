@@ -1351,6 +1351,10 @@ export default function Admin() {
                 <Mail className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">Emails</span>
               </TabsTrigger>
+              <TabsTrigger value="reports" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-reports">
+                <FileText className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Reports</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -3812,9 +3816,218 @@ export default function Admin() {
               </div>
             </motion.div>
           </TabsContent>
+
+          <TabsContent value="reports">
+            <ReportsManagementTab />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
+  );
+}
+
+function ReportsManagementTab() {
+  const { toast } = useToast();
+  const [recipients, setRecipients] = useState('');
+  const [intervalMinutes, setIntervalMinutes] = useState(1);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+
+  const { data: settings, isLoading, refetch } = useQuery({
+    queryKey: ['lead-report-settings'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/lead-report/settings', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch settings');
+      return res.json();
+    },
+  });
+
+  useEffect(() => {
+    if (settings) {
+      setRecipients(settings.recipients?.join(', ') || '');
+      setIntervalMinutes(settings.intervalMinutes || 1);
+    }
+  }, [settings]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const recipientList = recipients.split(',').map(e => e.trim()).filter(Boolean);
+      const res = await fetch('/api/admin/lead-report/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ recipients: recipientList, intervalMinutes }),
+      });
+      if (!res.ok) throw new Error('Failed to save settings');
+      toast({ title: 'Settings saved', description: 'Report settings updated successfully' });
+      refetch();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to save settings', variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSendNow = async () => {
+    setIsSending(true);
+    try {
+      const res = await fetch('/api/admin/lead-report/send', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to send report');
+      toast({ title: 'Report sent', description: 'Lead report has been sent to all recipients' });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to send report', variant: 'destructive' });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-12 text-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-muted-foreground">Loading report settings...</p>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
+      <div className="glass-panel rounded-2xl overflow-hidden">
+        <div className="p-4 border-b border-white/5 bg-white/5">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <FileText className="w-5 h-5 text-primary" />
+            Lead Report Settings
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Configure automated lead analytics reports
+          </p>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="recipients">Email Recipients</Label>
+            <Input
+              id="recipients"
+              value={recipients}
+              onChange={(e) => setRecipients(e.target.value)}
+              placeholder="email1@example.com, email2@example.com"
+              className="bg-white/5 border-white/10"
+              data-testid="input-report-recipients"
+            />
+            <p className="text-xs text-muted-foreground">
+              Comma-separated list of email addresses to receive reports
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="interval">Report Interval (minutes)</Label>
+            <Select
+              value={String(intervalMinutes)}
+              onValueChange={(val) => setIntervalMinutes(Number(val))}
+            >
+              <SelectTrigger className="bg-white/5 border-white/10" data-testid="select-report-interval">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Every 1 minute</SelectItem>
+                <SelectItem value="5">Every 5 minutes</SelectItem>
+                <SelectItem value="15">Every 15 minutes</SelectItem>
+                <SelectItem value="30">Every 30 minutes</SelectItem>
+                <SelectItem value="60">Every hour</SelectItem>
+                <SelectItem value="360">Every 6 hours</SelectItem>
+                <SelectItem value="720">Every 12 hours</SelectItem>
+                <SelectItem value="1440">Daily</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-3 pt-4">
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-primary hover:bg-primary/90"
+              data-testid="btn-save-report-settings"
+            >
+              {isSaving ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Settings
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleSendNow}
+              disabled={isSending}
+              data-testid="btn-send-report-now"
+            >
+              {isSending ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Send Report Now
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="glass-panel rounded-2xl p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Report Contents</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+          <div className="p-4 bg-white/5 rounded-lg">
+            <div className="text-primary font-semibold">Contact Forms</div>
+            <div className="text-muted-foreground">New submissions with name, email, company</div>
+          </div>
+          <div className="p-4 bg-white/5 rounded-lg">
+            <div className="text-primary font-semibold">Chat Leads</div>
+            <div className="text-muted-foreground">Leads captured from chat widget</div>
+          </div>
+          <div className="p-4 bg-white/5 rounded-lg">
+            <div className="text-primary font-semibold">Service Leads</div>
+            <div className="text-muted-foreground">Interest in specific services</div>
+          </div>
+          <div className="p-4 bg-white/5 rounded-lg">
+            <div className="text-primary font-semibold">Email Subscribers</div>
+            <div className="text-muted-foreground">New newsletter signups</div>
+          </div>
+          <div className="p-4 bg-white/5 rounded-lg">
+            <div className="text-emerald-400 font-semibold">Website Grades</div>
+            <div className="text-muted-foreground">Grader usage with URLs and scores</div>
+          </div>
+          <div className="p-4 bg-white/5 rounded-lg">
+            <div className="text-purple-400 font-semibold">Diagnostic Scans</div>
+            <div className="text-muted-foreground">System diagnostics performed</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+        <p className="text-sm text-cyan-400">
+          <Clock className="w-4 h-4 inline mr-2" />
+          Current settings: Reports are sent every <strong>{settings?.intervalMinutes || 1} minute(s)</strong> to{' '}
+          <strong>{settings?.recipients?.length || 0} recipient(s)</strong>.
+        </p>
+      </div>
+    </motion.div>
   );
 }
 
