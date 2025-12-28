@@ -64,7 +64,9 @@ import {
   InsertUserActivityLog,
   emailLogs,
   EmailLog,
-  InsertEmailLog
+  InsertEmailLog,
+  reportSettings,
+  ReportSettings
 } from "@shared/schema";
 
 export interface IStorage {
@@ -199,6 +201,11 @@ export interface IStorage {
   updateBacklink(id: string, data: Partial<Backlink>): Promise<Backlink | undefined>;
   deleteBacklink(id: string): Promise<void>;
   getBacklinksCount(): Promise<number>;
+  
+  // Report settings methods
+  getReportSettings(settingKey: string): Promise<ReportSettings | undefined>;
+  upsertReportSettings(settingKey: string, data: { recipients: string; intervalMinutes: number; isActive?: number; updatedBy?: string }): Promise<ReportSettings>;
+  updateReportSettingsLastSent(settingKey: string): Promise<void>;
 }
 
 class Storage implements IStorage {
@@ -944,6 +951,43 @@ class Storage implements IStorage {
   async getBacklinksCount(): Promise<number> {
     const [result] = await db.select({ count: count() }).from(backlinks);
     return result?.count || 0;
+  }
+
+  // Report settings methods
+  async getReportSettings(settingKey: string): Promise<ReportSettings | undefined> {
+    const [settings] = await db.select().from(reportSettings).where(eq(reportSettings.settingKey, settingKey));
+    return settings;
+  }
+
+  async upsertReportSettings(settingKey: string, data: { recipients: string; intervalMinutes: number; isActive?: number; updatedBy?: string }): Promise<ReportSettings> {
+    const [settings] = await db
+      .insert(reportSettings)
+      .values({
+        settingKey,
+        recipients: data.recipients,
+        intervalMinutes: data.intervalMinutes,
+        isActive: data.isActive ?? 1,
+        updatedBy: data.updatedBy,
+      })
+      .onConflictDoUpdate({
+        target: reportSettings.settingKey,
+        set: {
+          recipients: data.recipients,
+          intervalMinutes: data.intervalMinutes,
+          isActive: data.isActive ?? 1,
+          updatedBy: data.updatedBy,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return settings;
+  }
+
+  async updateReportSettingsLastSent(settingKey: string): Promise<void> {
+    await db
+      .update(reportSettings)
+      .set({ lastSentAt: new Date() })
+      .where(eq(reportSettings.settingKey, settingKey));
   }
 }
 
