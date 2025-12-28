@@ -296,3 +296,145 @@ export async function sendAndLogEmail(options: {
     }
   }
 }
+
+// Website report card email 
+export interface WebsiteReportEmailData {
+  websiteUrl: string;
+  overallScore: number;
+  performanceScore: number;
+  seoScore: number;
+  securityScore: number;
+  mobileScore: number;
+  accessibilityScore: number;
+  reportDate: Date;
+  viewReportLink: string;
+}
+
+function getScoreColor(score: number): string {
+  if (score >= 80) return '#22c55e'; // green
+  if (score >= 60) return '#eab308'; // yellow
+  if (score >= 40) return '#f97316'; // orange
+  return '#ef4444'; // red
+}
+
+function getGradeLetter(score: number): string {
+  if (score >= 90) return 'A';
+  if (score >= 80) return 'B';
+  if (score >= 70) return 'C';
+  if (score >= 60) return 'D';
+  return 'F';
+}
+
+export function generateWebsiteReportEmailHtml(data: WebsiteReportEmailData): string {
+  const scoreColor = getScoreColor(data.overallScore);
+  const gradeLetter = getGradeLetter(data.overallScore);
+  const formattedDate = data.reportDate.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+
+  const categories = [
+    { name: 'Performance', score: data.performanceScore },
+    { name: 'SEO', score: data.seoScore },
+    { name: 'Security', score: data.securityScore },
+    { name: 'Mobile', score: data.mobileScore },
+    { name: 'Accessibility', score: data.accessibilityScore },
+  ];
+
+  const categoryRows = categories.map(cat => `
+    <tr>
+      <td style="padding: 12px 16px; color: #cbd5e1; font-size: 14px;">${cat.name}</td>
+      <td style="padding: 12px 16px; text-align: right;">
+        <span style="color: ${getScoreColor(cat.score)}; font-weight: 600; font-size: 16px;">${cat.score}</span>
+        <span style="color: #64748b; font-size: 12px;">/100</span>
+      </td>
+    </tr>
+  `).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0f; color: #ffffff; margin: 0; padding: 40px 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; border: 1px solid rgba(34, 211, 238, 0.2); padding: 40px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <h1 style="color: #22d3ee; font-size: 28px; margin: 0 0 8px 0;">TriFused</h1>
+          <p style="color: #94a3b8; margin: 0;">Website Report Card</p>
+        </div>
+        
+        <h2 style="color: #ffffff; font-size: 20px; margin-bottom: 8px; text-align: center;">
+          ${data.websiteUrl}
+        </h2>
+        <p style="color: #64748b; font-size: 14px; text-align: center; margin-bottom: 24px;">
+          Report generated on ${formattedDate}
+        </p>
+        
+        <!-- Overall Score -->
+        <div style="text-align: center; padding: 32px; background: rgba(0,0,0,0.3); border-radius: 12px; margin-bottom: 24px;">
+          <div style="display: inline-block; width: 120px; height: 120px; border-radius: 50%; border: 6px solid ${scoreColor}; line-height: 108px; text-align: center;">
+            <span style="font-size: 48px; font-weight: 700; color: ${scoreColor};">${gradeLetter}</span>
+          </div>
+          <p style="color: #ffffff; font-size: 32px; font-weight: 700; margin: 16px 0 0 0;">
+            <span style="color: ${scoreColor};">${data.overallScore}</span><span style="color: #64748b; font-size: 18px;">/100</span>
+          </p>
+          <p style="color: #94a3b8; font-size: 14px; margin: 4px 0 0 0;">Overall Score</p>
+        </div>
+        
+        <!-- Category Scores -->
+        <table style="width: 100%; border-collapse: collapse; background: rgba(0,0,0,0.2); border-radius: 8px; overflow: hidden;">
+          <thead>
+            <tr style="background: rgba(34, 211, 238, 0.1);">
+              <th style="padding: 12px 16px; text-align: left; color: #22d3ee; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Category</th>
+              <th style="padding: 12px 16px; text-align: right; color: #22d3ee; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${categoryRows}
+          </tbody>
+        </table>
+        
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${data.viewReportLink}" style="display: inline-block; background: linear-gradient(135deg, #22d3ee 0%, #0891b2 100%); color: #0a0a0f; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px;">
+            View Full Report
+          </a>
+        </div>
+        
+        <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; text-align: center;">
+          Want to improve your scores? Our team can help optimize your website for better performance, SEO, and security.
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 32px 0;">
+        
+        <p style="color: #64748b; font-size: 12px; text-align: center; margin: 0;">
+          You received this email because you subscribed to website report updates.<br>
+          <a href="#" style="color: #22d3ee;">Manage your preferences</a><br><br>
+          &copy; ${new Date().getFullYear()} TriFused. All rights reserved.
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+export async function sendWebsiteReportEmail(
+  toEmail: string,
+  data: WebsiteReportEmailData
+): Promise<{ success: boolean; emailLogId?: string; error?: string }> {
+  const html = generateWebsiteReportEmailHtml(data);
+  
+  return sendAndLogEmail({
+    to: toEmail,
+    subject: `Website Report Card: ${data.websiteUrl} - Score ${data.overallScore}/100`,
+    html,
+    emailType: 'website_report',
+    metadata: {
+      websiteUrl: data.websiteUrl,
+      overallScore: data.overallScore,
+      reportDate: data.reportDate.toISOString(),
+    },
+  });
+}
