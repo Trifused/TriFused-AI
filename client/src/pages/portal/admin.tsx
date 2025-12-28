@@ -1355,6 +1355,10 @@ export default function Admin() {
                 <FileText className="w-4 h-4 md:mr-2" />
                 <span className="hidden md:inline">Reports</span>
               </TabsTrigger>
+              <TabsTrigger value="ratelimits" className="data-[state=active]:bg-primary text-xs md:text-sm" data-testid="tab-ratelimits">
+                <Zap className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">Rate Limits</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -3820,6 +3824,10 @@ export default function Admin() {
           <TabsContent value="reports">
             <ReportsManagementTab />
           </TabsContent>
+
+          <TabsContent value="ratelimits">
+            <RateLimitsTab />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
@@ -4027,6 +4035,316 @@ function ReportsManagementTab() {
           <strong>{settings?.recipients?.length || 0} recipient(s)</strong>.
         </p>
       </div>
+    </motion.div>
+  );
+}
+
+function RateLimitsTab() {
+  const { toast } = useToast();
+  const [hours, setHours] = useState(1);
+  const [isSending, setIsSending] = useState(false);
+  const [showOverrideDialog, setShowOverrideDialog] = useState(false);
+  const [newOverride, setNewOverride] = useState({
+    targetType: 'api_key',
+    targetId: '',
+    maxPerMinute: 60,
+    maxPerDay: 5000,
+    reason: '',
+  });
+
+  const { data: tiers } = useQuery({
+    queryKey: ['rate-limit-tiers'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/rate-limits/tiers', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch tiers');
+      return res.json();
+    },
+  });
+
+  const { data: stats, refetch: refetchStats, isLoading: statsLoading } = useQuery({
+    queryKey: ['rate-limit-stats', hours],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/rate-limits/stats?hours=${hours}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch stats');
+      return res.json();
+    },
+  });
+
+  const { data: overrides, refetch: refetchOverrides } = useQuery({
+    queryKey: ['rate-limit-overrides'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/rate-limits/overrides', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch overrides');
+      return res.json();
+    },
+  });
+
+  const handleSendReport = async () => {
+    setIsSending(true);
+    try {
+      const res = await fetch('/api/admin/rate-limits/report/send', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipients: ['trifused@gmail.com'] }),
+      });
+      if (!res.ok) throw new Error('Failed to send report');
+      toast({ title: 'Report sent', description: 'Rate limit report has been sent' });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to send report', variant: 'destructive' });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleCreateOverride = async () => {
+    try {
+      const res = await fetch('/api/admin/rate-limits/overrides', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newOverride),
+      });
+      if (!res.ok) throw new Error('Failed to create override');
+      toast({ title: 'Override created', description: 'Custom rate limit has been set' });
+      setShowOverrideDialog(false);
+      setNewOverride({ targetType: 'api_key', targetId: '', maxPerMinute: 60, maxPerDay: 5000, reason: '' });
+      refetchOverrides();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to create override', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteOverride = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/rate-limits/overrides/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete override');
+      toast({ title: 'Override removed', description: 'Custom rate limit has been removed' });
+      refetchOverrides();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to remove override', variant: 'destructive' });
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-white">Rate Limit Controls</h2>
+        <div className="flex items-center gap-3">
+          <Select value={hours.toString()} onValueChange={(v) => setHours(parseInt(v))}>
+            <SelectTrigger className="w-32 bg-white/5 border-white/10">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Last Hour</SelectItem>
+              <SelectItem value="6">Last 6 Hours</SelectItem>
+              <SelectItem value="24">Last 24 Hours</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={() => refetchStats()} data-testid="btn-refresh-stats">
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+          <Button onClick={handleSendReport} disabled={isSending} data-testid="btn-send-rate-report">
+            {isSending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+            {isSending ? 'Sending...' : 'Send Report'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="glass-panel rounded-xl p-4 text-center">
+          <p className="text-sm text-muted-foreground">Total Requests</p>
+          <p className="text-3xl font-bold text-primary">{stats?.totalRequests || 0}</p>
+        </div>
+        <div className="glass-panel rounded-xl p-4 text-center">
+          <p className="text-sm text-muted-foreground">Blocked</p>
+          <p className="text-3xl font-bold text-red-400">{stats?.blockedRequests || 0}</p>
+        </div>
+        <div className="glass-panel rounded-xl p-4 text-center">
+          <p className="text-sm text-muted-foreground">Block Rate</p>
+          <p className="text-3xl font-bold text-emerald-400">
+            {stats?.totalRequests > 0 ? ((stats.blockedRequests / stats.totalRequests) * 100).toFixed(1) : 0}%
+          </p>
+        </div>
+        <div className="glass-panel rounded-xl p-4 text-center">
+          <p className="text-sm text-muted-foreground">Unique Clients</p>
+          <p className="text-3xl font-bold text-purple-400">{stats?.uniqueIdentifiers || 0}</p>
+        </div>
+      </div>
+
+      {/* Tier Limits */}
+      <div className="glass-panel rounded-2xl p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Tier Limits</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="text-left p-3 text-sm text-muted-foreground">Tier</th>
+                <th className="text-center p-3 text-sm text-muted-foreground">Requests/Min</th>
+                <th className="text-center p-3 text-sm text-muted-foreground">Daily Max</th>
+                <th className="text-center p-3 text-sm text-muted-foreground">Requests</th>
+                <th className="text-center p-3 text-sm text-muted-foreground">Blocked</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tiers && Object.entries(tiers).map(([tier, limits]: [string, any]) => (
+                <tr key={tier} className="border-b border-white/5">
+                  <td className="p-3 text-primary capitalize">{tier}</td>
+                  <td className="p-3 text-center text-white">{limits.max}/min</td>
+                  <td className="p-3 text-center text-white">{limits.dailyMax}/day</td>
+                  <td className="p-3 text-center text-emerald-400">{stats?.requestsByTier?.[tier] || 0}</td>
+                  <td className="p-3 text-center text-red-400">{stats?.blockedByTier?.[tier] || 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Custom Overrides */}
+      <div className="glass-panel rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-white">Custom Overrides</h3>
+          <Button onClick={() => setShowOverrideDialog(true)} size="sm" data-testid="btn-add-override">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Override
+          </Button>
+        </div>
+        
+        {overrides?.length > 0 ? (
+          <div className="space-y-2">
+            {overrides.map((override: any) => (
+              <div key={override.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                <div>
+                  <span className="text-primary font-mono text-sm">{override.targetId}</span>
+                  <span className="text-muted-foreground text-xs ml-2">({override.targetType})</span>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {override.maxPerMinute}/min, {override.maxPerDay}/day
+                    {override.reason && <span className="ml-2">- {override.reason}</span>}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteOverride(override.id)}
+                  className="text-red-400 hover:text-red-300"
+                  data-testid={`btn-delete-override-${override.id}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-center py-8">No custom overrides configured</p>
+        )}
+      </div>
+
+      {/* Top Clients */}
+      {stats?.topIdentifiers?.length > 0 && (
+        <div className="glass-panel rounded-2xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Top Clients</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="text-left p-3 text-sm text-muted-foreground">Identifier</th>
+                  <th className="text-left p-3 text-sm text-muted-foreground">Type</th>
+                  <th className="text-left p-3 text-sm text-muted-foreground">Tier</th>
+                  <th className="text-center p-3 text-sm text-muted-foreground">Requests</th>
+                  <th className="text-center p-3 text-sm text-muted-foreground">Blocked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.topIdentifiers.slice(0, 10).map((client: any, idx: number) => (
+                  <tr key={idx} className="border-b border-white/5">
+                    <td className="p-3 text-primary font-mono text-xs">{client.identifier.substring(0, 24)}...</td>
+                    <td className="p-3 text-muted-foreground text-sm capitalize">{client.identifierType}</td>
+                    <td className="p-3 text-white text-sm capitalize">{client.tier}</td>
+                    <td className="p-3 text-center text-emerald-400">{client.requestCount}</td>
+                    <td className="p-3 text-center text-red-400">{client.blockedCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Override Dialog */}
+      <Dialog open={showOverrideDialog} onOpenChange={setShowOverrideDialog}>
+        <DialogContent className="bg-slate-900 border-white/10">
+          <DialogHeader>
+            <DialogTitle>Add Custom Rate Limit Override</DialogTitle>
+            <DialogDescription>Set custom rate limits for a specific user, API key, or IP address.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Target Type</Label>
+              <Select value={newOverride.targetType} onValueChange={(v) => setNewOverride({...newOverride, targetType: v})}>
+                <SelectTrigger className="bg-white/5 border-white/10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="api_key">API Key</SelectItem>
+                  <SelectItem value="user">User ID</SelectItem>
+                  <SelectItem value="ip">IP Address</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Target ID</Label>
+              <Input
+                value={newOverride.targetId}
+                onChange={(e) => setNewOverride({...newOverride, targetId: e.target.value})}
+                placeholder="API key ID, user ID, or IP address"
+                className="bg-white/5 border-white/10"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Max Per Minute</Label>
+                <Input
+                  type="number"
+                  value={newOverride.maxPerMinute}
+                  onChange={(e) => setNewOverride({...newOverride, maxPerMinute: parseInt(e.target.value)})}
+                  className="bg-white/5 border-white/10"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Max Per Day</Label>
+                <Input
+                  type="number"
+                  value={newOverride.maxPerDay}
+                  onChange={(e) => setNewOverride({...newOverride, maxPerDay: parseInt(e.target.value)})}
+                  className="bg-white/5 border-white/10"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Reason (optional)</Label>
+              <Input
+                value={newOverride.reason}
+                onChange={(e) => setNewOverride({...newOverride, reason: e.target.value})}
+                placeholder="Why this override was set"
+                className="bg-white/5 border-white/10"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowOverrideDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreateOverride} disabled={!newOverride.targetId}>Create Override</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }

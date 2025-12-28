@@ -283,3 +283,43 @@ The platform uses a token-based payment system similar to Chinese video apps (Ti
 - `server/tokenService.ts` - Token wallet and transaction service
 - `client/src/pages/portal/tokens.tsx` - Token wallet UI
 - `shared/schema.ts` - Token-related database tables
+
+### Rate Limit Monitoring & Controls
+
+The platform includes comprehensive rate limiting with monitoring, reporting, and custom override capabilities.
+
+**Database Tables:**
+- `rate_limit_events` - Logs all API requests with tier, block status, and timing
+- `rate_limit_overrides` - Custom rate limits per user, API key, or IP
+
+**Tier Limits (Default):**
+| Tier | Requests/Min | Daily Max |
+|------|--------------|-----------|
+| Free/Anonymous | 10 | 100 |
+| Starter | 30 | 1,000 |
+| Pro | 60 | 5,000 |
+| Enterprise | 300 | 100,000 |
+
+**API Endpoints:**
+- `GET /api/admin/rate-limits/tiers` - Get all tier configurations
+- `GET /api/admin/rate-limits/stats?hours=N` - Get rate limit statistics for last N hours
+- `GET /api/admin/rate-limits/overrides` - List active custom overrides
+- `POST /api/admin/rate-limits/overrides` - Create custom override
+- `DELETE /api/admin/rate-limits/overrides/:id` - Deactivate override
+- `POST /api/admin/rate-limits/report/send` - Send rate limit report email
+
+**Admin Panel:**
+- Rate Limits tab shows real-time stats, tier breakdown, and custom overrides
+- Add custom rate limits for specific API keys, users, or IPs
+- Send hourly rate limit reports on demand
+
+**Hourly Reports (Email):**
+- Auto-scheduled hourly reports with rate limit statistics
+- Shows total requests, blocked requests, block rate, unique clients
+- Tier breakdown with requests and blocks per tier
+- Top clients and endpoints by request volume
+
+**Files:**
+- `server/rateLimitMiddleware.ts` - Rate limiting and event logging
+- `server/rateLimitReportService.ts` - Report generation and email delivery
+- `client/src/pages/portal/admin.tsx` - Admin panel with Rate Limits tab
