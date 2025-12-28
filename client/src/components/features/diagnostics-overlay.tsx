@@ -593,11 +593,11 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
           </div>
 
           {/* Visual Data Visualization - Hidden on mobile when URL input is active */}
-          <div className={`p-4 lg:p-6 xl:p-8 bg-gradient-to-b from-slate-900 to-black relative overflow-hidden flex-1 flex flex-col max-h-[120px] lg:max-h-none ${flowState === 'urlInput' ? 'hidden lg:flex' : ''}`}>
+          <div className={`p-3 lg:p-4 bg-gradient-to-b from-slate-900 to-black relative overflow-hidden flex-1 flex flex-col max-h-[120px] lg:max-h-none ${flowState === 'urlInput' ? 'hidden lg:flex' : ''}`}>
              {/* Scanning Grid Background */}
              <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.05)_1px,transparent_1px)] bg-[size:20px_20px]" />
              
-             <div className="relative z-10 h-full flex flex-col justify-between overflow-y-auto">
+             <div className="relative z-10 h-full flex flex-col justify-between overflow-y-auto gap-2">
                 
                 {/* Center Visualization */}
                 <div className={`flex items-center justify-center ${graderResult ? 'flex-1' : 'py-4'}`}>
@@ -709,9 +709,9 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                        animate={{ scale: 1, opacity: 1 }}
                        className="text-center"
                      >
-                        <Shield className="w-12 h-12 lg:w-16 lg:h-16 text-primary mx-auto mb-2" />
-                        <h3 className="text-base lg:text-lg font-bold text-white">System Secure</h3>
-                        <p className="text-xs text-muted-foreground mt-1">No active threats detected.</p>
+                        <Shield className="w-10 h-10 lg:w-12 lg:h-12 text-primary mx-auto mb-1" />
+                        <h3 className="text-sm lg:text-base font-bold text-white">System Secure</h3>
+                        <p className="text-[10px] text-muted-foreground">No active threats detected.</p>
                         <Button
                           onClick={() => {
                             setStatus('idle');
@@ -719,10 +719,10 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                           }}
                           variant="outline"
                           size="sm"
-                          className="mt-3 border-primary/30 text-primary hover:bg-primary/10 font-mono text-xs"
+                          className="mt-2 border-primary/30 text-primary hover:bg-primary/10 font-mono text-[10px] h-7"
                           data-testid="button-rescan"
                         >
-                          <RefreshCw className="w-3 h-3 mr-2" />
+                          <RefreshCw className="w-3 h-3 mr-1" />
                           Re-Scan System
                         </Button>
                      </motion.div>
@@ -734,7 +734,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-r from-primary/10 to-purple-500/10 p-3 rounded-lg border border-primary/20 mb-3"
+                    className="bg-gradient-to-r from-primary/10 to-purple-500/10 p-2 rounded-lg border border-primary/20"
                     data-testid="geo-location-display"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -785,8 +785,8 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
 
                 {/* Data Grid */}
                 {!graderResult && (
-                  <div className="grid grid-cols-2 gap-2 md:gap-3">
-                    <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className="bg-white/5 p-1.5 md:p-2 rounded-lg border border-white/10">
                       <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
                         <Globe className="w-3 h-3" /> Public IP
                       </div>
@@ -795,7 +795,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                       </div>
                     </div>
 
-                    <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                    <div className="bg-white/5 p-1.5 md:p-2 rounded-lg border border-white/10">
                       <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
                         <Cpu className="w-3 h-3" /> System
                       </div>
@@ -804,7 +804,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                       </div>
                     </div>
 
-                    <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                    <div className="bg-white/5 p-1.5 md:p-2 rounded-lg border border-white/10">
                       <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
                         <Wifi className="w-3 h-3" /> Network
                       </div>
@@ -813,7 +813,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                       </div>
                     </div>
 
-                    <div className="bg-white/5 p-2 md:p-3 rounded-lg border border-white/10">
+                    <div className="bg-white/5 p-1.5 md:p-2 rounded-lg border border-white/10">
                       <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-muted-foreground mb-1">
                         <Lock className="w-3 h-3" /> Connection
                       </div>
@@ -827,7 +827,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
                 {/* Close Button */}
                 <Button
                   onClick={() => onOpenChange(false)}
-                  className="w-full mt-4 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 font-mono text-sm"
+                  className="w-full mt-2 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 font-mono text-xs h-8"
                   data-testid="button-close-diagnostic"
                 >
                   <X className="w-4 h-4 mr-2" />
