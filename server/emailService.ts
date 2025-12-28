@@ -344,10 +344,10 @@ export function generateWebsiteReportEmailHtml(data: WebsiteReportEmailData): st
 
   const categoryRows = categories.map(cat => `
     <tr>
-      <td style="padding: 12px 16px; color: #cbd5e1; font-size: 14px;">${cat.name}</td>
+      <td style="padding: 12px 16px; color: #ffffff; font-size: 14px;">${cat.name}</td>
       <td style="padding: 12px 16px; text-align: right;">
         <span style="color: ${getScoreColor(cat.score)}; font-weight: 600; font-size: 16px;">${cat.score}</span>
-        <span style="color: #64748b; font-size: 12px;">/100</span>
+        <span style="color: #94a3b8; font-size: 12px;">/100</span>
       </td>
     </tr>
   `).join('');
