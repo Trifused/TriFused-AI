@@ -66,7 +66,10 @@ import {
   EmailLog,
   InsertEmailLog,
   reportSettings,
-  ReportSettings
+  ReportSettings,
+  websiteReportSchedules,
+  WebsiteReportSchedule,
+  InsertWebsiteReportSchedule
 } from "@shared/schema";
 
 export interface IStorage {
@@ -206,6 +209,15 @@ export interface IStorage {
   getReportSettings(settingKey: string): Promise<ReportSettings | undefined>;
   upsertReportSettings(settingKey: string, data: { recipients: string; intervalMinutes: number; isActive?: number; updatedBy?: string }): Promise<ReportSettings>;
   updateReportSettingsLastSent(settingKey: string): Promise<void>;
+  
+  // Website report schedule methods
+  createWebsiteReportSchedule(data: InsertWebsiteReportSchedule): Promise<WebsiteReportSchedule>;
+  getWebsiteReportSchedule(id: string): Promise<WebsiteReportSchedule | undefined>;
+  getWebsiteReportScheduleByWebsite(userWebsiteId: string): Promise<WebsiteReportSchedule | undefined>;
+  getUserWebsiteReportSchedules(userId: string): Promise<WebsiteReportSchedule[]>;
+  getDueWebsiteReportSchedules(): Promise<WebsiteReportSchedule[]>;
+  updateWebsiteReportSchedule(id: string, data: Partial<WebsiteReportSchedule>): Promise<WebsiteReportSchedule | undefined>;
+  deleteWebsiteReportSchedule(id: string): Promise<void>;
 }
 
 class Storage implements IStorage {
@@ -988,6 +1000,85 @@ class Storage implements IStorage {
       .update(reportSettings)
       .set({ lastSentAt: new Date() })
       .where(eq(reportSettings.settingKey, settingKey));
+  }
+
+  // Website report schedule methods
+  async createWebsiteReportSchedule(data: InsertWebsiteReportSchedule): Promise<WebsiteReportSchedule> {
+    const nextScheduledAt = this.calculateNextScheduledDate(data.frequency || 'monthly');
+    const [schedule] = await db
+      .insert(websiteReportSchedules)
+      .values({ ...data, nextScheduledAt })
+      .returning();
+    return schedule;
+  }
+
+  async getWebsiteReportSchedule(id: string): Promise<WebsiteReportSchedule | undefined> {
+    const [schedule] = await db
+      .select()
+      .from(websiteReportSchedules)
+      .where(eq(websiteReportSchedules.id, id));
+    return schedule;
+  }
+
+  async getWebsiteReportScheduleByWebsite(userWebsiteId: string): Promise<WebsiteReportSchedule | undefined> {
+    const [schedule] = await db
+      .select()
+      .from(websiteReportSchedules)
+      .where(eq(websiteReportSchedules.userWebsiteId, userWebsiteId));
+    return schedule;
+  }
+
+  async getUserWebsiteReportSchedules(userId: string): Promise<WebsiteReportSchedule[]> {
+    return await db
+      .select()
+      .from(websiteReportSchedules)
+      .where(eq(websiteReportSchedules.userId, userId))
+      .orderBy(desc(websiteReportSchedules.createdAt));
+  }
+
+  async getDueWebsiteReportSchedules(): Promise<WebsiteReportSchedule[]> {
+    const now = new Date();
+    return await db
+      .select()
+      .from(websiteReportSchedules)
+      .where(
+        sql`${websiteReportSchedules.isActive} = 1 
+            AND ${websiteReportSchedules.frequency} != 'disabled' 
+            AND (${websiteReportSchedules.nextScheduledAt} IS NULL OR ${websiteReportSchedules.nextScheduledAt} <= ${now})`
+      );
+  }
+
+  async updateWebsiteReportSchedule(id: string, data: Partial<WebsiteReportSchedule>): Promise<WebsiteReportSchedule | undefined> {
+    const updateData: any = { ...data, updatedAt: new Date() };
+    if (data.frequency && data.frequency !== 'disabled') {
+      updateData.nextScheduledAt = this.calculateNextScheduledDate(data.frequency);
+    }
+    const [schedule] = await db
+      .update(websiteReportSchedules)
+      .set(updateData)
+      .where(eq(websiteReportSchedules.id, id))
+      .returning();
+    return schedule;
+  }
+
+  async deleteWebsiteReportSchedule(id: string): Promise<void> {
+    await db.delete(websiteReportSchedules).where(eq(websiteReportSchedules.id, id));
+  }
+
+  private calculateNextScheduledDate(frequency: string): Date {
+    const now = new Date();
+    switch (frequency) {
+      case 'daily':
+        return new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      case 'weekly':
+        return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      case 'monthly':
+        const next = new Date(now);
+        next.setMonth(next.getMonth() + 1);
+        return next;
+      default:
+        return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
   }
 }
 

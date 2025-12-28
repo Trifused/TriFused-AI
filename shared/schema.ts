@@ -941,3 +941,35 @@ export const insertRateLimitOverrideSchema = createInsertSchema(rateLimitOverrid
 
 export type InsertRateLimitOverride = z.infer<typeof insertRateLimitOverrideSchema>;
 export type RateLimitOverride = typeof rateLimitOverrides.$inferSelect;
+
+// Website report schedules - automated email reports for user websites
+export const websiteReportFrequencies = ["daily", "weekly", "monthly", "disabled"] as const;
+export type WebsiteReportFrequency = typeof websiteReportFrequencies[number];
+
+export const websiteReportSchedules = pgTable("website_report_schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  userWebsiteId: varchar("user_website_id").notNull(),
+  frequency: varchar("frequency").default("monthly").notNull(), // daily, weekly, monthly, disabled
+  recipientEmail: varchar("recipient_email"), // If null, uses user's email
+  includeFullReport: integer("include_full_report").default(1).notNull(),
+  lastSentAt: timestamp("last_sent_at"),
+  nextScheduledAt: timestamp("next_scheduled_at"),
+  isActive: integer("is_active").default(1).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_website_report_schedules_user").on(table.userId),
+  index("idx_website_report_schedules_website").on(table.userWebsiteId),
+  index("idx_website_report_schedules_next").on(table.nextScheduledAt),
+]);
+
+export const insertWebsiteReportScheduleSchema = createInsertSchema(websiteReportSchedules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastSentAt: true,
+});
+
+export type InsertWebsiteReportSchedule = z.infer<typeof insertWebsiteReportScheduleSchema>;
+export type WebsiteReportSchedule = typeof websiteReportSchedules.$inferSelect;
