@@ -783,3 +783,104 @@ export const insertReportSettingsSchema = createInsertSchema(reportSettings).omi
 
 export type InsertReportSettings = z.infer<typeof insertReportSettingsSchema>;
 export type ReportSettings = typeof reportSettings.$inferSelect;
+
+// Token packages - purchasable token bundles via Stripe
+export const tokenPackageStatuses = ["active", "inactive", "archived"] as const;
+export type TokenPackageStatus = typeof tokenPackageStatuses[number];
+
+export const tokenPackages = pgTable("token_packages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  tokens: integer("tokens").notNull(),
+  bonusTokens: integer("bonus_tokens").default(0).notNull(),
+  priceUsd: integer("price_usd").notNull(), // Price in cents
+  stripePriceId: varchar("stripe_price_id"),
+  stripeProductId: varchar("stripe_product_id"),
+  status: varchar("status").default("active").notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertTokenPackageSchema = createInsertSchema(tokenPackages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertTokenPackage = z.infer<typeof insertTokenPackageSchema>;
+export type TokenPackage = typeof tokenPackages.$inferSelect;
+
+// Token wallets - user token balances
+export const tokenWallets = pgTable("token_wallets", {
+  userId: varchar("user_id").primaryKey(),
+  balance: integer("balance").default(0).notNull(),
+  totalEarned: integer("total_earned").default(0).notNull(),
+  totalSpent: integer("total_spent").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertTokenWalletSchema = createInsertSchema(tokenWallets).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertTokenWallet = z.infer<typeof insertTokenWalletSchema>;
+export type TokenWallet = typeof tokenWallets.$inferSelect;
+
+// Token transactions - immutable ledger of all token movements
+export const tokenTransactionTypes = ["credit", "debit", "adjustment", "refund", "bonus", "expiry"] as const;
+export type TokenTransactionType = typeof tokenTransactionTypes[number];
+
+export const tokenTransactionSources = ["purchase", "spend", "admin", "promotion", "referral", "refund", "system"] as const;
+export type TokenTransactionSource = typeof tokenTransactionSources[number];
+
+export const tokenTransactions = pgTable("token_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  type: varchar("type").notNull(), // credit, debit, adjustment, refund, bonus, expiry
+  source: varchar("source").notNull(), // purchase, spend, admin, promotion, referral, refund, system
+  amount: integer("amount").notNull(), // Positive for credits, negative for debits
+  balanceAfter: integer("balance_after").notNull(),
+  description: text("description"),
+  referenceId: varchar("reference_id"), // Stripe session ID, feature code, etc.
+  referenceType: varchar("reference_type"), // stripe_checkout, feature_spend, admin_adjustment, etc.
+  idempotencyKey: varchar("idempotency_key").unique(), // Prevent duplicate transactions
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_token_transactions_user").on(table.userId),
+  index("idx_token_transactions_created").on(table.createdAt),
+]);
+
+export const insertTokenTransactionSchema = createInsertSchema(tokenTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTokenTransaction = z.infer<typeof insertTokenTransactionSchema>;
+export type TokenTransaction = typeof tokenTransactions.$inferSelect;
+
+// Token pricing for features - how many tokens each feature costs
+export const tokenPricing = pgTable("token_pricing", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  featureCode: varchar("feature_code").notNull().unique(),
+  featureName: varchar("feature_name").notNull(),
+  tokensRequired: integer("tokens_required").notNull(),
+  description: text("description"),
+  isActive: integer("is_active").default(1).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertTokenPricingSchema = createInsertSchema(tokenPricing).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertTokenPricing = z.infer<typeof insertTokenPricingSchema>;
+export type TokenPricing = typeof tokenPricing.$inferSelect;
