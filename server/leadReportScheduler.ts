@@ -2,9 +2,10 @@ import { storage } from './storage';
 import { sendAndLogEmail } from './emailService';
 import { format, subMinutes } from 'date-fns';
 
-const REPORT_RECIPIENTS = ['trifused@gmail.com'];
-const REPORT_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
-const INITIAL_LOOKBACK_MINUTES = 15; // Only look back 15 min on first run
+// Configurable settings - can be overridden via environment variables
+let REPORT_RECIPIENTS = (process.env.LEAD_REPORT_RECIPIENTS || 'trifused@gmail.com').split(',').map(e => e.trim());
+let REPORT_INTERVAL_MINUTES = parseInt(process.env.LEAD_REPORT_INTERVAL_MINUTES || '15', 10);
+let INITIAL_LOOKBACK_MINUTES = REPORT_INTERVAL_MINUTES;
 
 let lastReportSentAt: Date | null = null;
 
@@ -13,6 +14,17 @@ interface LeadReportData {
   chatLeads: Awaited<ReturnType<typeof storage.getChatLeads>>;
   serviceLeads: Awaited<ReturnType<typeof storage.getAllServiceLeads>>;
   emailSubscribers: Awaited<ReturnType<typeof storage.getAllEmailSubscribers>>;
+}
+
+interface UsageStats {
+  websiteGrades: {
+    total: number;
+    recent: Awaited<ReturnType<typeof storage.getAllWebsiteGrades>>;
+  };
+  diagnosticScans: {
+    total: number;
+    recent: Awaited<ReturnType<typeof storage.getAllDiagnosticScans>>;
+  };
 }
 
 async function getLeadsSince(since: Date): Promise<LeadReportData> {
@@ -29,7 +41,43 @@ async function getLeadsSince(since: Date): Promise<LeadReportData> {
   };
 }
 
-function generateLeadReportHtml(data: LeadReportData, since: Date): string {
+async function getUsageStats(since: Date): Promise<UsageStats> {
+  const allGrades = await storage.getAllWebsiteGrades();
+  const allScans = await storage.getAllDiagnosticScans();
+  const totalGrades = await storage.getWebsiteGradesCount();
+  const totalScans = await storage.getDiagnosticScansCount();
+
+  return {
+    websiteGrades: {
+      total: totalGrades,
+      recent: allGrades.filter(g => new Date(g.createdAt) > since),
+    },
+    diagnosticScans: {
+      total: totalScans,
+      recent: allScans.filter(s => new Date(s.scannedAt) > since),
+    },
+  };
+}
+
+async function getTotalMetrics() {
+  const [contacts, chatLeads, serviceLeads, subscribers, grades, diagnostics] = await Promise.all([
+    storage.getContactSubmissionsCount(),
+    storage.getChatLeadsCount(),
+    storage.getServiceLeadsCount(),
+    storage.getEmailSubscribersCount(),
+    storage.getWebsiteGradesCount(),
+    storage.getDiagnosticScansCount(),
+  ]);
+
+  return { contacts, chatLeads, serviceLeads, subscribers, grades, diagnostics };
+}
+
+function generateLeadReportHtml(
+  data: LeadReportData, 
+  usageStats: UsageStats,
+  totalMetrics: Awaited<ReturnType<typeof getTotalMetrics>>,
+  since: Date
+): string {
   const now = new Date();
   const periodStart = format(since, 'MMM d, yyyy h:mm a');
   const periodEnd = format(now, 'MMM d, yyyy h:mm a');
@@ -87,6 +135,17 @@ function generateLeadReportHtml(data: LeadReportData, since: Date): string {
     `;
   }
 
+  let graderRows = '';
+  for (const grade of usageStats.websiteGrades.recent.slice(0, 10)) {
+    graderRows += `
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <td style="padding: 12px; color: #22d3ee;">${grade.url}</td>
+        <td style="padding: 12px; color: #cbd5e1;">${grade.overallScore || '-'}</td>
+        <td style="padding: 12px; color: #64748b; font-size: 12px;">${format(new Date(grade.createdAt), 'MMM d, h:mm a')}</td>
+      </tr>
+    `;
+  }
+
   return `
     <!DOCTYPE html>
     <html>
@@ -98,31 +157,51 @@ function generateLeadReportHtml(data: LeadReportData, since: Date): string {
       <div style="max-width: 800px; margin: 0 auto; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; border: 1px solid rgba(34, 211, 238, 0.2); padding: 40px;">
         
         <div style="text-align: center; margin-bottom: 32px;">
-          <h1 style="color: #22d3ee; font-size: 28px; margin: 0 0 8px 0;">TriFused Lead Report</h1>
+          <h1 style="color: #22d3ee; font-size: 28px; margin: 0 0 8px 0;">TriFused Analytics Report</h1>
           <p style="color: #94a3b8; margin: 0;">${periodStart} → ${periodEnd}</p>
         </div>
 
+        <!-- New Leads Summary -->
         <div style="background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 12px; padding: 24px; margin-bottom: 32px; text-align: center;">
-          <p style="color: #94a3b8; margin: 0 0 8px 0; font-size: 14px;">Total New Leads</p>
+          <p style="color: #94a3b8; margin: 0 0 8px 0; font-size: 14px;">New Leads This Period</p>
           <p style="color: #22d3ee; font-size: 48px; font-weight: bold; margin: 0;">${totalNewLeads}</p>
         </div>
 
+        <!-- Lead Metrics Grid -->
+        <h2 style="color: #ffffff; font-size: 18px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+          📊 Lead Metrics (New / Total)
+        </h2>
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;">
           <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 16px; text-align: center;">
             <p style="color: #64748b; font-size: 12px; margin: 0 0 4px 0;">Contact Forms</p>
-            <p style="color: #ffffff; font-size: 24px; font-weight: bold; margin: 0;">${data.contactSubmissions.length}</p>
+            <p style="color: #ffffff; font-size: 24px; font-weight: bold; margin: 0;">${data.contactSubmissions.length} <span style="color: #64748b; font-size: 14px;">/ ${totalMetrics.contacts}</span></p>
           </div>
           <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 16px; text-align: center;">
             <p style="color: #64748b; font-size: 12px; margin: 0 0 4px 0;">Chat Leads</p>
-            <p style="color: #ffffff; font-size: 24px; font-weight: bold; margin: 0;">${data.chatLeads.length}</p>
+            <p style="color: #ffffff; font-size: 24px; font-weight: bold; margin: 0;">${data.chatLeads.length} <span style="color: #64748b; font-size: 14px;">/ ${totalMetrics.chatLeads}</span></p>
           </div>
           <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 16px; text-align: center;">
             <p style="color: #64748b; font-size: 12px; margin: 0 0 4px 0;">Service Leads</p>
-            <p style="color: #ffffff; font-size: 24px; font-weight: bold; margin: 0;">${data.serviceLeads.length}</p>
+            <p style="color: #ffffff; font-size: 24px; font-weight: bold; margin: 0;">${data.serviceLeads.length} <span style="color: #64748b; font-size: 14px;">/ ${totalMetrics.serviceLeads}</span></p>
           </div>
           <div style="background: rgba(255,255,255,0.05); border-radius: 8px; padding: 16px; text-align: center;">
             <p style="color: #64748b; font-size: 12px; margin: 0 0 4px 0;">Subscribers</p>
-            <p style="color: #ffffff; font-size: 24px; font-weight: bold; margin: 0;">${data.emailSubscribers.length}</p>
+            <p style="color: #ffffff; font-size: 24px; font-weight: bold; margin: 0;">${data.emailSubscribers.length} <span style="color: #64748b; font-size: 14px;">/ ${totalMetrics.subscribers}</span></p>
+          </div>
+        </div>
+
+        <!-- Usage Stats Grid -->
+        <h2 style="color: #ffffff; font-size: 18px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+          📈 Platform Usage (New / Total)
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 32px;">
+          <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 16px; text-align: center;">
+            <p style="color: #64748b; font-size: 12px; margin: 0 0 4px 0;">🔍 Website Grades</p>
+            <p style="color: #10b981; font-size: 32px; font-weight: bold; margin: 0;">${usageStats.websiteGrades.recent.length} <span style="color: #64748b; font-size: 14px;">/ ${totalMetrics.grades}</span></p>
+          </div>
+          <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 8px; padding: 16px; text-align: center;">
+            <p style="color: #64748b; font-size: 12px; margin: 0 0 4px 0;">🖥️ Diagnostic Scans</p>
+            <p style="color: #8b5cf6; font-size: 32px; font-weight: bold; margin: 0;">${usageStats.diagnosticScans.recent.length} <span style="color: #64748b; font-size: 14px;">/ ${totalMetrics.diagnostics}</span></p>
           </div>
         </div>
 
@@ -208,16 +287,36 @@ function generateLeadReportHtml(data: LeadReportData, since: Date): string {
         </div>
         ` : ''}
 
-        ${totalNewLeads === 0 ? `
+        ${usageStats.websiteGrades.recent.length > 0 ? `
+        <div style="margin-bottom: 32px;">
+          <h2 style="color: #ffffff; font-size: 18px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+            🔍 Recent Website Grades (${usageStats.websiteGrades.recent.length})
+          </h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 2px solid rgba(16, 185, 129, 0.3);">
+                <th style="padding: 12px; text-align: left; color: #94a3b8; font-size: 12px;">URL</th>
+                <th style="padding: 12px; text-align: left; color: #94a3b8; font-size: 12px;">Score</th>
+                <th style="padding: 12px; text-align: left; color: #94a3b8; font-size: 12px;">Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${graderRows}
+            </tbody>
+          </table>
+        </div>
+        ` : ''}
+
+        ${totalNewLeads === 0 && usageStats.websiteGrades.recent.length === 0 && usageStats.diagnosticScans.recent.length === 0 ? `
         <div style="text-align: center; padding: 40px; color: #64748b;">
-          <p style="font-size: 16px; margin: 0;">No new leads in this period.</p>
+          <p style="font-size: 16px; margin: 0;">No new activity in this period.</p>
         </div>
         ` : ''}
 
         <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 32px 0;">
         
         <p style="color: #64748b; font-size: 12px; text-align: center; margin: 0;">
-          This is an automated report from TriFused. Reports are sent every 15 minutes.<br>
+          This is an automated report from TriFused. Reports are sent every ${REPORT_INTERVAL_MINUTES} minutes.<br>
           &copy; ${new Date().getFullYear()} TriFused. All rights reserved.
         </p>
       </div>
@@ -231,18 +330,25 @@ async function sendLeadReport() {
     // On first run, only look back INITIAL_LOOKBACK_MINUTES instead of all historical data
     const sinceCutoff = lastReportSentAt || subMinutes(new Date(), INITIAL_LOOKBACK_MINUTES);
     
-    const data = await getLeadsSince(sinceCutoff);
-    const html = generateLeadReportHtml(data, sinceCutoff);
+    const [data, usageStats, totalMetrics] = await Promise.all([
+      getLeadsSince(sinceCutoff),
+      getUsageStats(sinceCutoff),
+      getTotalMetrics(),
+    ]);
     
-    const totalLeads = 
+    const html = generateLeadReportHtml(data, usageStats, totalMetrics, sinceCutoff);
+    
+    const totalNewLeads = 
       data.contactSubmissions.length + 
       data.chatLeads.length + 
       data.serviceLeads.length + 
       data.emailSubscribers.length;
 
-    const subject = totalLeads > 0 
-      ? `TriFused Lead Report: ${totalLeads} New Lead${totalLeads === 1 ? '' : 's'}`
-      : 'TriFused Lead Report: No New Leads';
+    const totalActivity = totalNewLeads + usageStats.websiteGrades.recent.length + usageStats.diagnosticScans.recent.length;
+
+    const subject = totalActivity > 0 
+      ? `TriFused Analytics: ${totalNewLeads} Leads, ${usageStats.websiteGrades.recent.length} Grades, ${usageStats.diagnosticScans.recent.length} Scans`
+      : 'TriFused Analytics: No New Activity';
 
     // Send to all recipients
     const sendPromises = REPORT_RECIPIENTS.map(recipient => 
@@ -256,6 +362,8 @@ async function sendLeadReport() {
           chatLeads: data.chatLeads.length,
           serviceLeads: data.serviceLeads.length,
           emailSubscribers: data.emailSubscribers.length,
+          websiteGrades: usageStats.websiteGrades.recent.length,
+          diagnosticScans: usageStats.diagnosticScans.recent.length,
           periodStart: sinceCutoff.toISOString(),
           periodEnd: new Date().toISOString(),
         },
@@ -266,7 +374,7 @@ async function sendLeadReport() {
     const allSuccessful = results.every(r => r.success);
 
     if (allSuccessful) {
-      console.log(`[LeadReport] Report sent successfully to ${REPORT_RECIPIENTS.join(', ')} (${totalLeads} leads)`);
+      console.log(`[LeadReport] Report sent successfully to ${REPORT_RECIPIENTS.join(', ')} (${totalNewLeads} leads, ${usageStats.websiteGrades.recent.length} grades, ${usageStats.diagnosticScans.recent.length} scans)`);
       lastReportSentAt = new Date();
     } else {
       const failedRecipients = REPORT_RECIPIENTS.filter((_, i) => !results[i].success);
@@ -289,17 +397,17 @@ export function startLeadReportScheduler() {
     return;
   }
 
-  console.log(`[LeadReport] Starting scheduler - reports will be sent every 15 minutes to ${REPORT_RECIPIENTS.join(', ')}`);
+  console.log(`[LeadReport] Starting scheduler - reports will be sent every ${REPORT_INTERVAL_MINUTES} minutes to ${REPORT_RECIPIENTS.join(', ')}`);
   
   // Send first report after 1 minute to allow system to fully initialize
   setTimeout(() => {
     sendLeadReport();
   }, 60 * 1000);
 
-  // Then send every 15 minutes
+  // Then send at configured interval
   schedulerInterval = setInterval(() => {
     sendLeadReport();
-  }, REPORT_INTERVAL_MS);
+  }, REPORT_INTERVAL_MINUTES * 60 * 1000);
 }
 
 export function stopLeadReportScheduler() {
@@ -308,6 +416,34 @@ export function stopLeadReportScheduler() {
     schedulerInterval = null;
     console.log('[LeadReport] Scheduler stopped');
   }
+}
+
+// Update settings dynamically (can be called from admin API)
+export function updateReportSettings(options: {
+  recipients?: string[];
+  intervalMinutes?: number;
+}) {
+  if (options.recipients) {
+    REPORT_RECIPIENTS = options.recipients;
+  }
+  if (options.intervalMinutes && options.intervalMinutes >= 1) {
+    REPORT_INTERVAL_MINUTES = options.intervalMinutes;
+    INITIAL_LOOKBACK_MINUTES = options.intervalMinutes;
+    
+    // Restart the scheduler with new interval
+    if (schedulerInterval) {
+      stopLeadReportScheduler();
+      startLeadReportScheduler();
+    }
+  }
+  console.log(`[LeadReport] Settings updated: interval=${REPORT_INTERVAL_MINUTES}min, recipients=${REPORT_RECIPIENTS.join(', ')}`);
+}
+
+export function getReportSettings() {
+  return {
+    recipients: REPORT_RECIPIENTS,
+    intervalMinutes: REPORT_INTERVAL_MINUTES,
+  };
 }
 
 // Export for manual trigger from admin

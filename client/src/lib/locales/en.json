@@ -12,11 +12,28 @@
     "initialize_ai": "Initialize AI"
   },
   "hero": {
+    "system_online": "System Online v4.0",
+    "we_build": "We Build",
+    "intelligent": "Intelligent",
+    "futures": "Futures.",
     "tagline": "AI-Native Technology",
     "title": "Building Tomorrow's Infrastructure",
     "subtitle": "We engineer autonomous systems that secure, scale, and accelerate your digital transformation",
     "cta_primary": "Start Your Analysis",
-    "cta_secondary": "View Services"
+    "cta_secondary": "View Services",
+    "start_transformation": "Start Transformation",
+    "website_grader": "Website Grader",
+    "run_diagnostics": "Run Diagnostics",
+    "backup_calculator": "Backup Calculator",
+    "typewriter_1": "Deploying Cognitive Cybersecurity...",
+    "typewriter_2": "Optimizing Autonomous Infrastructure...",
+    "typewriter_3": "Generating Growth Engines...",
+    "typewriter_4": "Supercharging Enterprise with LLMs...",
+    "system_status": "System Status",
+    "optimal": "OPTIMAL",
+    "active_nodes": "Active Nodes",
+    "threat_level": "Threat Level",
+    "ai_compute": "AI Compute"
   },
   "services": {
     "title": "Our Services",

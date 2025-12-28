@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { DiagnosticsOverlay } from "@/components/features/diagnostics-overlay";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "@/context/language-context";
 
 const Typewriter = ({ sequences, speed = 50, pause = 2000 }: { sequences: string[], speed?: number, pause?: number }) => {
   const [index, setIndex] = useState(0);
@@ -46,6 +48,8 @@ const Typewriter = ({ sequences, speed = 50, pause = 2000 }: { sequences: string
 export function Hero() {
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
+  const { isRTL } = useLanguage();
 
   return (
     <div className="relative min-h-screen flex items-center pt-20 overflow-hidden">
@@ -76,35 +80,35 @@ export function Hero() {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-mono uppercase tracking-widest">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            System Online v4.0
+            {t('hero.system_online')}
           </div>
           
           <h1 className="text-5xl md:text-7xl font-bold font-heading leading-[1.1] tracking-tight text-white">
-            We Build <br />
+            {t('hero.we_build')} <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-500 text-glow">
-              Intelligent
+              {t('hero.intelligent')}
             </span> <br />
-            Futures.
+            {t('hero.futures')}
           </h1>
 
           <div className="text-xl text-muted-foreground h-[60px] font-light">
             <Typewriter 
               sequences={[
-                'Deploying Cognitive Cybersecurity...',
-                'Optimizing Autonomous Infrastructure...',
-                'Generating Growth Engines...',
-                'Supercharging Enterprise with LLMs...'
+                t('hero.typewriter_1'),
+                t('hero.typewriter_2'),
+                t('hero.typewriter_3'),
+                t('hero.typewriter_4')
               ]}
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row flex-wrap gap-4 pt-4">
+          <div className={`flex flex-col sm:flex-row flex-wrap gap-4 pt-4 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
             <Button 
               size="lg" 
               className="h-14 px-8 text-base bg-white text-black hover:bg-white/90 font-bold rounded-full transition-all hover:scale-105"
               onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              Start Transformation <ArrowRight className="ml-2 w-5 h-5" />
+              {t('hero.start_transformation')} <ArrowRight className={`${isRTL ? 'mr-2 rotate-180' : 'ml-2'} w-5 h-5`} />
             </Button>
             <Button 
               size="lg" 
@@ -112,8 +116,8 @@ export function Hero() {
               onClick={() => setLocation('/grader')}
               data-testid="button-hero-grader"
             >
-              <Search className="mr-2 w-5 h-5" />
-              Website Grader
+              <Search className={`${isRTL ? 'ml-2' : 'mr-2'} w-5 h-5`} />
+              {t('hero.website_grader')}
             </Button>
             <Button 
               size="lg" 
@@ -121,8 +125,8 @@ export function Hero() {
               className="h-14 px-8 text-base border-white/20 hover:bg-white/10 rounded-full font-mono"
               onClick={() => setShowDiagnostics(true)}
             >
-              <Terminal className="mr-2 w-5 h-5" />
-              Run Diagnostics
+              <Terminal className={`${isRTL ? 'ml-2' : 'mr-2'} w-5 h-5`} />
+              {t('hero.run_diagnostics')}
             </Button>
             <Button 
               size="lg" 
@@ -131,8 +135,8 @@ export function Hero() {
               onClick={() => setLocation('/backup-calculator')}
               data-testid="button-hero-backup-calculator"
             >
-              <Calculator className="mr-2 w-5 h-5" />
-              Backup Calculator
+              <Calculator className={`${isRTL ? 'ml-2' : 'mr-2'} w-5 h-5`} />
+              {t('hero.backup_calculator')}
             </Button>
           </div>
         </motion.div>
@@ -149,22 +153,22 @@ export function Hero() {
             
             <div className="grid grid-cols-2 gap-4 font-mono text-sm">
               <div className="space-y-2">
-                <div className="text-muted-foreground text-xs uppercase">System Status</div>
+                <div className="text-muted-foreground text-xs uppercase">{t('hero.system_status')}</div>
                 <div className="text-primary flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-500 rounded-full" />
-                  OPTIMAL
+                  {t('hero.optimal')}
                 </div>
               </div>
               <div className="space-y-2">
-                <div className="text-muted-foreground text-xs uppercase">Active Nodes</div>
+                <div className="text-muted-foreground text-xs uppercase">{t('hero.active_nodes')}</div>
                 <div className="text-white">8,492</div>
               </div>
               <div className="space-y-2">
-                <div className="text-muted-foreground text-xs uppercase">Threat Level</div>
+                <div className="text-muted-foreground text-xs uppercase">{t('hero.threat_level')}</div>
                 <div className="text-white">NULL</div>
               </div>
               <div className="space-y-2">
-                <div className="text-muted-foreground text-xs uppercase">AI Compute</div>
+                <div className="text-muted-foreground text-xs uppercase">{t('hero.ai_compute')}</div>
                 <div className="text-primary animate-pulse">98.4%</div>
               </div>
             </div>

@@ -26,6 +26,7 @@ import { runSecurityScan, type SecurityScanResult } from "./securityScanner";
 import { getStripePublishableKey } from "./stripeClient";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
+import { getReportSettings, updateReportSettings, sendLeadReport } from "./leadReportScheduler";
 
 // AI Vision helper for FDIC badge detection
 async function detectFdicWithVision(url: string): Promise<{ found: boolean; confidence: string; location: string | null }> {
@@ -1761,6 +1762,37 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Admin contacts error:", error);
       res.status(500).json({ error: "Failed to fetch contact submissions" });
+    }
+  });
+
+  app.get("/api/admin/lead-report/settings", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const settings = getReportSettings();
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Lead report settings error:", error);
+      res.status(500).json({ error: "Failed to fetch lead report settings" });
+    }
+  });
+
+  app.put("/api/admin/lead-report/settings", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { recipients, intervalMinutes } = req.body;
+      updateReportSettings({ recipients, intervalMinutes });
+      res.json({ success: true, settings: getReportSettings() });
+    } catch (error: any) {
+      console.error("Update lead report settings error:", error);
+      res.status(500).json({ error: "Failed to update lead report settings" });
+    }
+  });
+
+  app.post("/api/admin/lead-report/send", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      await sendLeadReport();
+      res.json({ success: true, message: "Lead report sent successfully" });
+    } catch (error: any) {
+      console.error("Send lead report error:", error);
+      res.status(500).json({ error: "Failed to send lead report" });
     }
   });
 

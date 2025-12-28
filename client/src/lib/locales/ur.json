@@ -12,11 +12,28 @@
     "initialize_ai": "AI شروع کریں"
   },
   "hero": {
+    "system_online": "سسٹم آن لائن v4.0",
+    "we_build": "ہم بناتے ہیں",
+    "intelligent": "ذہین",
+    "futures": "مستقبل۔",
     "tagline": "AI-Native ٹیکنالوجی",
     "title": "کل کا انفراسٹرکچر بنانا",
     "subtitle": "ہم خود مختار نظام بناتے ہیں جو آپ کی ڈیجیٹل تبدیلی کو محفوظ، توسیع اور تیز کرتے ہیں",
     "cta_primary": "اپنا تجزیہ شروع کریں",
-    "cta_secondary": "خدمات دیکھیں"
+    "cta_secondary": "خدمات دیکھیں",
+    "start_transformation": "تبدیلی شروع کریں",
+    "website_grader": "ویب سائٹ گریڈر",
+    "run_diagnostics": "تشخیص چلائیں",
+    "backup_calculator": "بیک اپ کیلکولیٹر",
+    "typewriter_1": "علمی سائبر سیکیورٹی تعینات کرنا...",
+    "typewriter_2": "خود مختار انفراسٹرکچر کو بہتر بنانا...",
+    "typewriter_3": "گروتھ انجن بنانا...",
+    "typewriter_4": "LLMs کے ساتھ انٹرپرائز کو سپرچارج کرنا...",
+    "system_status": "سسٹم کی حیثیت",
+    "optimal": "بہترین",
+    "active_nodes": "فعال نوڈز",
+    "threat_level": "خطرے کی سطح",
+    "ai_compute": "AI کمپیوٹ"
   },
   "services": {
     "title": "ہماری خدمات",
