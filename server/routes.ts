@@ -6308,6 +6308,59 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Resend receipt for user's order
+  app.post("/api/stripe/orders/:sessionId/resend-receipt", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { sessionId } = req.params;
+      const { email } = req.body;
+
+      const user = await storage.getUser(userId);
+      if (!user?.stripeCustomerId) {
+        return res.status(400).json({ error: "No billing account found" });
+      }
+
+      // Get order details and verify ownership
+      const order = await stripeService.getOrderDetails(sessionId);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      if (order.customer !== user.stripeCustomerId) {
+        return res.status(403).json({ error: "You can only resend receipts for your own orders" });
+      }
+
+      if (!order.charge_id) {
+        return res.status(400).json({ error: "No charge found for this order" });
+      }
+
+      if (order.payment_status !== 'paid') {
+        return res.status(400).json({ error: "Receipt can only be sent for completed payments" });
+      }
+
+      if (order.refunded) {
+        return res.status(400).json({ error: "Cannot resend receipt for refunded orders" });
+      }
+
+      // Use provided email or fallback to customer email
+      const recipientEmail = email || order.customer_email || order.customer_email_stripe;
+      if (!recipientEmail) {
+        return res.status(400).json({ error: "No email address available" });
+      }
+
+      await stripeService.resendReceipt(order.charge_id, recipientEmail);
+      
+      res.json({ success: true, message: `Receipt sent to ${recipientEmail}` });
+    } catch (error) {
+      console.error("Resend receipt error:", error);
+      res.status(500).json({ error: "Failed to resend receipt" });
+    }
+  });
+
   // Get user's subscriptions
   app.get("/api/stripe/subscriptions", isAuthenticated, async (req: any, res: Response) => {
     try {
@@ -6431,6 +6484,43 @@ Your primary goal is to help users AND capture their contact information natural
     } catch (error) {
       console.error("Stripe sync error:", error);
       res.status(500).json({ error: "Failed to sync Stripe data" });
+    }
+  });
+
+  // Admin resend receipt for any order
+  app.post("/api/admin/stripe/orders/:sessionId/resend-receipt", isAuthenticated, isSuperuser, async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      const { email } = req.body;
+
+      const order = await stripeService.getOrderDetails(sessionId);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      if (!order.charge_id) {
+        return res.status(400).json({ error: "No charge found for this order" });
+      }
+
+      if (order.payment_status !== 'paid') {
+        return res.status(400).json({ error: "Receipt can only be sent for completed payments" });
+      }
+
+      if (order.refunded) {
+        return res.status(400).json({ error: "Cannot resend receipt for refunded orders" });
+      }
+
+      const recipientEmail = email || order.customer_email || order.customer_email_stripe;
+      if (!recipientEmail) {
+        return res.status(400).json({ error: "No email address available. Please provide an email." });
+      }
+
+      await stripeService.resendReceipt(order.charge_id, recipientEmail);
+      
+      res.json({ success: true, message: `Receipt sent to ${recipientEmail}` });
+    } catch (error) {
+      console.error("Admin resend receipt error:", error);
+      res.status(500).json({ error: "Failed to resend receipt" });
     }
   });
 

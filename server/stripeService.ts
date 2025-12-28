@@ -387,7 +387,9 @@ export class StripeService {
           cs.currency,
           cs.mode,
           cs.created,
+          cs.customer_email,
           pi.status as payment_status_detail,
+          ch.id as charge_id,
           ch.refunded
         FROM stripe.checkout_sessions cs
         LEFT JOIN stripe.payment_intents pi ON cs.payment_intent = pi.id
@@ -398,6 +400,14 @@ export class StripeService {
       `
     );
     return result.rows;
+  }
+
+  async resendReceipt(chargeId: string, email: string) {
+    const stripe = await getUncachableStripeClient();
+    const charge = await stripe.charges.update(chargeId, {
+      receipt_email: email
+    });
+    return charge;
   }
 
   async getUserSubscriptions(customerId: string, limit = 50, offset = 0) {

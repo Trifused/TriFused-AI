@@ -45,6 +45,8 @@ interface Order {
   mode: string | null;
   created: number | null;
   refunded: boolean | null;
+  charge_id: string | null;
+  customer_email: string | null;
 }
 
 interface Subscription {
@@ -177,6 +179,34 @@ export default function Billing() {
     onError: (error: Error) => {
       toast({
         title: "Cancellation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resendReceiptMutation = useMutation({
+    mutationFn: async (sessionId: string) => {
+      const res = await fetch(`/api/stripe/orders/${sessionId}/resend-receipt`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to resend receipt");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Receipt Sent",
+        description: data.message || "Receipt has been sent to your email.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Send Receipt",
         description: error.message,
         variant: "destructive",
       });
@@ -456,8 +486,8 @@ export default function Billing() {
                                   </p>
                                 </div>
                               </div>
-                              {hasStripeCustomer && (
-                                <div className="mt-4 pt-3 border-t border-white/10">
+                              <div className="mt-4 pt-3 border-t border-white/10 flex gap-2 flex-wrap">
+                                {hasStripeCustomer && (
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -467,10 +497,23 @@ export default function Billing() {
                                     data-testid={`btn-view-invoice-${order.session_id}`}
                                   >
                                     <ExternalLink className="w-4 h-4 mr-2" />
-                                    View Invoice in Billing Portal
+                                    View Invoice
                                   </Button>
-                                </div>
-                              )}
+                                )}
+                                {order.charge_id && order.payment_status === 'paid' && !order.refunded && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => resendReceiptMutation.mutate(order.session_id)}
+                                    disabled={resendReceiptMutation.isPending}
+                                    className="border-white/20 hover:border-white/40"
+                                    data-testid={`btn-resend-receipt-${order.session_id}`}
+                                  >
+                                    <Receipt className="w-4 h-4 mr-2" />
+                                    {resendReceiptMutation.isPending ? 'Sending...' : 'Resend Receipt'}
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           </motion.div>
                         )}

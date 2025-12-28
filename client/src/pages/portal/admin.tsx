@@ -1058,6 +1058,28 @@ export default function Admin() {
     },
   });
 
+  const resendReceiptMutation = useMutation({
+    mutationFn: async ({ sessionId, email }: { sessionId: string; email?: string }) => {
+      const res = await fetch(`/api/admin/stripe/orders/${sessionId}/resend-receipt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to resend receipt');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Receipt Sent", description: data.message });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to Send Receipt", description: error.message, variant: "destructive" });
+    },
+  });
+
   const sendWelcomeEmailMutation = useMutation({
     mutationFn: async (userId: string) => {
       const res = await fetch(`/api/admin/users/${userId}/send-welcome-email`, {
@@ -2994,6 +3016,18 @@ export default function Admin() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
+                              {order.charge_id && order.payment_status === 'paid' && !order.refunded && (
+                                <button
+                                  type="button"
+                                  onClick={() => resendReceiptMutation.mutate({ sessionId: order.session_id })}
+                                  disabled={resendReceiptMutation.isPending}
+                                  className="text-xs text-green-400 hover:text-green-300 flex items-center gap-1 disabled:opacity-50"
+                                  data-testid={`btn-resend-receipt-${order.session_id}`}
+                                >
+                                  <Receipt className="w-3 h-3" />
+                                  {resendReceiptMutation.isPending ? 'Sending...' : 'Receipt'}
+                                </button>
+                              )}
                               <a
                                 href={`https://dashboard.stripe.com/payments/${order.session_id}`}
                                 target="_blank"
