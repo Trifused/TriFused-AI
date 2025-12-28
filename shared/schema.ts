@@ -760,3 +760,26 @@ export const insertEmailLogSchema = createInsertSchema(emailLogs).omit({
 
 export type InsertEmailLog = z.infer<typeof insertEmailLogSchema>;
 export type EmailLog = typeof emailLogs.$inferSelect;
+
+// Report settings for configurable lead report scheduling
+export const reportSettings = pgTable("report_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  settingKey: varchar("setting_key").notNull().unique(),
+  recipients: text("recipients").notNull(),
+  intervalMinutes: integer("interval_minutes").default(60).notNull(),
+  isActive: integer("is_active").default(1).notNull(),
+  lastSentAt: timestamp("last_sent_at"),
+  updatedBy: varchar("updated_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertReportSettingsSchema = createInsertSchema(reportSettings).omit({
+  id: true,
+  lastSentAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertReportSettings = z.infer<typeof insertReportSettingsSchema>;
+export type ReportSettings = typeof reportSettings.$inferSelect;
