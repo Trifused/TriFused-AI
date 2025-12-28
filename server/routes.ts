@@ -443,10 +443,16 @@ export async function registerRoutes(
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const realUserId = req.user.claims.sub;
+      const userEmail = req.user.claims.email;
       let realUser = await storage.getUser(realUserId);
       
+      // If user not found by ID, try finding by email (for admin-created accounts)
+      if (!realUser && userEmail) {
+        realUser = await storage.getUserByEmail(userEmail);
+      }
+      
       if (realUser && realUser.email && SUPERUSER_EMAILS.includes(realUser.email.toLowerCase()) && realUser.role !== "superuser") {
-        realUser = await storage.updateUserRole(realUserId, "superuser") || realUser;
+        realUser = await storage.updateUserRole(realUser.id, "superuser") || realUser;
       }
       
       // Check for impersonation
