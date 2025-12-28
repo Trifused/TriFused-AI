@@ -2,12 +2,44 @@ import { storage } from './storage';
 import { sendAndLogEmail } from './emailService';
 import { format, subMinutes } from 'date-fns';
 
-// Configurable settings - can be overridden via environment variables
-let REPORT_RECIPIENTS = (process.env.LEAD_REPORT_RECIPIENTS || 'trifused@gmail.com').split(',').map(e => e.trim());
-let REPORT_INTERVAL_MINUTES = parseInt(process.env.LEAD_REPORT_INTERVAL_MINUTES || '1', 10);
+const SETTING_KEY = 'lead_report';
+
+// Default settings (fallback if database has no record)
+const DEFAULT_RECIPIENTS = (process.env.LEAD_REPORT_RECIPIENTS || 'trifused@gmail.com').split(',').map(e => e.trim());
+const DEFAULT_INTERVAL_MINUTES = parseInt(process.env.LEAD_REPORT_INTERVAL_MINUTES || '1', 10);
+
+// In-memory cache of settings (loaded from database)
+let REPORT_RECIPIENTS = DEFAULT_RECIPIENTS;
+let REPORT_INTERVAL_MINUTES = DEFAULT_INTERVAL_MINUTES;
 let INITIAL_LOOKBACK_MINUTES = REPORT_INTERVAL_MINUTES;
 
 let lastReportSentAt: Date | null = null;
+let settingsLoaded = false;
+
+// Load settings from database on startup
+async function loadSettingsFromDatabase(): Promise<void> {
+  try {
+    const dbSettings = await storage.getReportSettings(SETTING_KEY);
+    if (dbSettings) {
+      REPORT_RECIPIENTS = dbSettings.recipients.split(',').map(e => e.trim()).filter(e => e);
+      REPORT_INTERVAL_MINUTES = dbSettings.intervalMinutes;
+      INITIAL_LOOKBACK_MINUTES = dbSettings.intervalMinutes;
+      lastReportSentAt = dbSettings.lastSentAt || null;
+      console.log(`[LeadReport] Loaded settings from database: interval=${REPORT_INTERVAL_MINUTES}min, recipients=${REPORT_RECIPIENTS.join(', ')}`);
+    } else {
+      // Create initial record in database with defaults
+      await storage.upsertReportSettings(SETTING_KEY, {
+        recipients: DEFAULT_RECIPIENTS.join(', '),
+        intervalMinutes: DEFAULT_INTERVAL_MINUTES,
+        isActive: 1,
+      });
+      console.log(`[LeadReport] Created default settings in database`);
+    }
+    settingsLoaded = true;
+  } catch (error) {
+    console.error('[LeadReport] Error loading settings from database:', error);
+  }
+}
 
 interface LeadReportData {
   contactSubmissions: Awaited<ReturnType<typeof storage.getAllContactSubmissions>>;
@@ -376,12 +408,15 @@ async function sendLeadReport() {
     if (allSuccessful) {
       console.log(`[LeadReport] Report sent successfully to ${REPORT_RECIPIENTS.join(', ')} (${totalNewLeads} leads, ${usageStats.websiteGrades.recent.length} grades, ${usageStats.diagnosticScans.recent.length} scans)`);
       lastReportSentAt = new Date();
+      // Update last sent timestamp in database
+      await storage.updateReportSettingsLastSent(SETTING_KEY);
     } else {
       const failedRecipients = REPORT_RECIPIENTS.filter((_, i) => !results[i].success);
       console.error('[LeadReport] Failed to send report to:', failedRecipients.join(', '));
       // Still update timestamp if at least one succeeded to avoid duplicate sends
       if (results.some(r => r.success)) {
         lastReportSentAt = new Date();
+        await storage.updateReportSettingsLastSent(SETTING_KEY);
       }
     }
   } catch (error) {
@@ -391,11 +426,14 @@ async function sendLeadReport() {
 
 let schedulerInterval: NodeJS.Timeout | null = null;
 
-export function startLeadReportScheduler() {
+export async function startLeadReportScheduler() {
   if (schedulerInterval) {
     console.log('[LeadReport] Scheduler already running');
     return;
   }
+
+  // Load settings from database first
+  await loadSettingsFromDatabase();
 
   console.log(`[LeadReport] Starting scheduler - reports will be sent every ${REPORT_INTERVAL_MINUTES} minutes to ${REPORT_RECIPIENTS.join(', ')}`);
   
@@ -418,10 +456,11 @@ export function stopLeadReportScheduler() {
   }
 }
 
-// Update settings dynamically (can be called from admin API)
-export function updateReportSettings(options: {
+// Update settings dynamically (can be called from admin API) - persists to database
+export async function updateReportSettings(options: {
   recipients?: string[];
   intervalMinutes?: number;
+  updatedBy?: string;
 }) {
   if (options.recipients) {
     REPORT_RECIPIENTS = options.recipients;
@@ -433,10 +472,19 @@ export function updateReportSettings(options: {
     // Restart the scheduler with new interval
     if (schedulerInterval) {
       stopLeadReportScheduler();
-      startLeadReportScheduler();
+      await startLeadReportScheduler();
     }
   }
-  console.log(`[LeadReport] Settings updated: interval=${REPORT_INTERVAL_MINUTES}min, recipients=${REPORT_RECIPIENTS.join(', ')}`);
+  
+  // Persist to database
+  await storage.upsertReportSettings(SETTING_KEY, {
+    recipients: REPORT_RECIPIENTS.join(', '),
+    intervalMinutes: REPORT_INTERVAL_MINUTES,
+    isActive: 1,
+    updatedBy: options.updatedBy,
+  });
+  
+  console.log(`[LeadReport] Settings updated and persisted: interval=${REPORT_INTERVAL_MINUTES}min, recipients=${REPORT_RECIPIENTS.join(', ')}`);
 }
 
 export function getReportSettings() {
