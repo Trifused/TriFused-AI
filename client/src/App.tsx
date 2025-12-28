@@ -28,6 +28,7 @@ const MFT = lazy(() => import("@/pages/portal/mft"));
 const Media = lazy(() => import("@/pages/portal/media"));
 const Integrations = lazy(() => import("@/pages/portal/integrations"));
 const Billing = lazy(() => import("@/pages/portal/billing"));
+const Tokens = lazy(() => import("@/pages/portal/tokens"));
 const ApiPortal = lazy(() => import("@/pages/portal/api"));
 const ReportsPortal = lazy(() => import("@/pages/portal/reports"));
 const WebsitesPortal = lazy(() => import("@/pages/portal/websites"));
@@ -75,6 +76,7 @@ function Router() {
         <Route path="/portal/media" component={Media} />
         <Route path="/portal/integrations" component={Integrations} />
         <Route path="/portal/billing" component={Billing} />
+        <Route path="/portal/tokens" component={Tokens} />
         <Route path="/portal/api" component={ApiPortal} />
         <Route path="/portal/reports" component={ReportsPortal} />
         <Route path="/portal/websites" component={WebsitesPortal} />

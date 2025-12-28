@@ -35,7 +35,8 @@ import {
   QrCode,
   Eye,
   Download,
-  CreditCard
+  CreditCard,
+  Coins
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
@@ -454,6 +455,7 @@ export default function Dashboard() {
   ] : [
     { icon: Globe, label: "My Websites", description: "View your saved websites", status: "cyan", onClick: () => setLocation("/portal/websites"), featured: true },
     { icon: CreditCard, label: "Billing & Purchases", description: "View orders and subscriptions", status: "emerald", onClick: () => setLocation("/portal/billing") },
+    { icon: Coins, label: "Token Wallet", description: "Buy and spend tokens", status: "yellow", onClick: () => setLocation("/portal/tokens") },
     { icon: HardDrive, label: "Media Library", description: "Manage your files", status: "purple", onClick: () => setLocation("/portal/media") },
     { icon: Plug, label: "Integrations", description: "Connect your services", status: "blue", onClick: () => setLocation("/portal/integrations") },
   ];
