@@ -2949,11 +2949,15 @@ export default function Admin() {
                                     {order.customer?.startsWith('cus_') && (
                                       <>
                                         <button
-                                          onClick={() => setShowLinkCustomer({
-                                            customerId: order.customer!,
-                                            customerName: order.customer_name || '',
-                                            customerEmail: order.customer_email || ''
-                                          })}
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowLinkCustomer({
+                                              customerId: order.customer!,
+                                              customerName: order.customer_name || '',
+                                              customerEmail: order.customer_email || (order as any).customer_email_stripe || ''
+                                            });
+                                          }}
                                           className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 flex items-center gap-1"
                                           data-testid={`btn-link-order-${order.session_id}`}
                                         >
@@ -2961,11 +2965,15 @@ export default function Admin() {
                                           Link
                                         </button>
                                         <button
-                                          onClick={() => setShowCreateAndLinkCustomer({
-                                            customerId: order.customer!,
-                                            customerName: order.customer_name || '',
-                                            customerEmail: order.customer_email || (order as any).customer_email_stripe || ''
-                                          })}
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowCreateAndLinkCustomer({
+                                              customerId: order.customer!,
+                                              customerName: order.customer_name || '',
+                                              customerEmail: order.customer_email || (order as any).customer_email_stripe || ''
+                                            });
+                                          }}
                                           className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 flex items-center gap-1"
                                           data-testid={`btn-create-order-${order.session_id}`}
                                         >
@@ -3075,11 +3083,15 @@ export default function Admin() {
                                     {sub.customer?.startsWith('cus_') && (
                                       <>
                                         <button
-                                          onClick={() => setShowLinkCustomer({
-                                            customerId: sub.customer!,
-                                            customerName: sub.customer_name || '',
-                                            customerEmail: sub.customer_email || ''
-                                          })}
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowLinkCustomer({
+                                              customerId: sub.customer!,
+                                              customerName: sub.customer_name || '',
+                                              customerEmail: sub.customer_email || ''
+                                            });
+                                          }}
                                           className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 flex items-center gap-1"
                                           data-testid={`btn-link-subscription-${sub.subscription_id}`}
                                         >
@@ -3087,11 +3099,15 @@ export default function Admin() {
                                           Link
                                         </button>
                                         <button
-                                          onClick={() => setShowCreateAndLinkCustomer({
-                                            customerId: sub.customer!,
-                                            customerName: sub.customer_name || '',
-                                            customerEmail: sub.customer_email || ''
-                                          })}
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowCreateAndLinkCustomer({
+                                              customerId: sub.customer!,
+                                              customerName: sub.customer_name || '',
+                                              customerEmail: sub.customer_email || ''
+                                            });
+                                          }}
                                           className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 flex items-center gap-1"
                                           data-testid={`btn-create-subscription-${sub.subscription_id}`}
                                         >
@@ -3234,7 +3250,9 @@ export default function Admin() {
                                       No portal account
                                     </span>
                                     <button
-                                      onClick={async () => {
+                                      type="button"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
                                         try {
                                           const response = await fetch(`/api/admin/cs/customers/${customer.id}/create-portal-account`, {
                                             method: 'POST',
@@ -3272,11 +3290,15 @@ export default function Admin() {
                                       Create & Copy Invite
                                     </button>
                                     <button
-                                      onClick={() => setShowLinkCustomer({
-                                        customerId: customer.id,
-                                        customerName: customer.name || '',
-                                        customerEmail: customer.email || ''
-                                      })}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowLinkCustomer({
+                                          customerId: customer.id,
+                                          customerName: customer.name || '',
+                                          customerEmail: customer.email || ''
+                                        });
+                                      }}
                                       className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 flex items-center gap-1"
                                       data-testid={`btn-link-account-${customer.id}`}
                                     >
@@ -3284,11 +3306,15 @@ export default function Admin() {
                                       Link
                                     </button>
                                     <button
-                                      onClick={() => setShowCreateAndLinkCustomer({
-                                        customerId: customer.id,
-                                        customerName: customer.name || '',
-                                        customerEmail: customer.email || ''
-                                      })}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowCreateAndLinkCustomer({
+                                          customerId: customer.id,
+                                          customerName: customer.name || '',
+                                          customerEmail: customer.email || ''
+                                        });
+                                      }}
                                       className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 flex items-center gap-1"
                                       data-testid={`btn-create-account-${customer.id}`}
                                     >
