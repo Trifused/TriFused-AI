@@ -6090,6 +6090,33 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // Get email from a checkout session (for pre-filling signup form)
+  app.get("/api/checkout-session-email", async (req: Request, res: Response) => {
+    try {
+      const sessionId = req.query.session_id as string;
+      if (!sessionId) {
+        return res.status(400).json({ error: "session_id is required" });
+      }
+
+      const checkoutSession = await stripeService.retrieveCheckoutSession(sessionId);
+      if (!checkoutSession) {
+        return res.status(404).json({ error: "Session not found" });
+      }
+
+      const customerObj = typeof checkoutSession.customer === 'object' && checkoutSession.customer 
+        ? checkoutSession.customer as { email?: string }
+        : null;
+      const email = checkoutSession.customer_email || 
+                    checkoutSession.customer_details?.email ||
+                    customerObj?.email || null;
+
+      res.json({ email });
+    } catch (error) {
+      console.error("Get checkout session email error:", error);
+      res.status(500).json({ error: "Failed to retrieve session" });
+    }
+  });
+
   // Link a Stripe checkout session to authenticated user (for guest checkout onboarding)
   app.post("/api/link-purchase", isAuthenticated, async (req: any, res: Response) => {
     try {

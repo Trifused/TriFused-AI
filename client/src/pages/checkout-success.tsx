@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
-import { CheckCircle, Package, ArrowRight, LogIn, UserPlus, Loader2 } from "lucide-react";
+import { CheckCircle, Package, ArrowRight, LogIn, UserPlus, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 export default function CheckoutSuccess() {
   const [, setLocation] = useLocation();
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [purchaseEmail, setPurchaseEmail] = useState<string | null>(null);
   const [isLinking, setIsLinking] = useState(false);
   const [linkComplete, setLinkComplete] = useState(false);
   const linkAttempted = useRef(false);
@@ -15,7 +16,20 @@ export default function CheckoutSuccess() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setSessionId(params.get("session_id"));
+    const sid = params.get("session_id");
+    setSessionId(sid);
+    
+    // Fetch the purchase email to display to user
+    if (sid) {
+      fetch(`/api/checkout-session-email?session_id=${encodeURIComponent(sid)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.email) {
+            setPurchaseEmail(data.email);
+          }
+        })
+        .catch(err => console.error("Failed to fetch purchase email:", err));
+    }
   }, []);
 
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -97,6 +111,21 @@ export default function CheckoutSuccess() {
 
           {!isAuthenticated ? (
             <div className="space-y-4">
+              {purchaseEmail && (
+                <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2 justify-center mb-2">
+                    <Mail className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-primary">Purchase Email</span>
+                  </div>
+                  <p className="text-center text-white font-mono text-sm bg-black/20 rounded px-3 py-2" data-testid="text-purchase-email">
+                    {purchaseEmail}
+                  </p>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Sign up with this email to link your purchase automatically
+                  </p>
+                </div>
+              )}
+              
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
                 <p className="text-sm text-yellow-200 text-center">
                   Sign in or create an account to access your purchase in the portal
