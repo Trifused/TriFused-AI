@@ -239,3 +239,47 @@ When processing Stripe webhooks (checkout.session.completed, subscription events
 4. Then processes the purchase (call packs, subscriptions, etc.)
 
 This ensures call pack purchases work even for new customers who haven't been explicitly linked yet.
+
+### Token Payment System
+
+The platform uses a token-based payment system similar to Chinese video apps (TikTok, Kuaishou) where users purchase tokens and spend them on premium features.
+
+**Database Tables:**
+- `token_packages` - Purchasable token bundles with Stripe integration
+- `token_wallets` - User token balances (one per user)
+- `token_transactions` - Immutable ledger of all token movements
+- `token_pricing` - Feature costs in tokens
+
+**Token Packages (Default):**
+- Starter Pack: 100 tokens - $9.99
+- Value Pack: 500 tokens + 50 bonus - $39.99
+- Pro Pack: 1000 tokens + 150 bonus - $69.99
+- Enterprise Pack: 5000 tokens + 1000 bonus - $299.99
+
+**Feature Costs (Default):**
+- AI Compliance Report: 25 tokens
+- Lighthouse Scan: 10 tokens
+- Bulk Scan: 5 tokens per site
+- PDF Export: 15 tokens
+- API Call: 1 token
+
+**API Endpoints:**
+- `GET /api/tokens/balance` - Get user's token balance
+- `GET /api/tokens/packages` - List available token packages
+- `GET /api/tokens/transactions` - Get transaction history
+- `GET /api/tokens/pricing` - Get feature pricing
+- `POST /api/tokens/spend` - Spend tokens on a feature
+- `POST /api/tokens/checkout` - Create Stripe checkout for token purchase
+- `POST /api/admin/tokens/adjust` - Admin: adjust user balance
+- `GET /api/admin/tokens/user/:userId` - Admin: view user tokens
+
+**Stripe Integration:**
+- Token packs are purchased via Stripe checkout
+- Webhook handler credits tokens on successful purchase
+- Idempotency keys prevent duplicate credits
+- Product metadata: `product_type: 'token_pack'`, `tokens`, `bonus_tokens`
+
+**Files:**
+- `server/tokenService.ts` - Token wallet and transaction service
+- `client/src/pages/portal/tokens.tsx` - Token wallet UI
+- `shared/schema.ts` - Token-related database tables
