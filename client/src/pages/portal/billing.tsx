@@ -96,7 +96,7 @@ export default function Billing() {
     });
   };
 
-  const { data: ordersData, isLoading: ordersLoading } = useQuery({
+  const { data: ordersData, isLoading: ordersLoading, refetch: refetchOrders } = useQuery({
     queryKey: ["/api/stripe/orders"],
     queryFn: async () => {
       const res = await fetch("/api/stripe/orders", { credentials: "include" });
@@ -106,7 +106,7 @@ export default function Billing() {
     enabled: isAuthenticated,
   });
 
-  const { data: subscriptionsData, isLoading: subsLoading } = useQuery({
+  const { data: subscriptionsData, isLoading: subsLoading, refetch: refetchSubscription } = useQuery({
     queryKey: ["/api/stripe/subscriptions"],
     queryFn: async () => {
       const res = await fetch("/api/stripe/subscriptions", { credentials: "include" });
@@ -305,24 +305,39 @@ export default function Billing() {
           )}
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="bg-white/5 border border-white/10">
-              <TabsTrigger 
-                value="purchases" 
-                className="data-[state=active]:bg-primary"
-                data-testid="tab-purchases"
+            <div className="flex items-center justify-between">
+              <TabsList className="bg-white/5 border border-white/10">
+                <TabsTrigger 
+                  value="purchases" 
+                  className="data-[state=active]:bg-primary"
+                  data-testid="tab-purchases"
+                >
+                  <Receipt className="w-4 h-4 mr-2" />
+                  Purchases
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="subscriptions" 
+                  className="data-[state=active]:bg-primary"
+                  data-testid="tab-subscriptions"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Subscriptions
+                </TabsTrigger>
+              </TabsList>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  refetchOrders();
+                  refetchSubscription();
+                }}
+                className="text-muted-foreground hover:text-white"
+                data-testid="btn-refresh-billing"
               >
-                <Receipt className="w-4 h-4 mr-2" />
-                Purchases
-              </TabsTrigger>
-              <TabsTrigger 
-                value="subscriptions" 
-                className="data-[state=active]:bg-primary"
-                data-testid="tab-subscriptions"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Subscriptions
-              </TabsTrigger>
-            </TabsList>
+                <RefreshCw className={`w-4 h-4 mr-2 ${ordersLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
 
             <TabsContent value="purchases">
               {ordersLoading ? (

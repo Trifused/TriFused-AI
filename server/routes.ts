@@ -6115,8 +6115,14 @@ Your primary goal is to help users AND capture their contact information natural
       }
 
       // SECURITY: Validate session ownership - fail closed if we can't verify
-      const sessionEmail = checkoutSession.customer_email || checkoutSession.customer_details?.email;
-      const sessionCustomerId = checkoutSession.customer as string;
+      // Handle both string customer ID and expanded customer object
+      const customerObj = typeof checkoutSession.customer === 'object' && checkoutSession.customer 
+        ? checkoutSession.customer as { id: string; email?: string }
+        : null;
+      const sessionCustomerId = customerObj?.id || (typeof checkoutSession.customer === 'string' ? checkoutSession.customer : null);
+      const sessionEmail = checkoutSession.customer_email || 
+                          checkoutSession.customer_details?.email ||
+                          customerObj?.email;
       let customerId = user.stripeCustomerId;
       
       // CORE SECURITY RULE: We must verify session belongs to authenticated user
