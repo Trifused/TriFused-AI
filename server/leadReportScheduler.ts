@@ -6,7 +6,7 @@ const SETTING_KEY = 'lead_report';
 
 // Default settings (fallback if database has no record)
 const DEFAULT_RECIPIENTS = (process.env.LEAD_REPORT_RECIPIENTS || 'trifused@gmail.com').split(',').map(e => e.trim());
-const DEFAULT_INTERVAL_MINUTES = parseInt(process.env.LEAD_REPORT_INTERVAL_MINUTES || '1', 10);
+const DEFAULT_INTERVAL_MINUTES = parseInt(process.env.LEAD_REPORT_INTERVAL_MINUTES || '60', 10);
 
 // In-memory cache of settings (loaded from database)
 let REPORT_RECIPIENTS = DEFAULT_RECIPIENTS;
