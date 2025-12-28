@@ -476,9 +476,9 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
   const categories = [...baseCategories, ...complianceCategories];
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
+    <div className="min-h-[100dvh] md:min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
       <Navbar />
-      <main id="main-content" className="pt-24 pb-32 md:pb-16">
+      <main id="main-content" className="pt-24 pb-[calc(env(safe-area-inset-bottom,0px)+8rem)] md:pb-16">
         <div className="container mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -533,6 +533,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 placeholder="Enter your website URL (e.g., example.com)"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
+                onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
                 className="flex-1 h-14 text-lg bg-white/5 border-white/10 focus:border-primary"
                 data-testid="input-website-url"
               />
