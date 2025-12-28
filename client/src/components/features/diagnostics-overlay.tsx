@@ -449,7 +449,7 @@ export function DiagnosticsOverlay({ open, onOpenChange }: { open: boolean; onOp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-black/90 border-primary/20 text-white max-w-4xl w-[95vw] lg:w-[70vw] xl:w-[60vw] 2xl:max-w-5xl backdrop-blur-xl p-0 overflow-hidden sm:rounded-xl shadow-[0_0_50px_rgba(6,182,212,0.15)]">
+      <DialogContent className="bg-black/90 border-primary/20 text-white max-w-4xl w-[95vw] lg:w-[70vw] xl:w-[60vw] 2xl:max-w-5xl backdrop-blur-xl p-0 overflow-hidden sm:rounded-xl shadow-[0_0_50px_rgba(6,182,212,0.15)] lg:min-h-[70vh] lg:max-h-[85vh]">
         <DialogTitle className="sr-only">System Diagnostics</DialogTitle>
         
         {/* Header */}
