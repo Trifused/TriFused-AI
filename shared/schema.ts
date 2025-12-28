@@ -884,3 +884,60 @@ export const insertTokenPricingSchema = createInsertSchema(tokenPricing).omit({
 
 export type InsertTokenPricing = z.infer<typeof insertTokenPricingSchema>;
 export type TokenPricing = typeof tokenPricing.$inferSelect;
+
+// Rate limit events - tracks all API requests and rate limit triggers
+export const rateLimitEvents = pgTable("rate_limit_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  identifier: varchar("identifier").notNull(), // API key ID or IP address
+  identifierType: varchar("identifier_type").notNull(), // 'api_key' or 'ip'
+  userId: varchar("user_id"), // Optional, if authenticated
+  tier: varchar("tier").notNull(), // free, starter, pro, enterprise
+  endpoint: text("endpoint").notNull(),
+  method: varchar("method").notNull(),
+  wasBlocked: integer("was_blocked").default(0).notNull(), // 1 if rate limited
+  requestCount: integer("request_count").notNull(), // Current count in window
+  limitMax: integer("limit_max").notNull(), // Max allowed in window
+  windowMs: integer("window_ms").notNull(), // Window duration in ms
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  responseTimeMs: integer("response_time_ms"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_rate_limit_events_identifier").on(table.identifier),
+  index("idx_rate_limit_events_created").on(table.createdAt),
+  index("idx_rate_limit_events_blocked").on(table.wasBlocked),
+]);
+
+export const insertRateLimitEventSchema = createInsertSchema(rateLimitEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertRateLimitEvent = z.infer<typeof insertRateLimitEventSchema>;
+export type RateLimitEvent = typeof rateLimitEvents.$inferSelect;
+
+// Rate limit overrides - custom limits per user or API key
+export const rateLimitOverrides = pgTable("rate_limit_overrides", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  targetType: varchar("target_type").notNull(), // 'user', 'api_key', or 'ip'
+  targetId: varchar("target_id").notNull(), // User ID, API key ID, or IP address
+  maxPerMinute: integer("max_per_minute").notNull(),
+  maxPerDay: integer("max_per_day").notNull(),
+  reason: text("reason"), // Why override was set
+  createdBy: varchar("created_by").notNull(), // Admin who set it
+  isActive: integer("is_active").default(1).notNull(),
+  expiresAt: timestamp("expires_at"), // Optional expiration
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_rate_limit_overrides_target").on(table.targetType, table.targetId),
+]);
+
+export const insertRateLimitOverrideSchema = createInsertSchema(rateLimitOverrides).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertRateLimitOverride = z.infer<typeof insertRateLimitOverrideSchema>;
+export type RateLimitOverride = typeof rateLimitOverrides.$inferSelect;
