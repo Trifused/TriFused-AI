@@ -23,11 +23,13 @@ import { apiService } from "./apiService";
 import { gtmetrixService } from "./gtmetrixService";
 import { lighthouseService } from "./lighthouseService";
 import { runSecurityScan, type SecurityScanResult } from "./securityScanner";
-import { getStripePublishableKey } from "./stripeClient";
+import { getStripePublishableKey, getUncachableStripeClient } from "./stripeClient";
 import { db } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { getReportSettings, updateReportSettings, sendLeadReport } from "./leadReportScheduler";
 import { apiKeyAuth, optionalApiKeyAuth, apiRateLimit, generalApiRateLimit } from "./rateLimitMiddleware";
+import { tokenService } from "./tokenService";
+import { tokenPricing } from "@shared/schema";
 
 // AI Vision helper for FDIC badge detection
 async function detectFdicWithVision(url: string): Promise<{ found: boolean; confidence: string; location: string | null }> {
@@ -1624,6 +1626,212 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Get user quota error:", error);
       res.status(500).json({ error: "Failed to fetch user quota" });
+    }
+  });
+
+  // Token Wallet Routes
+  app.get("/api/tokens/balance", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const wallet = await tokenService.getOrCreateWallet(userId);
+      res.json({
+        balance: wallet.balance,
+        totalEarned: wallet.totalEarned,
+        totalSpent: wallet.totalSpent,
+      });
+    } catch (error: any) {
+      console.error("Get token balance error:", error);
+      res.status(500).json({ error: "Failed to fetch token balance" });
+    }
+  });
+
+  app.get("/api/tokens/packages", async (req: Request, res: Response) => {
+    try {
+      const packages = await tokenService.getPackages();
+      res.json(packages);
+    } catch (error: any) {
+      console.error("Get token packages error:", error);
+      res.status(500).json({ error: "Failed to fetch token packages" });
+    }
+  });
+
+  app.get("/api/tokens/transactions", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const limit = parseInt(req.query.limit as string) || 50;
+      const transactions = await tokenService.getTransactionHistory(userId, Math.min(limit, 100));
+      res.json(transactions);
+    } catch (error: any) {
+      console.error("Get token transactions error:", error);
+      res.status(500).json({ error: "Failed to fetch token transactions" });
+    }
+  });
+
+  app.get("/api/tokens/pricing", async (req: Request, res: Response) => {
+    try {
+      const pricing = await db.select().from(tokenPricing).where(eq(tokenPricing.isActive, 1));
+      res.json(pricing);
+    } catch (error: any) {
+      console.error("Get token pricing error:", error);
+      res.status(500).json({ error: "Failed to fetch token pricing" });
+    }
+  });
+
+  app.post("/api/tokens/spend", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { featureCode, referenceId, metadata } = req.body;
+      if (!featureCode) {
+        return res.status(400).json({ error: "featureCode is required" });
+      }
+
+      const pricing = await tokenService.getFeaturePricing(featureCode);
+      if (!pricing) {
+        return res.status(404).json({ error: "Feature not found or not priced" });
+      }
+
+      const result = await tokenService.debitTokens({
+        userId,
+        amount: pricing.tokensRequired,
+        featureCode,
+        description: `Used ${pricing.featureName}`,
+        referenceId,
+        metadata,
+      });
+
+      if ('error' in result) {
+        return res.status(402).json({ error: result.error, tokensRequired: pricing.tokensRequired });
+      }
+
+      res.json({
+        success: true,
+        tokensSpent: pricing.tokensRequired,
+        newBalance: result.balanceAfter,
+        transactionId: result.id,
+      });
+    } catch (error: any) {
+      console.error("Token spend error:", error);
+      res.status(500).json({ error: "Failed to spend tokens" });
+    }
+  });
+
+  app.post("/api/tokens/checkout", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      const user = req.user;
+      if (!userId || !user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { packageId } = req.body;
+      if (!packageId) {
+        return res.status(400).json({ error: "packageId is required" });
+      }
+
+      const packages = await tokenService.getPackages();
+      const pkg = packages.find(p => p.id === packageId);
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email || undefined,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined,
+          metadata: { userId },
+        });
+        customerId = customer.id;
+        await storage.updateUser(userId, { stripeCustomerId: customerId });
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        mode: 'payment',
+        line_items: [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: pkg.name,
+              description: pkg.description || `${pkg.tokens} tokens${pkg.bonusTokens ? ` + ${pkg.bonusTokens} bonus` : ''}`,
+              metadata: {
+                product_type: 'token_pack',
+                tokens: pkg.tokens.toString(),
+                bonus_tokens: pkg.bonusTokens.toString(),
+              },
+            },
+            unit_amount: pkg.priceUsd,
+          },
+          quantity: 1,
+        }],
+        success_url: `${req.headers.origin || process.env.REPLIT_DOMAINS?.split(',')[0] || ''}/portal/tokens?success=true`,
+        cancel_url: `${req.headers.origin || process.env.REPLIT_DOMAINS?.split(',')[0] || ''}/portal/tokens?canceled=true`,
+        metadata: {
+          userId,
+          packageId: pkg.id,
+          tokens: pkg.tokens.toString(),
+          bonusTokens: pkg.bonusTokens.toString(),
+        },
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Token checkout error:", error);
+      res.status(500).json({ error: "Failed to create checkout session" });
+    }
+  });
+
+  // Admin token management
+  app.post("/api/admin/tokens/adjust", isAuthenticated, isSuperuser, async (req: any, res: Response) => {
+    try {
+      const adminId = req.user?.id;
+      const { userId, amount, description } = req.body;
+      
+      if (!userId || amount === undefined || !description) {
+        return res.status(400).json({ error: "userId, amount, and description are required" });
+      }
+
+      const transaction = await tokenService.adminAdjustBalance(userId, amount, description, adminId);
+      
+      await storage.createUserActivityLog({
+        userId,
+        action: 'token_adjustment',
+        details: { amount, description, adjustedBy: adminId, transactionId: transaction.id },
+        performedBy: adminId,
+      });
+
+      res.json({
+        success: true,
+        transaction,
+        newBalance: transaction.balanceAfter,
+      });
+    } catch (error: any) {
+      console.error("Admin token adjust error:", error);
+      res.status(500).json({ error: error.message || "Failed to adjust token balance" });
+    }
+  });
+
+  app.get("/api/admin/tokens/user/:userId", isAuthenticated, isSuperuser, async (req: any, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const wallet = await tokenService.getWallet(userId);
+      const transactions = await tokenService.getTransactionHistory(userId, 50);
+      res.json({ wallet, transactions });
+    } catch (error: any) {
+      console.error("Admin get user tokens error:", error);
+      res.status(500).json({ error: "Failed to fetch user token data" });
     }
   });
 

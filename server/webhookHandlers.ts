@@ -1,6 +1,7 @@
 import { getStripeSync, getUncachableStripeClient } from './stripeClient';
 import { storage } from './storage';
 import { apiService } from './apiService';
+import { tokenService } from './tokenService';
 import Stripe from 'stripe';
 
 export class WebhookHandlers {
@@ -114,6 +115,36 @@ export class WebhookHandlers {
           // Create call pack record
           await apiService.addCallPack(user.id, calls, session.id);
           console.log(`Added ${calls} API calls to user ${user.id} from call pack purchase`);
+        }
+      }
+
+      // Handle token pack purchases
+      if (product.metadata?.product_type === 'token_pack') {
+        const tokens = parseInt(product.metadata?.tokens || '0');
+        const bonusTokens = parseInt(product.metadata?.bonus_tokens || '0');
+        const totalTokens = tokens + bonusTokens;
+        
+        if (totalTokens > 0) {
+          const idempotencyKey = `stripe_checkout_${session.id}_${product.id}`;
+          
+          await tokenService.creditTokens({
+            userId: user.id,
+            amount: totalTokens,
+            source: 'purchase',
+            description: `Purchased ${product.name}${bonusTokens > 0 ? ` (+${bonusTokens} bonus)` : ''}`,
+            referenceId: session.id,
+            referenceType: 'stripe_checkout',
+            idempotencyKey,
+            metadata: {
+              productId: product.id,
+              productName: product.name,
+              baseTokens: tokens,
+              bonusTokens,
+              priceId: item.price?.id,
+            },
+          });
+          
+          console.log(`Credited ${totalTokens} tokens to user ${user.id} from token pack purchase (${tokens} base + ${bonusTokens} bonus)`);
         }
       }
     }
