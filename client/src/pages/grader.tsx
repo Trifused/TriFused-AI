@@ -478,7 +478,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/30">
       <Navbar />
-      <main id="main-content" className="pt-24 pb-16">
+      <main id="main-content" className="pt-24 pb-32 md:pb-16">
         <div className="container mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
