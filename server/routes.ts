@@ -27,8 +27,9 @@ import { getStripePublishableKey, getUncachableStripeClient } from "./stripeClie
 import { db } from "../db";
 import { sql, eq } from "drizzle-orm";
 import { getReportSettings, updateReportSettings, sendLeadReport } from "./leadReportScheduler";
-import { apiKeyAuth, optionalApiKeyAuth, apiRateLimit, generalApiRateLimit } from "./rateLimitMiddleware";
+import { apiKeyAuth, optionalApiKeyAuth, apiRateLimit, generalApiRateLimit, getTierLimits } from "./rateLimitMiddleware";
 import { tokenService } from "./tokenService";
+import { getRateLimitStats, getActiveOverrides, createOverride, deactivateOverride, sendHourlyRateLimitReport } from "./rateLimitReportService";
 import { tokenPricing } from "@shared/schema";
 
 // AI Vision helper for FDIC badge detection
@@ -2003,6 +2004,87 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Send lead report error:", error);
       res.status(500).json({ error: "Failed to send lead report" });
+    }
+  });
+
+  // Rate limit management endpoints
+  app.get("/api/admin/rate-limits/tiers", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const tiers = getTierLimits();
+      res.json(tiers);
+    } catch (error: any) {
+      console.error("Rate limit tiers error:", error);
+      res.status(500).json({ error: "Failed to fetch rate limit tiers" });
+    }
+  });
+
+  app.get("/api/admin/rate-limits/stats", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const hours = parseInt(req.query.hours as string) || 1;
+      const endDate = new Date();
+      const startDate = new Date(endDate.getTime() - hours * 60 * 60 * 1000);
+      const stats = await getRateLimitStats(startDate, endDate);
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Rate limit stats error:", error);
+      res.status(500).json({ error: "Failed to fetch rate limit stats" });
+    }
+  });
+
+  app.get("/api/admin/rate-limits/overrides", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const overrides = await getActiveOverrides();
+      res.json(overrides);
+    } catch (error: any) {
+      console.error("Rate limit overrides error:", error);
+      res.status(500).json({ error: "Failed to fetch rate limit overrides" });
+    }
+  });
+
+  app.post("/api/admin/rate-limits/overrides", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { targetType, targetId, maxPerMinute, maxPerDay, reason, expiresAt } = req.body;
+      
+      if (!targetType || !targetId || !maxPerMinute || !maxPerDay) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const override = await createOverride({
+        targetType,
+        targetId,
+        maxPerMinute,
+        maxPerDay,
+        reason,
+        createdBy: req.user?.id || 'admin',
+        expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+      });
+      
+      res.json(override);
+    } catch (error: any) {
+      console.error("Create rate limit override error:", error);
+      res.status(500).json({ error: "Failed to create rate limit override" });
+    }
+  });
+
+  app.delete("/api/admin/rate-limits/overrides/:id", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      await deactivateOverride(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Deactivate rate limit override error:", error);
+      res.status(500).json({ error: "Failed to deactivate rate limit override" });
+    }
+  });
+
+  app.post("/api/admin/rate-limits/report/send", isAuthenticated, isSuperuser, async (req: any, res) => {
+    try {
+      const { recipients } = req.body;
+      const targetRecipients = recipients?.length > 0 ? recipients : ['trifused@gmail.com'];
+      await sendHourlyRateLimitReport(targetRecipients);
+      res.json({ success: true, message: "Rate limit report sent" });
+    } catch (error: any) {
+      console.error("Send rate limit report error:", error);
+      res.status(500).json({ error: "Failed to send rate limit report" });
     }
   });
 
