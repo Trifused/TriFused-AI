@@ -470,15 +470,10 @@ export async function updateReportSettings(options: {
   if (options.intervalMinutes && options.intervalMinutes >= 1) {
     REPORT_INTERVAL_MINUTES = options.intervalMinutes;
     INITIAL_LOOKBACK_MINUTES = options.intervalMinutes;
-    
-    // Restart the scheduler with new interval
-    if (schedulerInterval) {
-      stopLeadReportScheduler();
-      await startLeadReportScheduler();
-    }
   }
   
-  // Persist to database
+  // IMPORTANT: Persist to database FIRST before restarting scheduler
+  // so the new settings are loaded when scheduler restarts
   await storage.upsertReportSettings(SETTING_KEY, {
     recipients: REPORT_RECIPIENTS.join(', '),
     intervalMinutes: REPORT_INTERVAL_MINUTES,
@@ -487,6 +482,12 @@ export async function updateReportSettings(options: {
   });
   
   console.log(`[LeadReport] Settings updated and persisted: interval=${REPORT_INTERVAL_MINUTES}min, recipients=${REPORT_RECIPIENTS.join(', ')}`);
+  
+  // Restart the scheduler with new interval AFTER saving to database
+  if (options.intervalMinutes && options.intervalMinutes >= 1 && schedulerInterval) {
+    stopLeadReportScheduler();
+    await startLeadReportScheduler();
+  }
 }
 
 export function getReportSettings() {
