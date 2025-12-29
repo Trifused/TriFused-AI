@@ -3897,7 +3897,7 @@ export default function Admin() {
 function ReportsManagementTab() {
   const { toast } = useToast();
   const [recipients, setRecipients] = useState('');
-  const [intervalMinutes, setIntervalMinutes] = useState(1);
+  const [intervalMinutes, setIntervalMinutes] = useState(60);
   const [isSaving, setIsSaving] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
@@ -3913,7 +3913,7 @@ function ReportsManagementTab() {
   useEffect(() => {
     if (settings) {
       setRecipients(settings.recipients?.join(', ') || '');
-      setIntervalMinutes(settings.intervalMinutes || 1);
+      setIntervalMinutes(settings.intervalMinutes || 60);
     }
   }, [settings]);
 
@@ -4091,7 +4091,7 @@ function ReportsManagementTab() {
       <div className="p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
         <p className="text-sm text-cyan-400">
           <Clock className="w-4 h-4 inline mr-2" />
-          Current settings: Reports are sent every <strong>{settings?.intervalMinutes || 1} minute(s)</strong> to{' '}
+          Current settings: Reports are sent every <strong>{settings?.intervalMinutes || 60} minute(s)</strong> to{' '}
           <strong>{settings?.recipients?.length || 0} recipient(s)</strong>.
         </p>
       </div>
