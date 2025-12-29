@@ -1,0 +1,169 @@
+# Website Grade Report for https://container.googleapis.com/mcp
+*(Free Tool - For informational purposes only)*
+**Source:** Grader Page
+
+## Overall Score: 68/100 (Grade: D)
+
+### Category Scores:
+- SEO: 50/100
+- Security: 75/100
+- Performance: 75/100
+- Keywords: 75/100
+- Accessibility: 92/100
+- Email Security: 10/100
+- Mobile: 100/100
+- AI Readiness: 67/100
+
+## Issues Found (23):
+
+### [SEO] Missing meta description (critical)
+**Impact:** Meta descriptions help search engines understand your page and improve click-through rates
+**Fix:** Add <meta name="description" content="Your description here"> to your <head> section (150-160 characters recommended)
+
+### [SEO] Missing H1 heading (critical)
+**Impact:** H1 tags help search engines understand your page's main topic
+**Fix:** Add an <h1> tag with your main page heading. Each page should have exactly one H1
+
+### [SEO] Missing Open Graph meta tags (important)
+**Impact:** Open Graph tags improve how your page appears when shared on social media
+**Fix:** Add og:title, og:description, and og:image meta tags for better social sharing
+
+### [SEO] Missing robots.txt file (optional)
+**Impact:** Search engines have no guidance on which pages to crawl
+**Fix:** Create a robots.txt file in your root directory with crawl directives
+
+### [SEO] Missing sitemap.xml file (important)
+**Impact:** Search engines may not discover all your pages
+**Fix:** Create a sitemap.xml file listing all your important pages and submit it to search engines
+
+### [SECURITY] Missing Content-Security-Policy header (important)
+**Impact:** CSP helps prevent XSS attacks and data injection
+**Fix:** Add a Content-Security-Policy header to your server configuration. Start with: Content-Security-Policy: default-src 'self'
+
+### [SECURITY] Missing Strict-Transport-Security header (important)
+**Impact:** Users could be downgraded to HTTP connections
+**Fix:** Add header: Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+### [ACCESSIBILITY] 1 link(s) without accessible text (important)
+**Impact:** Screen reader users won't know where these links go
+**Fix:** Add descriptive link text or aria-label to all links
+
+### [ACCESSIBILITY] No skip navigation link found (optional)
+**Impact:** Keyboard users must tab through all navigation on every page
+**Fix:** Add a 'Skip to main content' link at the top of your page
+
+### [KEYWORDS] Top keyword "thats" not in title or H1 (important)
+**Impact:** Main keywords should appear in title and H1 for better SEO
+**Fix:** Include "thats" naturally in your page title and H1 heading
+
+### [KEYWORDS] Keyword "thats" density is 22.2% (may be too high) (important)
+**Impact:** Keyword stuffing can hurt SEO rankings
+**Fix:** Reduce repetition of this keyword. Aim for 1-2% density
+
+### [EMAIL] No MX records found (important)
+**Impact:** Email cannot be received at this domain
+**Fix:** Add MX records to your DNS configuration to receive emails
+
+### [EMAIL] Missing SPF record (critical)
+**Impact:** Emails may be marked as spam or spoofed
+**Fix:** Add an SPF TXT record like: v=spf1 include:_spf.google.com ~all
+
+### [EMAIL] Missing DMARC policy (critical)
+**Impact:** No policy for handling failed email authentication
+**Fix:** Add a DMARC TXT record at _dmarc.yourdomain.com like: v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com
+
+### [EMAIL] No DKIM signature detected (important)
+**Impact:** Emails cannot be verified as authentic
+**Fix:** Configure DKIM with your email provider and add the public key to DNS
+
+### [CONTENT-ACCESSIBILITY] Very little content in initial HTML (likely client-side rendered) (critical)
+**Impact:** AI crawlers may not be able to extract meaningful content
+**Fix:** Implement SSR or include critical content in initial HTML response
+
+### [CONTENT-ACCESSIBILITY] No <noscript> fallback content (important)
+**Impact:** Users and crawlers without JavaScript see nothing useful
+**Fix:** Add <noscript> tag with meaningful fallback content
+
+Example:
+<noscript>
+  <p>This site requires JavaScript. Please enable JavaScript or visit our sitemap.</p>
+  <a href="/sitemap">View Sitemap</a>
+</noscript>
+
+### [STRUCTURED-DATA] No JSON-LD structured data found (critical)
+**Impact:** AI systems cannot understand your content structure, reducing discoverability
+**Fix:** Add JSON-LD structured data using schema.org vocabulary
+
+Example:
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Your Company",
+  "url": "https://container.googleapis.com/mcp",
+  "description": "Your company description"
+}
+</script>
+
+### [STRUCTURED-DATA] No Open Graph meta tags found (important)
+**Impact:** Content previews in AI chat interfaces and social media will be poor
+**Fix:** Add Open Graph meta tags for title, description, image, and type
+
+Example:
+<meta property="og:title" content="Your Page Title">
+<meta property="og:description" content="Your page description">
+<meta property="og:image" content="https://example.com/image.jpg">
+<meta property="og:type" content="website">
+
+### [STRUCTURED-DATA] Missing Twitter Card meta tags (optional)
+**Impact:** Content previews on Twitter/X will be limited
+**Fix:** Add twitter:card meta tag (summary_large_image recommended)
+
+### [MCP-COMPLIANCE] No MCP server endpoint detected (optional)
+**Impact:** AI agents cannot interact with your site via Model Context Protocol
+**Fix:** Consider implementing an MCP server for AI agent integration
+
+Example:
+// MCP discovery endpoint at /.well-known/mcp
+{
+  "name": "your-service",
+  "version": "1.0.0",
+  "tools": [{ "name": "your_tool", "description": "..." }]
+}
+
+### [LLMS-TXT] No llms.txt file found (important)
+**Impact:** LLMs have no dedicated documentation about your site
+**Fix:** Create /llms.txt with a summary of your site for AI crawlers
+
+Example:
+# Your Company Name
+
+> Brief description of your company
+
+## Services
+- Service 1: Description
+- Service 2: Description
+
+## Contact
+website: https://yoursite.com
+email: hello@yoursite.com
+
+### [CRAWLABILITY] No robots.txt file found (important)
+**Impact:** Crawlers have no guidance on how to access your site
+**Fix:** Create a robots.txt file in your site root
+
+
+## Passed Checks (10):
+- Page title is present and well-optimized
+- Site uses HTTPS
+- X-Frame-Options header present
+- X-Content-Type-Options header present
+- Language attribute present
+- Performance estimated (Lighthouse analysis not enabled)
+- Responsive viewport configured
+- No extremely small inline font sizes detected
+- No redirects detected
+- Domain IP not on any checked blacklists
+
+---
+*Analyzed on 12/28/2025, 9:12:07 PM by TriFused Website Grader*

@@ -1,0 +1,115 @@
+# Website Grade Report for https://docs.stripe.com/mcp
+*(Free Tool - For informational purposes only)*
+**Source:** Grader Page
+
+## Overall Score: 76/100 (Grade: C)
+
+### Category Scores:
+- SEO: 95/100
+- Security: 90/100
+- Performance: 75/100
+- Keywords: 85/100
+- Accessibility: 85/100
+- Email Security: 10/100
+- Mobile: 90/100
+- AI Readiness: 93/100
+
+## Issues Found (13):
+
+### [SEO] Title length is 71 characters (recommended: 50-60) (important)
+**Impact:** Titles that are too short or too long may be truncated in search results
+**Fix:** Adjust your title to be between 50-60 characters for optimal display
+
+### [SECURITY] Missing X-Content-Type-Options header (important)
+**Impact:** Browsers might MIME-sniff content, leading to security issues
+**Fix:** Add header: X-Content-Type-Options: nosniff
+
+### [ACCESSIBILITY] 1 form input(s) missing labels (important)
+**Impact:** Screen reader users won't know what to enter in these fields
+**Fix:** Add <label for='inputId'> or aria-label attribute to each input field
+
+### [ACCESSIBILITY] 1 element(s) with positive tabindex values (important)
+**Impact:** Positive tabindex disrupts natural keyboard navigation order
+**Fix:** Use tabindex='0' for focusable elements or tabindex='-1' to remove from tab order
+
+### [KEYWORDS] Top keyword "support" not in title or H1 (important)
+**Impact:** Main keywords should appear in title and H1 for better SEO
+**Fix:** Include "support" naturally in your page title and H1 heading
+
+### [MOBILE] JavaScript files may not be minified (optional)
+**Impact:** Unminified JS can slow down mobile page loads on cellular networks
+**Fix:** Minify your JavaScript files to reduce file size and improve load times
+
+### [MOBILE] CSS files may not be minified (optional)
+**Impact:** Unminified CSS can slow down mobile page loads on cellular networks
+**Fix:** Minify your CSS files to reduce file size and improve load times
+
+### [EMAIL] No MX records found (important)
+**Impact:** Email cannot be received at this domain
+**Fix:** Add MX records to your DNS configuration to receive emails
+
+### [EMAIL] Missing SPF record (critical)
+**Impact:** Emails may be marked as spam or spoofed
+**Fix:** Add an SPF TXT record like: v=spf1 include:_spf.google.com ~all
+
+### [EMAIL] Missing DMARC policy (critical)
+**Impact:** No policy for handling failed email authentication
+**Fix:** Add a DMARC TXT record at _dmarc.yourdomain.com like: v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com
+
+### [EMAIL] No DKIM signature detected (important)
+**Impact:** Emails cannot be verified as authentic
+**Fix:** Configure DKIM with your email provider and add the public key to DNS
+
+### [STRUCTURED-DATA] No JSON-LD structured data found (critical)
+**Impact:** AI systems cannot understand your content structure, reducing discoverability
+**Fix:** Add JSON-LD structured data using schema.org vocabulary
+
+Example:
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Your Company",
+  "url": "https://docs.stripe.com/mcp",
+  "description": "Your company description"
+}
+</script>
+
+### [MCP-COMPLIANCE] No MCP server endpoint detected (optional)
+**Impact:** AI agents cannot interact with your site via Model Context Protocol
+**Fix:** Consider implementing an MCP server for AI agent integration
+
+Example:
+// MCP discovery endpoint at /.well-known/mcp
+{
+  "name": "your-service",
+  "version": "1.0.0",
+  "tools": [{ "name": "your_tool", "description": "..." }]
+}
+
+
+## Passed Checks (21):
+- Meta description is present and well-optimized
+- Single H1 heading present
+- Open Graph meta tags present
+- robots.txt file present
+- sitemap.xml file present
+- Site uses HTTPS
+- Content-Security-Policy header present
+- X-Frame-Options header present
+- HSTS header present
+- Proper heading hierarchy
+- Language attribute present
+- Skip navigation link present
+- Performance estimated (Lighthouse analysis not enabled)
+- Responsive viewport configured
+- No extremely small inline font sizes detected
+- No redirects detected
+- Complete Open Graph metadata present
+- llms.txt file present with content
+- robots.txt allows general crawling
+- Sitemap reference in robots.txt
+- Domain IP not on any checked blacklists
+
+---
+*Analyzed on 12/28/2025, 9:26:00 PM by TriFused Website Grader*

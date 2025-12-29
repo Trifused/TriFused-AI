@@ -143,6 +143,105 @@ const GET_ABOUT_TOOL: Tool = {
   },
 };
 
+const GET_WEBSITE_SCORECARD_TOOL: Tool = {
+  name: "get_website_scorecard",
+  description: "Get a formatted scorecard summary for a website with letter grades and key metrics. Perfect for quick status reports.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      url: {
+        type: "string",
+        description: "Full URL of website to get scorecard for",
+      },
+    },
+    required: ["url"],
+  },
+};
+
+const ANALYZE_AI_READINESS_TOOL: Tool = {
+  name: "analyze_ai_readiness",
+  description: "Get detailed AI readiness analysis for a website including content accessibility, structured data, MCP compliance, and crawlability scores with specific recommendations",
+  inputSchema: {
+    type: "object",
+    properties: {
+      url: {
+        type: "string",
+        description: "Full URL of website to analyze for AI readiness",
+      },
+    },
+    required: ["url"],
+  },
+};
+
+const GET_IMPROVEMENT_RECOMMENDATIONS_TOOL: Tool = {
+  name: "get_improvement_recommendations",
+  description: "Get prioritized actionable recommendations to improve a website's score. Returns critical issues first, then important, then optional improvements.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      url: {
+        type: "string",
+        description: "Full URL of website to get recommendations for",
+      },
+      category: {
+        type: "string",
+        description: "Optional: filter by category (seo, security, performance, accessibility, mobile, email, ai-readiness)",
+      },
+    },
+    required: ["url"],
+  },
+};
+
+const COMPARE_WEBSITES_TOOL: Tool = {
+  name: "compare_websites",
+  description: "Compare two websites side-by-side across all scoring categories. Useful for competitive analysis or before/after comparisons.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      url1: {
+        type: "string",
+        description: "First website URL",
+      },
+      url2: {
+        type: "string",
+        description: "Second website URL",
+      },
+    },
+    required: ["url1", "url2"],
+  },
+};
+
+const BOOK_CONSULTATION_TOOL: Tool = {
+  name: "book_consultation",
+  description: "Submit a consultation request to discuss website improvements or TriFused services. Creates a contact submission for follow-up.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      name: {
+        type: "string",
+        description: "Contact name",
+      },
+      email: {
+        type: "string",
+        description: "Contact email address",
+      },
+      company: {
+        type: "string",
+        description: "Company name (optional)",
+      },
+      website: {
+        type: "string",
+        description: "Website URL to discuss (optional)",
+      },
+      message: {
+        type: "string",
+        description: "Brief description of what you'd like to discuss",
+      },
+    },
+    required: ["name", "email", "message"],
+  },
+};
+
 export class MCPHealthCheckService {
   private baseUrl: string;
 
@@ -160,7 +259,7 @@ export class MCPHealthCheckService {
       },
       tools: this.getTools(),
       capabilities: {
-        tools: ["check_website_health", "get_website_grade", "list_graded_websites", "get_blog_posts", "get_services", "get_api_documentation", "get_about"],
+        tools: ["check_website_health", "get_website_grade", "get_website_scorecard", "analyze_ai_readiness", "get_improvement_recommendations", "compare_websites", "list_graded_websites", "get_blog_posts", "get_services", "get_api_documentation", "get_about", "book_consultation"],
         resources: [],
         prompts: [],
       },
@@ -179,11 +278,16 @@ export class MCPHealthCheckService {
     return [
       CHECK_WEBSITE_HEALTH_TOOL, 
       GET_WEBSITE_GRADE_TOOL, 
+      GET_WEBSITE_SCORECARD_TOOL,
+      ANALYZE_AI_READINESS_TOOL,
+      GET_IMPROVEMENT_RECOMMENDATIONS_TOOL,
+      COMPARE_WEBSITES_TOOL,
       LIST_GRADED_WEBSITES_TOOL,
       GET_BLOG_POSTS_TOOL,
       GET_SERVICES_TOOL,
       GET_API_DOCUMENTATION_TOOL,
       GET_ABOUT_TOOL,
+      BOOK_CONSULTATION_TOOL,
     ];
   }
 
@@ -524,6 +628,231 @@ export class MCPHealthCheckService {
     };
   }
 
+  getGradeLetter(score: number): string {
+    if (score >= 90) return "A";
+    if (score >= 80) return "B";
+    if (score >= 70) return "C";
+    if (score >= 60) return "D";
+    return "F";
+  }
+
+  async getWebsiteScorecard(url: string) {
+    const grade = await storage.getRecentGradeForUrl(url);
+    if (!grade) {
+      return {
+        error: "No grade found for this URL. Run a scan first using check_website_health or visit https://trifused.com/grader",
+        url,
+      };
+    }
+
+    return {
+      url: grade.url,
+      scannedAt: grade.createdAt,
+      overall: {
+        score: grade.overallScore,
+        grade: this.getGradeLetter(grade.overallScore),
+      },
+      categories: {
+        seo: { score: grade.seoScore, grade: this.getGradeLetter(grade.seoScore) },
+        security: { score: grade.securityScore, grade: this.getGradeLetter(grade.securityScore) },
+        performance: { score: grade.performanceScore, grade: this.getGradeLetter(grade.performanceScore) },
+        accessibility: { score: grade.accessibilityScore, grade: this.getGradeLetter(grade.accessibilityScore) },
+        mobile: { score: grade.mobileScore || 0, grade: this.getGradeLetter(grade.mobileScore || 0) },
+        email: { score: grade.emailSecurityScore || 0, grade: this.getGradeLetter(grade.emailSecurityScore || 0) },
+        aiReadiness: { score: grade.aiReadinessScore || 0, grade: this.getGradeLetter(grade.aiReadinessScore || 0) },
+      },
+      summary: `${grade.companyName || grade.domain || 'Website'} scored ${grade.overallScore}/100 (${this.getGradeLetter(grade.overallScore)}) with strengths in ${grade.seoScore >= 80 ? 'SEO' : ''}${grade.securityScore >= 80 ? ', Security' : ''}${grade.accessibilityScore >= 80 ? ', Accessibility' : ''} and areas for improvement in ${grade.performanceScore < 80 ? 'Performance' : ''}${(grade.mobileScore || 0) < 80 ? ', Mobile' : ''}${(grade.aiReadinessScore || 0) < 80 ? ', AI Readiness' : ''}.`.replace(/ ,/g, ',').replace(/strengths in ,/g, 'strengths in ').replace(/improvement in ,/g, 'improvement in '),
+      reportUrl: grade.shareToken ? `https://trifused.com/report/${grade.shareToken}` : null,
+    };
+  }
+
+  async analyzeAiReadiness(url: string) {
+    const grade = await storage.getRecentGradeForUrl(url);
+    if (!grade) {
+      return {
+        error: "No grade found for this URL. Run a scan first using check_website_health or visit https://trifused.com/grader",
+        url,
+      };
+    }
+
+    const aiFindings = (grade.findings as any[])?.filter((f: any) => 
+      ['content-accessibility', 'structured-data', 'mcp-compliance', 'llms-txt', 'crawlability'].includes(f.category)
+    ) || [];
+
+    const breakdown = grade.aiReadinessBreakdown as any || {
+      contentAccessibility: 0,
+      structuredData: 0,
+      mcpCompliance: 0,
+      crawlability: 0,
+    };
+
+    return {
+      url: grade.url,
+      aiReadinessScore: grade.aiReadinessScore || 0,
+      grade: this.getGradeLetter(grade.aiReadinessScore || 0),
+      breakdown: {
+        contentAccessibility: { score: breakdown.contentAccessibility, weight: "30%", description: "SSR detection, semantic HTML, noscript fallback" },
+        structuredData: { score: breakdown.structuredData, weight: "25%", description: "JSON-LD, OpenGraph, Twitter Cards" },
+        mcpCompliance: { score: breakdown.mcpCompliance, weight: "20%", description: "MCP endpoint detection and validation" },
+        crawlability: { score: breakdown.crawlability, weight: "25%", description: "robots.txt, llms.txt, AI bot permissions" },
+      },
+      issues: aiFindings.filter((f: any) => !f.passed).map((f: any) => ({
+        category: f.category,
+        issue: f.issue,
+        priority: f.priority,
+        howToFix: f.howToFix,
+      })),
+      passed: aiFindings.filter((f: any) => f.passed).map((f: any) => f.issue),
+      recommendations: [
+        breakdown.contentAccessibility < 80 ? "Implement server-side rendering (SSR) or add noscript fallback content" : null,
+        breakdown.structuredData < 80 ? "Add JSON-LD structured data using schema.org vocabulary" : null,
+        breakdown.mcpCompliance < 80 ? "Implement MCP server endpoint at /.well-known/mcp" : null,
+        breakdown.crawlability < 80 ? "Add llms.txt file and configure robots.txt for AI crawlers" : null,
+      ].filter(Boolean),
+    };
+  }
+
+  async getImprovementRecommendations(url: string, category?: string) {
+    const grade = await storage.getRecentGradeForUrl(url);
+    if (!grade) {
+      return {
+        error: "No grade found for this URL. Run a scan first using check_website_health or visit https://trifused.com/grader",
+        url,
+      };
+    }
+
+    let findings = grade.findings as any[] || [];
+    
+    if (category) {
+      const categoryMap: Record<string, string[]> = {
+        'seo': ['seo'],
+        'security': ['security'],
+        'performance': ['performance'],
+        'accessibility': ['accessibility'],
+        'mobile': ['mobile'],
+        'email': ['email'],
+        'ai-readiness': ['content-accessibility', 'structured-data', 'mcp-compliance', 'llms-txt', 'crawlability'],
+      };
+      const cats = categoryMap[category.toLowerCase()] || [category];
+      findings = findings.filter((f: any) => cats.includes(f.category));
+    }
+
+    const issues = findings.filter((f: any) => !f.passed);
+    const critical = issues.filter((f: any) => f.priority === 'critical');
+    const important = issues.filter((f: any) => f.priority === 'important');
+    const optional = issues.filter((f: any) => f.priority === 'optional');
+
+    return {
+      url: grade.url,
+      overallScore: grade.overallScore,
+      totalIssues: issues.length,
+      recommendations: {
+        critical: critical.map((f: any) => ({
+          category: f.category,
+          issue: f.issue,
+          impact: f.impact,
+          howToFix: f.howToFix,
+        })),
+        important: important.map((f: any) => ({
+          category: f.category,
+          issue: f.issue,
+          impact: f.impact,
+          howToFix: f.howToFix,
+        })),
+        optional: optional.map((f: any) => ({
+          category: f.category,
+          issue: f.issue,
+          impact: f.impact,
+          howToFix: f.howToFix,
+        })),
+      },
+      quickWins: issues.slice(0, 3).map((f: any) => f.howToFix),
+      summary: `Found ${critical.length} critical, ${important.length} important, and ${optional.length} optional issues. Address critical issues first for the biggest score improvement.`,
+    };
+  }
+
+  async compareWebsites(url1: string, url2: string) {
+    const [grade1, grade2] = await Promise.all([
+      storage.getRecentGradeForUrl(url1),
+      storage.getRecentGradeForUrl(url2),
+    ]);
+
+    if (!grade1 && !grade2) {
+      return { error: "No grades found for either URL. Run scans first." };
+    }
+    if (!grade1) {
+      return { error: `No grade found for ${url1}. Run a scan first.` };
+    }
+    if (!grade2) {
+      return { error: `No grade found for ${url2}. Run a scan first.` };
+    }
+
+    const compare = (a: number, b: number) => ({ 
+      site1: a, 
+      site2: b, 
+      difference: a - b,
+      winner: a > b ? 'site1' : a < b ? 'site2' : 'tie',
+    });
+
+    return {
+      site1: { url: grade1.url, name: grade1.companyName || grade1.domain },
+      site2: { url: grade2.url, name: grade2.companyName || grade2.domain },
+      comparison: {
+        overall: compare(grade1.overallScore, grade2.overallScore),
+        seo: compare(grade1.seoScore, grade2.seoScore),
+        security: compare(grade1.securityScore, grade2.securityScore),
+        performance: compare(grade1.performanceScore, grade2.performanceScore),
+        accessibility: compare(grade1.accessibilityScore, grade2.accessibilityScore),
+        mobile: compare(grade1.mobileScore || 0, grade2.mobileScore || 0),
+        email: compare(grade1.emailSecurityScore || 0, grade2.emailSecurityScore || 0),
+        aiReadiness: compare(grade1.aiReadinessScore || 0, grade2.aiReadinessScore || 0),
+      },
+      summary: `${grade1.companyName || grade1.domain} (${grade1.overallScore}) vs ${grade2.companyName || grade2.domain} (${grade2.overallScore}): ${grade1.overallScore > grade2.overallScore ? 'Site 1 wins' : grade1.overallScore < grade2.overallScore ? 'Site 2 wins' : 'Tie'} overall.`,
+    };
+  }
+
+  async bookConsultation(name: string, email: string, message: string, company?: string, website?: string) {
+    // Validate required fields
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return { error: "Missing required field: name", success: false };
+    }
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return { error: "Missing or invalid required field: email", success: false };
+    }
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      return { error: "Missing required field: message", success: false };
+    }
+
+    try {
+      const submission = await storage.createContactSubmission({
+        name: name.trim(),
+        email: email.trim(),
+        company: company?.trim() || null,
+        message: `[MCP Consultation Request]${website ? ` Website: ${website}` : ''}\n\n${message.trim()}`,
+      });
+
+      return {
+        success: true,
+        message: "Consultation request submitted successfully. A TriFused team member will contact you within 24 hours.",
+        referenceId: submission.id,
+        details: {
+          name: name.trim(),
+          email: email.trim(),
+          company: company?.trim() || 'Not provided',
+          website: website?.trim() || 'Not provided',
+        },
+        nextSteps: [
+          "You'll receive a confirmation email shortly",
+          "A team member will review your request",
+          "Expect a response within 24 business hours",
+          "For urgent matters, email hello@trifused.com directly",
+        ],
+      };
+    } catch (error: any) {
+      return { error: `Failed to submit consultation request: ${error.message}`, success: false };
+    }
+  }
+
   async handleToolCall(name: string, args: Record<string, unknown>) {
     switch (name) {
       case "check_website_health":
@@ -535,6 +864,18 @@ export class MCPHealthCheckService {
 
       case "get_website_grade":
         return await this.getWebsiteGrade(args.url as string);
+
+      case "get_website_scorecard":
+        return await this.getWebsiteScorecard(args.url as string);
+
+      case "analyze_ai_readiness":
+        return await this.analyzeAiReadiness(args.url as string);
+
+      case "get_improvement_recommendations":
+        return await this.getImprovementRecommendations(args.url as string, args.category as string | undefined);
+
+      case "compare_websites":
+        return await this.compareWebsites(args.url1 as string, args.url2 as string);
 
       case "list_graded_websites":
         return await this.listGradedWebsites(args.limit as number | undefined);
@@ -550,6 +891,15 @@ export class MCPHealthCheckService {
 
       case "get_about":
         return this.getAbout();
+
+      case "book_consultation":
+        return await this.bookConsultation(
+          args.name as string,
+          args.email as string,
+          args.message as string,
+          args.company as string | undefined,
+          args.website as string | undefined
+        );
 
       default:
         throw new Error(`Unknown tool: ${name}`);
