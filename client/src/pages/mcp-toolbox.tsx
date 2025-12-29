@@ -377,6 +377,17 @@ export default function MCPToolbox() {
             </p>
           </motion.div>
 
+          {/* Prototype Disclaimer */}
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-4 py-3 mb-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-semibold text-yellow-500">Prototype:</span>{" "}
+              <span className="text-yellow-200/80">
+                This tool is in active development. Features may change and some functionality may be limited.
+              </span>
+            </div>
+          </div>
+
           {/* Server Connection */}
           <div className="glass-panel p-4 rounded-xl mb-4">
             <div className="flex flex-col sm:flex-row gap-3">
