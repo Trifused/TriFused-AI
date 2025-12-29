@@ -2794,7 +2794,7 @@ Your primary goal is to help users AND capture their contact information natural
   });
 
   interface Finding {
-    category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "mobile" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr" | "secrets" | "exposedFiles";
+    category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "mobile" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr" | "secrets" | "exposedFiles" | "content-accessibility" | "structured-data" | "mcp-compliance" | "llms-txt" | "crawlability";
     issue: string;
     impact: string;
     priority: "critical" | "important" | "optional";
