@@ -1,0 +1,80 @@
+# Website Grade Report for https://d05ee48a-aff6-4f9f-8e67-15ca10765ca9-00-v6kvhf94kx05.riker.replit.dev/
+*(Free Tool - For informational purposes only)*
+**Source:** Grader Page
+
+## Overall Score: 80/100 (Grade: B)
+
+### Category Scores:
+- SEO: 100/100
+- Security: 90/100
+- Performance: 75/100
+- Keywords: 75/100
+- Accessibility: 100/100
+- Email Security: 30/100
+- Mobile: 90/100
+- AI Readiness: 100/100
+
+## Issues Found (8):
+
+### [SECURITY] Missing Strict-Transport-Security header (important)
+**Impact:** Users could be downgraded to HTTP connections
+**Fix:** Add header: Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+### [KEYWORDS] Top keyword "ainative" not in title or H1 (important)
+**Impact:** Main keywords should appear in title and H1 for better SEO
+**Fix:** Include "ainative" naturally in your page title and H1 heading
+
+### [KEYWORDS] Keyword "ainative" density is 3.8% (may be too high) (important)
+**Impact:** Keyword stuffing can hurt SEO rankings
+**Fix:** Reduce repetition of this keyword. Aim for 1-2% density
+
+### [MOBILE] JavaScript files may not be minified (optional)
+**Impact:** Unminified JS can slow down mobile page loads on cellular networks
+**Fix:** Minify your JavaScript files to reduce file size and improve load times
+
+### [MOBILE] CSS files may not be minified (optional)
+**Impact:** Unminified CSS can slow down mobile page loads on cellular networks
+**Fix:** Minify your CSS files to reduce file size and improve load times
+
+### [EMAIL] No MX records found (important)
+**Impact:** Email cannot be received at this domain
+**Fix:** Add MX records to your DNS configuration to receive emails
+
+### [EMAIL] Missing SPF record (critical)
+**Impact:** Emails may be marked as spam or spoofed
+**Fix:** Add an SPF TXT record like: v=spf1 include:_spf.google.com ~all
+
+### [EMAIL] Missing DMARC policy (critical)
+**Impact:** No policy for handling failed email authentication
+**Fix:** Add a DMARC TXT record at _dmarc.yourdomain.com like: v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com
+
+
+## Passed Checks (25):
+- Page title is present and well-optimized
+- Meta description is present and well-optimized
+- Single H1 heading present
+- Open Graph meta tags present
+- robots.txt file present
+- sitemap.xml file present
+- Site uses HTTPS
+- Content-Security-Policy header present
+- X-Frame-Options header present
+- X-Content-Type-Options header present
+- Proper heading hierarchy
+- Language attribute present
+- Skip navigation link present
+- Performance estimated (Lighthouse analysis not enabled)
+- Responsive viewport configured
+- No extremely small inline font sizes detected
+- No redirects detected
+- DKIM signature found
+- 1 valid JSON-LD schema(s) found
+- Complete Open Graph metadata present
+- MCP server endpoint detected and valid
+- llms.txt file present with content
+- AI crawlers explicitly allowed: GPTBot, ChatGPT-User, Claude-Web, Anthropic, PerplexityBot, Google-Extended
+- Sitemap reference in robots.txt
+- Domain IP not on any checked blacklists
+
+---
+*Analyzed on 12/28/2025, 9:04:33 PM by TriFused Website Grader*
