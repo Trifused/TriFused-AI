@@ -158,8 +158,9 @@ export class MCPHealthCheckService {
       endpoints: {
         mcp: `${this.baseUrl}/mcp/v1`,
       },
+      tools: this.getTools(),
       capabilities: {
-        tools: ["check_website_health", "get_website_grade", "list_graded_websites"],
+        tools: ["check_website_health", "get_website_grade", "list_graded_websites", "get_blog_posts", "get_services", "get_api_documentation", "get_about"],
         resources: [],
         prompts: [],
       },
