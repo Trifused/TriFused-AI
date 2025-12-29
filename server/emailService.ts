@@ -530,8 +530,8 @@ export async function sendServiceLeadNotificationEmail(
             ` : ''}
             
             <div style="text-align: center;">
-              <a href="https://trifused.com/portal/leads" style="display: inline-block; background: linear-gradient(135deg, #22d3ee 0%, #0891b2 100%); color: #0a0a0f; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px;">
-                View All Leads
+              <a href="https://trifused.com/portal/admin" style="display: inline-block; background: linear-gradient(135deg, #22d3ee 0%, #0891b2 100%); color: #0a0a0f; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px;">
+                View in Admin Portal
               </a>
             </div>
             
