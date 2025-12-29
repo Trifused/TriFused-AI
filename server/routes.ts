@@ -34,6 +34,7 @@ import { sendInstantReport, startWebsiteReportScheduler } from "./websiteReportS
 import { websiteReportFrequencies } from "@shared/schema";
 import { tokenPricing } from "@shared/schema";
 import { mcpService, handleMCPRequest, MCPHealthCheckService } from "./mcpService";
+import { validateAIReadiness, type AIReadinessResult } from "./aiReadinessService";
 
 // AI Vision helper for FDIC badge detection
 async function detectFdicWithVision(url: string): Promise<{ found: boolean; confidence: string; location: string | null }> {
@@ -4051,15 +4052,26 @@ Your primary goal is to help users AND capture their contact information natural
       const visitorIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor || req.socket.remoteAddress || null;
       const visitorUserAgent = req.headers['user-agent'] || null;
 
-      // Get hosting geo info, email security, and blacklist status in parallel
-      const [geoInfo, emailSecurity, blacklistInfo] = await Promise.all([
+      // Get hosting geo info, email security, blacklist status, and AI readiness in parallel
+      const [geoInfo, emailSecurity, blacklistInfo, aiReadiness] = await Promise.all([
         getHostingGeoInfo(parsedDomain),
         getEmailSecurityRecords(parsedDomain),
         getHostingGeoInfo(parsedDomain).then(geo => checkBlacklists(geo.hostIp)),
+        validateAIReadiness(url, html, null, responseHeaders),
       ]);
 
       // Add email security findings to main findings
       findings.push(...emailSecurity.findings);
+      
+      // Add AI readiness findings to main findings
+      findings.push(...aiReadiness.findings.map(f => ({
+        category: f.subcategory,
+        issue: f.issue,
+        impact: f.impact,
+        priority: f.priority,
+        howToFix: f.howToFix + (f.codeExample ? `\n\nExample:\n${f.codeExample}` : ''),
+        passed: f.passed,
+      })));
 
       // Add blacklist finding if listed
       if (blacklistInfo.blacklistStatus === 'listed') {
@@ -4584,6 +4596,8 @@ Your primary goal is to help users AND capture their contact information natural
           accessibilityScore: finalScores.accessibilityScore,
           emailSecurityScore: emailSecurity.emailSecurityScore,
           mobileScore: finalScores.mobileScore,
+          aiReadinessScore: aiReadiness.score,
+          aiReadinessBreakdown: aiReadiness.breakdown,
           findings,
           companyName: companyName || null,
           domain: parsedDomain,
@@ -4605,6 +4619,8 @@ Your primary goal is to help users AND capture their contact information natural
         accessibilityScore: finalScores.accessibilityScore,
         emailSecurityScore: emailSecurity.emailSecurityScore,
         mobileScore: finalScores.mobileScore,
+        aiReadinessScore: aiReadiness.score,
+        aiReadinessBreakdown: aiReadiness.breakdown as any,
         findings: findings as any,
         companyName: companyName || null,
         companyDescription: companyDescription || null,
