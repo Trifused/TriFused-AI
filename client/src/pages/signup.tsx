@@ -82,7 +82,11 @@ export default function Signup() {
       script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
       script.async = true;
       script.onload = () => setRecaptchaLoaded(true);
+      script.onerror = () => setRecaptchaLoaded(true); // Allow form to work without reCAPTCHA
       document.head.appendChild(script);
+      
+      // Fallback: enable form after 3 seconds if reCAPTCHA doesn't load
+      setTimeout(() => setRecaptchaLoaded(true), 3000);
     } else {
       setRecaptchaLoaded(true);
     }
@@ -130,33 +134,42 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !siteKey || !recaptchaLoaded) return;
+    if (!email) return;
     
-    try {
-      window.grecaptcha.ready(async () => {
-        const token = await window.grecaptcha.execute(siteKey, { action: 'service_lead' });
-        const sessionData = getSessionData();
-        
-        leadMutation.mutate({
-          email,
-          captchaToken: token,
-          businessName: businessName || null,
-          phoneNumber: phoneNumber || null,
-          message: message || null,
-          serviceInterests: selectedServices.length > 0 ? selectedServices : null,
-          needHelpAsap,
-          clickPath: sessionData.clickPath,
-          pageViews: sessionData.pageViews,
-          sessionDuration: sessionData.sessionDuration,
-          utmParams: sessionData.utmParams,
+    const sessionData = getSessionData();
+    
+    const submitLead = (token: string | null) => {
+      leadMutation.mutate({
+        email,
+        captchaToken: token,
+        businessName: businessName || null,
+        phoneNumber: phoneNumber || null,
+        message: message || null,
+        serviceInterests: selectedServices.length > 0 ? selectedServices : null,
+        needHelpAsap,
+        clickPath: sessionData.clickPath,
+        pageViews: sessionData.pageViews,
+        sessionDuration: sessionData.sessionDuration,
+        utmParams: sessionData.utmParams,
+      });
+    };
+    
+    // Try reCAPTCHA if available, otherwise submit without it
+    if (window.grecaptcha && siteKey) {
+      try {
+        window.grecaptcha.ready(async () => {
+          try {
+            const token = await window.grecaptcha.execute(siteKey, { action: 'service_lead' });
+            submitLead(token);
+          } catch {
+            submitLead(null);
+          }
         });
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to verify. Please try again.",
-        variant: "destructive",
-      });
+      } catch {
+        submitLead(null);
+      }
+    } else {
+      submitLead(null);
     }
   };
 
@@ -376,7 +389,7 @@ export default function Signup() {
 
                     <Button
                       type="submit"
-                      disabled={!email || !recaptchaLoaded || leadMutation.isPending}
+                      disabled={!email || leadMutation.isPending}
                       className="w-full bg-primary hover:bg-primary/90 text-black font-semibold"
                       data-testid="button-submit-lead"
                     >
