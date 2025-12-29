@@ -13,6 +13,26 @@ TriFused is an AI-native technology services company specializing in:
 - **AI Development**: LLM integration, autonomous agents, generative AI applications
 - **Growth Engineering**: AI-powered marketing, personalized customer journeys
 
+## MCP (Model Context Protocol) Integration
+
+TriFused provides an MCP server for AI agents to access website analysis and company information.
+
+**MCP Endpoint**: https://trifused.com/api/mcp
+
+**Available MCP Tools**:
+- `check_website_health`: Comprehensive website analysis (SEO, security, performance, accessibility)
+- `get_website_grade`: Retrieve existing grade for a previously analyzed URL
+- `list_graded_websites`: List all graded websites with scores and last scan dates
+- `get_services`: Get detailed information about services and pricing tiers
+- `get_blog_posts`: Fetch recent blog posts from the TriFused blog
+- `get_api_documentation`: Access API documentation for integration
+- `get_about`: Get company mission, values, capabilities, and changelog
+
+**Authentication**: Bearer token (API key) required
+**Protocol**: JSON-RPC 2.0
+
+For more details, visit: https://trifused.com/mcp
+
 ## Our Ventures
 
 TriFused operates a portfolio of technology ventures:

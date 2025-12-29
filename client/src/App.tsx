@@ -47,6 +47,7 @@ const DocsChangelog = lazy(() => import("@/pages/docs/changelog"));
 const DocsScoring = lazy(() => import("@/pages/docs/scoring"));
 const Auth = lazy(() => import("@/pages/auth"));
 const About = lazy(() => import("@/pages/about"));
+const MCP = lazy(() => import("@/pages/mcp"));
 
 // Loading fallback for lazy components
 const PageLoader = () => (
@@ -94,6 +95,7 @@ function Router() {
         <Route path="/docs/changelog" component={DocsChangelog} />
         <Route path="/docs/scoring" component={DocsScoring} />
         <Route path="/about" component={About} />
+        <Route path="/mcp" component={MCP} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
