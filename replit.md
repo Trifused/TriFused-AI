@@ -37,6 +37,7 @@ The frontend uses React 18 with TypeScript, Wouter for routing, and Tailwind CSS
 - **Token Payment System:** A token-based system for purchasing and spending on premium features, managed through `token_packages`, `token_wallets`, `token_transactions`, and `token_pricing` database tables, integrated with Stripe.
 - **Circuit Breaker Pattern:** Uses the `opossum` library for external service calls (e.g., email, Stripe, OpenAI) to prevent cascading failures, with configurable timeouts and error thresholds.
 - **Website Report Scheduler:** Automated email delivery of website grade report cards to portal users. Supports instant sending and scheduled delivery (daily, weekly, monthly frequencies). Uses `website_report_schedules` table for persistence and `websiteReportScheduler.ts` for background processing.
+- **AI Readiness Scoring:** Evaluates websites for AI crawler and agent compatibility. Includes Content Accessibility (SSR detection, noscript fallback), Structured Data (JSON-LD, OpenGraph), MCP Compliance (endpoint detection), and Crawlability (robots.txt, llms.txt). Implemented in `aiReadinessService.ts` with weighted scoring breakdown.
 
 ## External Dependencies
 

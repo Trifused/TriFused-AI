@@ -12,6 +12,22 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
   {
+    version: "2.6.0",
+    date: "December 29, 2025",
+    type: "feature",
+    title: "AI Readiness Score",
+    description: "New scoring category to measure how well websites are optimized for AI crawlers and agents.",
+    items: [
+      "AI Readiness score displayed on grader scorecard (0-100)",
+      "Content Accessibility checks: SSR vs CSR detection, noscript fallback",
+      "Structured Data validation: JSON-LD, OpenGraph, Twitter Cards",
+      "MCP Compliance: endpoint detection and response validation",
+      "Crawlability analysis: robots.txt, llms.txt, AI bot permissions",
+      "Weighted scoring breakdown stored in database",
+      "Findings integrated into main grader results",
+    ]
+  },
+  {
     version: "2.5.0",
     date: "December 28, 2025",
     type: "feature",
