@@ -1,5 +1,5 @@
 import { DocsLayout, DocsSection } from "@/components/layout/docs-layout";
-import { Bot, Globe, FileText, Building2, Code, Key, Zap, Terminal, ExternalLink, Shield } from "lucide-react";
+import { Bot, Globe, FileText, Building2, Code, Key, Zap, Terminal, ExternalLink, Shield, Wrench } from "lucide-react";
 import { Link } from "wouter";
 
 const mcpTools = [
@@ -201,6 +201,26 @@ Authorization: Bearer YOUR_API_KEY
               MCP Specification
             </a>
           </div>
+        </div>
+      </DocsSection>
+
+      <DocsSection title="Test Your Server">
+        <div className="glass-panel p-6 rounded-xl bg-gradient-to-br from-primary/10 to-purple-500/10 border border-primary/30">
+          <div className="flex items-center gap-3 mb-3">
+            <Wrench className="w-6 h-6 text-primary" />
+            <h3 className="text-xl font-semibold text-white">MCP Toolbox</h3>
+          </div>
+          <p className="text-muted-foreground mb-4">
+            Use our interactive console to test MCP server connections, run commands, and debug your integration in real-time.
+          </p>
+          <Link 
+            href="/mcp-toolbox"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-semibold"
+            data-testid="link-mcp-toolbox"
+          >
+            <Terminal className="w-4 h-4" />
+            Open MCP Toolbox
+          </Link>
         </div>
       </DocsSection>
 

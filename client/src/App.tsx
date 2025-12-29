@@ -48,6 +48,7 @@ const DocsScoring = lazy(() => import("@/pages/docs/scoring"));
 const Auth = lazy(() => import("@/pages/auth"));
 const About = lazy(() => import("@/pages/about"));
 const MCP = lazy(() => import("@/pages/mcp"));
+const MCPToolbox = lazy(() => import("@/pages/mcp-toolbox"));
 
 // Loading fallback for lazy components
 const PageLoader = () => (
@@ -96,6 +97,7 @@ function Router() {
         <Route path="/docs/scoring" component={DocsScoring} />
         <Route path="/about" component={About} />
         <Route path="/mcp" component={MCP} />
+        <Route path="/mcp-toolbox" component={MCPToolbox} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
