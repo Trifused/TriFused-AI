@@ -263,7 +263,7 @@ export default function Signup() {
               transition={{ delay: 0.2 }}
               className="group relative"
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               
               <div className="glass-panel h-full rounded-2xl overflow-hidden p-1 flex flex-col hover:border-primary/50 transition-colors duration-500">
                 <div className="relative h-16 rounded-xl overflow-hidden mb-4 bg-gradient-to-r from-primary/20 via-cyan-500/20 to-blue-500/20 flex items-center justify-center">
