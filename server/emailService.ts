@@ -465,11 +465,15 @@ export async function sendServiceLeadNotificationEmail(
     const urgentBadge = data.needHelpAsap 
       ? '<span style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">🚨 URGENT - ASAP</span>' 
       : '';
+    const isDev = process.env.NODE_ENV === 'development';
+    const devBadge = isDev 
+      ? '<div style="background: #f59e0b; color: #000; padding: 8px 16px; border-radius: 8px; text-align: center; margin-bottom: 16px; font-weight: bold;">⚠️ DEV ENVIRONMENT - Test Submission</div>' 
+      : '';
     
     const result = await client.emails.send({
       from: verifiedFrom,
       to: 'trifused@gmail.com',
-      subject: `${data.needHelpAsap ? '🚨 URGENT: ' : ''}New Service Inquiry from ${data.businessName || data.email}`,
+      subject: `${isDev ? '[DEV] ' : ''}${data.needHelpAsap ? '🚨 URGENT: ' : ''}New Service Inquiry from ${data.businessName || data.email}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -479,6 +483,7 @@ export async function sendServiceLeadNotificationEmail(
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0f; color: #ffffff; margin: 0; padding: 40px 20px;">
           <div style="max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; border: 1px solid rgba(34, 211, 238, 0.2); padding: 40px;">
+            ${devBadge}
             <div style="text-align: center; margin-bottom: 24px;">
               <h1 style="color: #22d3ee; font-size: 24px; margin: 0 0 8px 0;">New Service Inquiry</h1>
               ${urgentBadge}
@@ -488,26 +493,26 @@ export async function sendServiceLeadNotificationEmail(
               <h3 style="color: #22d3ee; margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Contact Details</h3>
               
               <div style="margin-bottom: 12px;">
-                <span style="color: #94a3b8; font-size: 12px;">Email:</span><br>
+                <span style="color: #e2e8f0; font-size: 12px; font-weight: 600;">Email:</span><br>
                 <a href="mailto:${data.email}" style="color: #22d3ee; font-size: 16px; text-decoration: none;">${data.email}</a>
               </div>
               
               ${data.businessName ? `
               <div style="margin-bottom: 12px;">
-                <span style="color: #94a3b8; font-size: 12px;">Business:</span><br>
+                <span style="color: #e2e8f0; font-size: 12px; font-weight: 600;">Business:</span><br>
                 <span style="color: #ffffff; font-size: 16px;">${data.businessName}</span>
               </div>
               ` : ''}
               
               ${data.phoneNumber ? `
               <div style="margin-bottom: 12px;">
-                <span style="color: #94a3b8; font-size: 12px;">Phone:</span><br>
+                <span style="color: #e2e8f0; font-size: 12px; font-weight: 600;">Phone:</span><br>
                 <a href="tel:${data.phoneNumber}" style="color: #22d3ee; font-size: 16px; text-decoration: none;">${data.phoneNumber}</a>
               </div>
               ` : ''}
               
               <div style="margin-bottom: 12px;">
-                <span style="color: #94a3b8; font-size: 12px;">Location:</span><br>
+                <span style="color: #e2e8f0; font-size: 12px; font-weight: 600;">Location:</span><br>
                 <span style="color: #ffffff; font-size: 16px;">${location}</span>
               </div>
             </div>
