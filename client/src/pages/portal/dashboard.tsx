@@ -105,6 +105,20 @@ interface DiagnosticScan {
   scannedAt: string;
 }
 
+interface ServiceLead {
+  id: string;
+  email: string;
+  businessName: string | null;
+  phoneNumber: string | null;
+  message: string | null;
+  serviceInterests: string[] | null;
+  needHelpAsap: boolean | null;
+  geoCity: string | null;
+  geoRegion: string | null;
+  geoCountry: string | null;
+  createdAt: string;
+}
+
 interface WebsiteGrade {
   id: string;
   url: string;
@@ -177,6 +191,7 @@ export default function Dashboard() {
   const [showSubscribersModal, setShowSubscribersModal] = useState(false);
   const [showContactsModal, setShowContactsModal] = useState(false);
   const [showGraderModal, setShowGraderModal] = useState(false);
+  const [showServiceLeadsModal, setShowServiceLeadsModal] = useState(false);
   const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [loadingLeadId, setLoadingLeadId] = useState<string | null>(null);
@@ -241,6 +256,16 @@ export default function Dashboard() {
     queryFn: async () => {
       const res = await fetch('/api/admin/grades', { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch grader leads');
+      return res.json();
+    },
+    enabled: isAuthenticated && isSuperuser,
+  });
+
+  const { data: serviceLeads } = useQuery<ServiceLead[]>({
+    queryKey: ['/api/admin/service-leads'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/service-leads', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch service leads');
       return res.json();
     },
     enabled: isAuthenticated && isSuperuser,
@@ -428,6 +453,14 @@ export default function Dashboard() {
       status: (stats?.leads || 0) > 0 ? "green" : "gray",
       count: stats?.leads || 0,
       onClick: () => setShowLeadsModal(true)
+    },
+    { 
+      icon: UserCheck, 
+      label: "Service Leads", 
+      description: `${serviceLeads?.length || 0} inquiries`, 
+      status: (serviceLeads?.length || 0) > 0 ? "orange" : "gray",
+      count: serviceLeads?.length || 0,
+      onClick: () => setShowServiceLeadsModal(true)
     },
     { 
       icon: Mail, 
@@ -1615,6 +1648,82 @@ Small tweaks → big gains.`;
                 <Contact className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No contact submissions yet</p>
                 <p className="text-sm">Contact form submissions will appear here</p>
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showServiceLeadsModal} onOpenChange={setShowServiceLeadsModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] bg-background border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-orange-500" />
+              Service Leads
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh] pr-4">
+            {serviceLeads && serviceLeads.length > 0 ? (
+              <div className="space-y-4">
+                {serviceLeads.map((lead) => (
+                  <div 
+                    key={lead.id} 
+                    className="glass-panel rounded-lg p-4 border border-white/5"
+                    data-testid={`service-lead-${lead.id}`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">{lead.businessName || lead.email}</span>
+                        {lead.needHelpAsap && (
+                          <span className="px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-xs font-medium">
+                            URGENT
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {format(new Date(lead.createdAt), 'MMM d, yyyy h:mm a')}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-orange-500" />
+                        <span className="text-sm text-white">{lead.email}</span>
+                      </div>
+                      {lead.phoneNumber && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">Phone:</span>
+                          <span className="text-sm text-white">{lead.phoneNumber}</span>
+                        </div>
+                      )}
+                      {lead.serviceInterests && lead.serviceInterests.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {lead.serviceInterests.map((service, idx) => (
+                            <span key={idx} className="px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 text-xs">
+                              {service}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {lead.message && (
+                        <div className="pt-2 border-t border-white/5">
+                          <p className="text-xs text-muted-foreground mb-1">Message</p>
+                          <p className="text-sm text-white/80">{lead.message}</p>
+                        </div>
+                      )}
+                      {(lead.geoCity || lead.geoRegion || lead.geoCountry) && (
+                        <div className="text-xs text-muted-foreground">
+                          Location: {[lead.geoCity, lead.geoRegion, lead.geoCountry].filter(Boolean).join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <UserCheck className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No service leads yet</p>
+                <p className="text-sm">Service inquiries from the signup form will appear here</p>
               </div>
             )}
           </ScrollArea>
