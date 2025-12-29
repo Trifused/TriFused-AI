@@ -35,6 +35,7 @@ import { websiteReportFrequencies } from "@shared/schema";
 import { tokenPricing } from "@shared/schema";
 import { mcpService, handleMCPRequest, MCPHealthCheckService } from "./mcpService";
 import { validateAIReadiness, type AIReadinessResult } from "./aiReadinessService";
+import { sendServiceLeadNotificationEmail } from "./emailService";
 
 // AI Vision helper for FDIC badge detection
 async function detectFdicWithVision(url: string): Promise<{ found: boolean; confidence: string; location: string | null }> {
@@ -1276,6 +1277,20 @@ export async function registerRoutes(
       });
 
       const lead = await storage.createServiceLead(validatedData);
+      
+      // Send email notification (don't wait, fire and forget)
+      sendServiceLeadNotificationEmail({
+        email,
+        businessName: leadData.businessName,
+        phoneNumber: leadData.phoneNumber,
+        message: leadData.message,
+        serviceInterests: Array.isArray(leadData.serviceInterests) ? leadData.serviceInterests : null,
+        needHelpAsap: leadData.needHelpAsap,
+        geoCity,
+        geoRegion,
+        geoCountry,
+      }).catch(err => console.error("Failed to send lead notification:", err));
+      
       res.json({ success: true, id: lead.id });
     } catch (error: any) {
       console.error("Service lead error:", error);

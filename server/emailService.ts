@@ -438,3 +438,114 @@ export async function sendWebsiteReportEmail(
     },
   });
 }
+
+export interface ServiceLeadNotificationData {
+  email: string;
+  businessName?: string | null;
+  phoneNumber?: string | null;
+  message?: string | null;
+  serviceInterests?: string[] | null;
+  needHelpAsap?: boolean;
+  geoCity?: string | null;
+  geoRegion?: string | null;
+  geoCountry?: string | null;
+}
+
+export async function sendServiceLeadNotificationEmail(
+  data: ServiceLeadNotificationData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { client, fromEmail } = await getResendClient();
+    const verifiedFrom = (fromEmail && fromEmail.includes('mailout1.trifused.com')) 
+      ? fromEmail 
+      : 'TriFused <noreply@mailout1.trifused.com>';
+    
+    const services = data.serviceInterests?.join(', ') || 'Not specified';
+    const location = [data.geoCity, data.geoRegion, data.geoCountry].filter(Boolean).join(', ') || 'Unknown';
+    const urgentBadge = data.needHelpAsap 
+      ? '<span style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;">🚨 URGENT - ASAP</span>' 
+      : '';
+    
+    const result = await client.emails.send({
+      from: verifiedFrom,
+      to: 'trifused@gmail.com',
+      subject: `${data.needHelpAsap ? '🚨 URGENT: ' : ''}New Service Inquiry from ${data.businessName || data.email}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0f; color: #ffffff; margin: 0; padding: 40px 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; border: 1px solid rgba(34, 211, 238, 0.2); padding: 40px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="color: #22d3ee; font-size: 24px; margin: 0 0 8px 0;">New Service Inquiry</h1>
+              ${urgentBadge}
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+              <h3 style="color: #22d3ee; margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Contact Details</h3>
+              
+              <div style="margin-bottom: 12px;">
+                <span style="color: #94a3b8; font-size: 12px;">Email:</span><br>
+                <a href="mailto:${data.email}" style="color: #22d3ee; font-size: 16px; text-decoration: none;">${data.email}</a>
+              </div>
+              
+              ${data.businessName ? `
+              <div style="margin-bottom: 12px;">
+                <span style="color: #94a3b8; font-size: 12px;">Business:</span><br>
+                <span style="color: #ffffff; font-size: 16px;">${data.businessName}</span>
+              </div>
+              ` : ''}
+              
+              ${data.phoneNumber ? `
+              <div style="margin-bottom: 12px;">
+                <span style="color: #94a3b8; font-size: 12px;">Phone:</span><br>
+                <a href="tel:${data.phoneNumber}" style="color: #22d3ee; font-size: 16px; text-decoration: none;">${data.phoneNumber}</a>
+              </div>
+              ` : ''}
+              
+              <div style="margin-bottom: 12px;">
+                <span style="color: #94a3b8; font-size: 12px;">Location:</span><br>
+                <span style="color: #ffffff; font-size: 16px;">${location}</span>
+              </div>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+              <h3 style="color: #22d3ee; margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Services Interested</h3>
+              <span style="color: #ffffff; font-size: 16px;">${services}</span>
+            </div>
+            
+            ${data.message ? `
+            <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+              <h3 style="color: #22d3ee; margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Message</h3>
+              <p style="color: #ffffff; font-size: 16px; margin: 0; white-space: pre-wrap;">${data.message}</p>
+            </div>
+            ` : ''}
+            
+            <div style="text-align: center;">
+              <a href="https://trifused.com/portal/leads" style="display: inline-block; background: linear-gradient(135deg, #22d3ee 0%, #0891b2 100%); color: #0a0a0f; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px;">
+                View All Leads
+              </a>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 32px 0;">
+            
+            <p style="color: #64748b; font-size: 12px; text-align: center; margin: 0;">
+              This is an automated notification from TriFused.<br>
+              &copy; ${new Date().getFullYear()} TriFused. All rights reserved.
+            </p>
+          </div>
+        </body>
+        </html>
+      `
+    });
+    
+    console.log('Service lead notification email sent:', result);
+    return { success: true };
+  } catch (error: any) {
+    console.error('Failed to send service lead notification email:', error);
+    return { success: false, error: error.message };
+  }
+}
