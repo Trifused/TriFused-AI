@@ -64,6 +64,13 @@
     opacity: 1 !important;
     background-color: #1e293b !important;
   }
+  
+  /* reCAPTCHA badge - hide and prevent blocking touches */
+  .grecaptcha-badge {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
 }
 
 @layer utilities {
