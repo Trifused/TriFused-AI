@@ -833,7 +833,7 @@ export default function Dashboard() {
                       {quickGradeResult.overallScore}/100
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-xs">
+                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 text-xs">
                     <div className="text-center p-2 bg-white/5 rounded">
                       <div className="text-muted-foreground">SEO</div>
                       <div className="font-medium text-white">{quickGradeResult.seoScore}</div>
@@ -857,6 +857,10 @@ export default function Dashboard() {
                     <div className="text-center p-2 bg-white/5 rounded">
                       <div className="text-muted-foreground">Mobile</div>
                       <div className="font-medium text-white">{quickGradeResult.mobileScore}</div>
+                    </div>
+                    <div className="text-center p-2 bg-white/5 rounded">
+                      <div className="text-muted-foreground">AI</div>
+                      <div className="font-medium text-white">{quickGradeResult.aiReadinessScore || 0}</div>
                     </div>
                   </div>
                   {quickGradeResult.advancedSecurityScan && (
@@ -902,6 +906,7 @@ export default function Dashboard() {
                           { name: 'Access', score: quickGradeResult.accessibilityScore },
                           { name: 'Email', score: quickGradeResult.emailSecurityScore },
                           { name: 'Mobile', score: quickGradeResult.mobileScore },
+                          { name: 'AI', score: quickGradeResult.aiReadinessScore || 0 },
                         ].sort((a, b) => b.score - a.score);
                         const topTwo = scores.slice(0, 2);
                         const bottomTwo = scores.slice(-2);
