@@ -1,0 +1,194 @@
+# Product Requirements Document: MCP Toolbox
+
+## Overview
+
+MCP Toolbox is a web-based diagnostic and testing interface for Model Context Protocol (MCP) servers. It provides developers with a console-style interface to quickly test server connectivity, inspect capabilities, and verify server health.
+
+## Target Users
+
+- MCP server developers testing their implementations
+- System administrators monitoring MCP server health
+- Developers integrating MCP servers into applications
+
+## Core Features
+
+### 1. Server Connection Interface
+
+**Purpose**: Allow users to connect to any MCP server endpoint
+
+**Requirements**:
+
+- Input field for server URL/endpoint
+- Connection status indicator (connected/disconnected/error)
+- Support for both local and remote servers
+- Save recently used server URLs
+
+### 2. Standard Commands Console
+
+**Purpose**: Provide quick access to standard MCP diagnostic commands
+
+**Pre-configured Command Buttons**:
+
+- **Ping**: Test basic connectivity
+  - Command: `{"jsonrpc": "2.0", "method": "ping", "id": 1}`
+  - Shows response time
+- **List Tools**: Enumerate available tools
+  - Command: `{"jsonrpc": "2.0", "method": "tools/list", "id": 2}`
+  - Displays tool names and descriptions
+- **List Resources**: Show server resources
+  - Command: `{"jsonrpc": "2.0", "method": "resources/list", "id": 3}`
+  - Lists available resources
+- **Health Check**: Server health status
+  - Endpoint: `/health`
+  - Shows status code and response
+- **Server Info**: Get server capabilities
+  - Command: `{"jsonrpc": "2.0", "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}}, "id": 4}`
+
+### 3. Console Output Area
+
+**Purpose**: Display command results in readable format
+
+**Requirements**:
+
+- Syntax-highlighted JSON responses
+- Timestamp for each command execution
+- Success/error indicators
+- Collapsible response sections
+- Copy-to-clipboard functionality
+- Clear console button
+- Response time metrics
+
+### 4. Server Stats Dashboard
+
+**Purpose**: Show real-time server health metrics at the top
+
+**Metrics Display**:
+
+- **Connection Status**: Green/yellow/red indicator with uptime
+- **Response Time**: Average latency for last 10 requests
+- **Available Tools**: Count of tools from last tools/list
+- **Available Resources**: Count of resources from last resources/list
+- **Last Successful Ping**: Timestamp
+- **Error Rate**: Percentage of failed requests
+
+### 5. Custom Command Interface
+
+**Purpose**: Allow advanced users to send custom JSON-RPC commands
+
+**Requirements**:
+
+- JSON editor with syntax validation
+- Send button
+- Command history (last 20 commands)
+- Example templates dropdown
+- Parameter autocomplete suggestions
+
+## User Flow
+
+### Initial Load
+
+1. User lands on page with server URL input prominent
+1. Stats dashboard shows “Not Connected” state
+1. Standard command buttons are disabled until connected
+
+### Connection Flow
+
+1. User enters server URL
+1. Clicks “Connect” button
+1. Tool automatically sends initialize handshake
+1. On success:
+- Stats dashboard populates with initial data
+- Command buttons become enabled
+- Console shows connection success message
+
+### Testing Flow
+
+1. User clicks standard command button (e.g., “Ping”)
+1. Request appears in console with timestamp
+1. Response appears below request with:
+- Status indicator (✓ success / ✗ error)
+- Response time
+- Formatted JSON output
+1. Stats dashboard updates automatically
+
+### Advanced Flow
+
+1. User switches to custom command tab
+1. Selects template or writes custom JSON-RPC request
+1. Sends command
+1. Response appears in same console area
+
+## Technical Requirements
+
+### Performance
+
+- Response time display accurate to milliseconds
+- Console should handle 1000+ log entries without lag
+- Real-time stats update without page refresh
+
+### Compatibility
+
+- Works in Chrome, Firefox, Safari, Edge (latest versions)
+- Responsive design for desktop (1920x1080 minimum)
+- Works with MCP protocol version 2024-11-05 and later
+
+### Security
+
+- HTTPS connections supported
+- CORS handling for cross-origin server connections
+- Input sanitization for server URLs
+- No storage of sensitive credentials
+
+## UI/UX Guidelines
+
+### Layout
+
+```
+┌─────────────────────────────────────────────────────┐
+│  MCP Toolbox                                         │
+├─────────────────────────────────────────────────────┤
+│  [Server URL Input]  [Connect Button]               │
+├─────────────────────────────────────────────────────┤
+│  Stats: [●Connected] [Ping: 45ms] [Tools: 5]       │
+│         [Resources: 3] [Errors: 0%]                 │
+├─────────────────────────────────────────────────────┤
+│  [Ping] [List Tools] [List Resources] [Health]     │
+│  [Server Info] [Clear Console]                      │
+├─────────────────────────────────────────────────────┤
+│  Console Output:                                     │
+│  ┌───────────────────────────────────────────────┐ │
+│  │ [12:34:56] > ping                             │ │
+│  │ ✓ Response (45ms)                             │ │
+│  │ {}                                            │ │
+│  │                                               │ │
+│  │ [12:35:02] > tools/list                       │ │
+│  │ ✓ Response (123ms)                            │ │
+│  │ {                                             │ │
+│  │   "tools": [...]                              │ │
+│  │ }                                             │ │
+│  └───────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+```
+
+### Visual Design
+
+- Dark console theme (developer-focused)
+- Monospace font for console output
+- Color coding: green (success), red (error), yellow (warning)
+- Subtle animations on status changes
+- Clear visual hierarchy
+
+## Success Metrics
+
+- Time to first successful server connection < 30 seconds
+- Users can execute all 5 standard commands within 2 minutes
+- Error messages clearly indicate connection vs. server issues
+- 90% of users successfully test their server without documentation
+
+## Future Enhancements (Out of Scope for V1)
+
+- Save/load test suites
+- Automated health monitoring with alerts
+- WebSocket support for streaming responses
+- Multi-server comparison view
+- Export test results to JSON/CSV
