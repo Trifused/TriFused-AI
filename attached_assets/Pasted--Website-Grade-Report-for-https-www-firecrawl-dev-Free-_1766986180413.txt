@@ -1,0 +1,124 @@
+# Website Grade Report for https://www.firecrawl.dev/
+*(Free Tool - For informational purposes only)*
+**Source:** Grader Page
+
+## Overall Score: 83/100 (Grade: B)
+
+### Category Scores:
+- SEO: 95/100
+- Security: 85/100
+- Performance: 75/100
+- Keywords: 75/100
+- Accessibility: 84/100
+- Email Security: 100/100
+- Mobile: 65/100
+- AI Readiness: 90/100
+
+## Issues Found (15):
+
+### [SEO] Meta description length is 178 characters (recommended: 150-160) (important)
+**Impact:** Descriptions that are too short or long may not display optimally in search results
+**Fix:** Adjust your meta description to be between 150-160 characters
+
+### [SECURITY] Missing Content-Security-Policy header (important)
+**Impact:** CSP helps prevent XSS attacks and data injection
+**Fix:** Add a Content-Security-Policy header to your server configuration. Start with: Content-Security-Policy: default-src 'self'
+
+### [ACCESSIBILITY] 1 form input(s) missing labels (important)
+**Impact:** Screen reader users won't know what to enter in these fields
+**Fix:** Add <label for='inputId'> or aria-label attribute to each input field
+
+### [ACCESSIBILITY] 2 link(s) without accessible text (important)
+**Impact:** Screen reader users won't know where these links go
+**Fix:** Add descriptive link text or aria-label to all links
+
+### [ACCESSIBILITY] No skip navigation link found (optional)
+**Impact:** Keyboard users must tab through all navigation on every page
+**Fix:** Add a 'Skip to main content' link at the top of your page
+
+### [KEYWORDS] Top keyword "absolute" not in title or H1 (important)
+**Impact:** Main keywords should appear in title and H1 for better SEO
+**Fix:** Include "absolute" naturally in your page title and H1 heading
+
+### [KEYWORDS] Keyword "absolute" density is 5.3% (may be too high) (important)
+**Impact:** Keyword stuffing can hurt SEO rankings
+**Fix:** Reduce repetition of this keyword. Aim for 1-2% density
+
+### [MOBILE] Small font sizes detected in inline styles (important)
+**Impact:** Text smaller than 12px is difficult to read on mobile devices
+**Fix:** Use a minimum font size of 16px for body text on mobile devices
+
+### [MOBILE] JavaScript files may not be minified (optional)
+**Impact:** Unminified JS can slow down mobile page loads on cellular networks
+**Fix:** Minify your JavaScript files to reduce file size and improve load times
+
+### [MOBILE] CSS files may not be minified (optional)
+**Impact:** Unminified CSS can slow down mobile page loads on cellular networks
+**Fix:** Minify your CSS files to reduce file size and improve load times
+
+### [MOBILE] Only 44% of images have width/height attributes (important)
+**Impact:** Missing dimensions cause layout shift (CLS) which hurts mobile UX and Core Web Vitals
+**Fix:** Add width and height attributes to all <img> tags to prevent layout shift
+
+### [STRUCTURED-DATA] No JSON-LD structured data found (critical)
+**Impact:** AI systems cannot understand your content structure, reducing discoverability
+**Fix:** Add JSON-LD structured data using schema.org vocabulary
+
+Example:
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Your Company",
+  "url": "https://www.firecrawl.dev/",
+  "description": "Your company description"
+}
+</script>
+
+### [MCP-COMPLIANCE] No MCP server endpoint detected (optional)
+**Impact:** AI agents cannot interact with your site via Model Context Protocol
+**Fix:** Consider implementing an MCP server for AI agent integration
+
+Example:
+// MCP discovery endpoint at /.well-known/mcp
+{
+  "name": "your-service",
+  "version": "1.0.0",
+  "tools": [{ "name": "your_tool", "description": "..." }]
+}
+
+### [CRAWLABILITY] robots.txt may be blocking all crawlers (important)
+**Impact:** AI systems may not be able to access your content
+**Fix:** Review your robots.txt rules to ensure desired pages are accessible
+
+### [CRAWLABILITY] No sitemap reference in robots.txt (optional)
+**Impact:** Crawlers may not discover all pages
+**Fix:** Add Sitemap: https://yoursite.com/sitemap.xml to robots.txt
+
+
+## Passed Checks (22):
+- Page title is present and well-optimized
+- Single H1 heading present
+- All 112 images have alt text
+- Open Graph meta tags present
+- robots.txt file present
+- sitemap.xml file present
+- Site uses HTTPS
+- X-Frame-Options header present
+- X-Content-Type-Options header present
+- HSTS header present
+- Proper heading hierarchy
+- Language attribute present
+- Performance estimated (Lighthouse analysis not enabled)
+- Responsive viewport configured
+- No redirects detected
+- 1 MX record(s) configured
+- SPF record configured
+- DMARC policy configured
+- DKIM signature found
+- Complete Open Graph metadata present
+- llms.txt file present with content
+- Domain IP not on any checked blacklists
+
+---
+*Analyzed on 12/28/2025, 9:29:14 PM by TriFused Website Grader*
