@@ -202,6 +202,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
     },
     onSuccess: (data) => {
       setResult(data);
+      setUrl(data.url);
       toast({ title: "Analysis Complete!", description: `Your website scored ${data.overallScore}/100` });
     },
     onError: (error: Error) => {
@@ -422,15 +423,74 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   )}
                   <Button
                     onClick={handleScanAgain}
-                    className="gap-2 bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900"
+                    variant="outline"
+                    className="gap-2 border-white/20 text-white hover:bg-white/10"
                     data-testid="button-scan-again"
                   >
                     <RefreshCw className="w-4 h-4" />
-                    Scan Again
+                    New Scan
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      gradeMutation.mutate(result.url);
+                    }}
+                    disabled={gradeMutation.isPending}
+                    className="gap-2 bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900"
+                    data-testid="button-force-rescan"
+                  >
+                    {gradeMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    Force Rescan
                   </Button>
                 </div>
 
-                <div className="flex justify-center">
+                <div className="mt-8 p-6 bg-white/5 rounded-2xl border border-white/10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Search className="w-5 h-5 text-cyan-400" />
+                    <h3 className="text-lg font-semibold text-white">Rescan Website</h3>
+                  </div>
+                  <div className="flex gap-3">
+                    <Input
+                      type="text"
+                      inputMode="url"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder="Enter URL to scan..."
+                      className="flex-1 h-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500"
+                      data-testid="input-rescan-url"
+                    />
+                    <Button
+                      onClick={() => {
+                        let processedUrl = url.trim();
+                        if (!processedUrl) return;
+                        if (!processedUrl.startsWith("http://") && !processedUrl.startsWith("https://")) {
+                          processedUrl = "https://" + processedUrl;
+                        }
+                        gradeMutation.mutate(processedUrl);
+                      }}
+                      disabled={gradeMutation.isPending || !url.trim()}
+                      className="h-12 px-6 bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900 font-semibold"
+                      data-testid="button-rescan"
+                    >
+                      {gradeMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Search className="w-4 h-4 mr-2" />
+                          Scan
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-3">Free tool - Results are for informational purposes only</p>
+                </div>
+
+                <div className="flex justify-center mt-6">
                   <Button
                     onClick={() => setLocation(`/portal/signup?website=${encodeURIComponent(result.url)}&grade=${result.shareToken || ''}`)}
                     size="lg"
