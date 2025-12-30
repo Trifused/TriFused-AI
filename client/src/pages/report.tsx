@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Shield, 
@@ -37,7 +38,8 @@ import {
   Copy,
   Check,
   Smartphone,
-  Bot
+  Bot,
+  Sparkles
 } from "lucide-react";
 import { trackPageView } from "@/lib/analytics";
 
@@ -215,6 +217,8 @@ const complianceOptions = [
 
 export default function Report() {
   const params = useParams<{ shareToken: string }>();
+  const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [contactForm, setContactForm] = useState({ name: "", email: "", company: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -641,6 +645,38 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}` : ''}`;
               </p>
             </form>
           </div>
+
+          {/* Free Portal Account CTA - only show when not logged in */}
+          {!user && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-gradient-to-r from-primary/20 via-purple-500/20 to-primary/20 rounded-xl p-6 border border-primary/30 mb-8"
+            >
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Get 100 Free Tokens</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Create a free account to save this report and access premium features
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => setLocation(`/portal/signup?website=${encodeURIComponent(result?.url || scanUrl)}&grade=${params.shareToken || ''}`)}
+                  className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/80 hover:to-purple-600 text-white font-medium px-6"
+                  data-testid="button-free-signup-report"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Free Portal Account
+                </Button>
+              </div>
+            </motion.div>
+          )}
           
           {scanHistory.length > 0 && (
             <div className="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">

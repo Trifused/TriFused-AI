@@ -291,7 +291,7 @@ export default function Grader() {
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const { toast } = useToast();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const hasAutoScanned = useRef(false);
   const { user } = useAuth();
   const isSuperuser = user?.role === 'superuser';
@@ -661,6 +661,31 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
             <p className="mt-4 text-xs text-muted-foreground text-center">
               This is a free tool. Results are for informational purposes only and should not be considered professional advice.
             </p>
+            
+            {!user && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="mt-6 p-4 bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-xl border border-primary/20"
+              >
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-center sm:text-left">
+                    <p className="text-white font-semibold">Get 100 Free Tokens!</p>
+                    <p className="text-sm text-muted-foreground">Create a free account to save reports, track improvements, and unlock premium features.</p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => setLocation('/portal/signup')}
+                    className="bg-primary text-black hover:bg-primary/90 font-bold whitespace-nowrap"
+                    data-testid="button-free-account-grader"
+                  >
+                    Free Portal Account
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </motion.div>
+            )}
           </motion.form>
           )}
 

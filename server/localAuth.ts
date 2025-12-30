@@ -1,11 +1,13 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { db } from '../db';
-import { users, emailVerificationTokens, passwordResetTokens, magicLinkTokens } from '@shared/schema';
+import { users, emailVerificationTokens, passwordResetTokens, magicLinkTokens, websiteGrades } from '@shared/schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { sendAndLogEmail } from './emailService';
+import { tokenService } from './tokenService';
 
 const SALT_ROUNDS = 12;
+const FREE_SIGNUP_TOKENS = 100;
 const TOKEN_EXPIRY_HOURS = 24;
 const MAGIC_LINK_EXPIRY_MINUTES = 15;
 const APP_BASE_URL = process.env.APP_BASE_URL || 'https://trifused.com';
@@ -23,7 +25,13 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
-export async function registerUser(email: string, password: string, firstName?: string, lastName?: string): Promise<{ success: boolean; userId?: string; error?: string }> {
+export async function registerUser(
+  email: string, 
+  password: string, 
+  firstName?: string, 
+  lastName?: string,
+  gradeShareToken?: string
+): Promise<{ success: boolean; userId?: string; error?: string }> {
   try {
     const existing = await db.select().from(users).where(eq(users.email, email.toLowerCase()));
     if (existing.length > 0) {
@@ -43,7 +51,7 @@ export async function registerUser(email: string, password: string, firstName?: 
     }).returning();
 
     const userId = result[0].id;
-    await sendVerificationEmail(userId, email);
+    await sendVerificationEmail(userId, email, gradeShareToken);
 
     return { success: true, userId };
   } catch (error: any) {
@@ -97,7 +105,7 @@ export async function loginUser(email: string, password: string): Promise<{ succ
   }
 }
 
-export async function sendVerificationEmail(userId: string, email: string): Promise<{ success: boolean; error?: string }> {
+export async function sendVerificationEmail(userId: string, email: string, gradeShareToken?: string): Promise<{ success: boolean; error?: string }> {
   try {
     const token = generateSecureToken();
     const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
@@ -106,6 +114,7 @@ export async function sendVerificationEmail(userId: string, email: string): Prom
       userId,
       token,
       expiresAt,
+      gradeShareToken: gradeShareToken || null,
     });
 
     const verifyUrl = `${APP_BASE_URL}/auth/verify-email?token=${token}`;
@@ -156,6 +165,35 @@ export async function verifyEmail(token: string): Promise<{ success: boolean; er
         updatedAt: new Date() 
       })
       .where(eq(users.id, verificationToken.userId));
+
+    // Grant free signup tokens to new user
+    try {
+      await tokenService.creditTokens({
+        userId: verificationToken.userId,
+        amount: FREE_SIGNUP_TOKENS,
+        source: 'signup_bonus',
+        description: `Welcome bonus: ${FREE_SIGNUP_TOKENS} free tokens`,
+        referenceType: 'signup',
+        idempotencyKey: `signup_bonus_${verificationToken.userId}`,
+      });
+      console.log(`[Auth] Granted ${FREE_SIGNUP_TOKENS} free tokens to user ${verificationToken.userId}`);
+    } catch (tokenError) {
+      console.error('[Auth] Failed to grant signup tokens:', tokenError);
+      // Don't fail verification if token grant fails
+    }
+
+    // Link website grade to user if gradeShareToken was provided during signup
+    if (verificationToken.gradeShareToken) {
+      try {
+        await db.update(websiteGrades)
+          .set({ userId: verificationToken.userId })
+          .where(eq(websiteGrades.shareToken, verificationToken.gradeShareToken));
+        console.log(`[Auth] Linked grade ${verificationToken.gradeShareToken} to user ${verificationToken.userId}`);
+      } catch (gradeError) {
+        console.error('[Auth] Failed to link grade to user:', gradeError);
+        // Don't fail verification if grade linking fails
+      }
+    }
 
     return { success: true };
   } catch (error: any) {
@@ -233,7 +271,7 @@ export async function resetPassword(token: string, newPassword: string): Promise
   }
 }
 
-export async function sendMagicLink(email: string): Promise<{ success: boolean; error?: string }> {
+export async function sendMagicLink(email: string, gradeShareToken?: string): Promise<{ success: boolean; error?: string }> {
   try {
     const token = generateSecureToken();
     const expiresAt = new Date(Date.now() + MAGIC_LINK_EXPIRY_MINUTES * 60 * 1000);
@@ -242,6 +280,7 @@ export async function sendMagicLink(email: string): Promise<{ success: boolean; 
       email: email.toLowerCase(),
       token,
       expiresAt,
+      gradeShareToken: gradeShareToken || null,
     });
 
     const magicUrl = `${APP_BASE_URL}/auth/magic-link?token=${token}`;
@@ -284,6 +323,7 @@ export async function verifyMagicLink(token: string): Promise<{ success: boolean
       .where(eq(magicLinkTokens.id, magicToken.id));
 
     let userResults = await db.select().from(users).where(eq(users.email, magicToken.email));
+    let isNewUser = false;
     
     if (userResults.length === 0) {
       const result = await db.insert(users).values({
@@ -295,6 +335,7 @@ export async function verifyMagicLink(token: string): Promise<{ success: boolean
         status: 'active',
       }).returning();
       userResults = result;
+      isNewUser = true;
     } else {
       await db.update(users)
         .set({ 
@@ -307,6 +348,36 @@ export async function verifyMagicLink(token: string): Promise<{ success: boolean
     }
 
     const user = userResults[0];
+
+    // Grant free signup tokens to new users created via magic link
+    if (isNewUser) {
+      try {
+        await tokenService.creditTokens({
+          userId: user.id,
+          amount: FREE_SIGNUP_TOKENS,
+          source: 'signup_bonus',
+          description: `Welcome bonus: ${FREE_SIGNUP_TOKENS} free tokens`,
+          referenceType: 'signup',
+          idempotencyKey: `signup_bonus_${user.id}`,
+        });
+        console.log(`[Auth] Granted ${FREE_SIGNUP_TOKENS} free tokens to new magic link user ${user.id}`);
+      } catch (tokenError) {
+        console.error('[Auth] Failed to grant signup tokens:', tokenError);
+      }
+    }
+
+    // Link website grade to user if gradeShareToken was provided during signup
+    if (magicToken.gradeShareToken) {
+      try {
+        await db.update(websiteGrades)
+          .set({ userId: user.id })
+          .where(eq(websiteGrades.shareToken, magicToken.gradeShareToken));
+        console.log(`[Auth] Linked grade ${magicToken.gradeShareToken} to user ${user.id}`);
+      } catch (gradeError) {
+        console.error('[Auth] Failed to link grade to user:', gradeError);
+      }
+    }
+
     return { 
       success: true, 
       user: {

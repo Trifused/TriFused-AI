@@ -56,6 +56,7 @@ export const emailVerificationTokens = pgTable("email_verification_tokens", {
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  gradeShareToken: varchar("grade_share_token"),
 });
 
 export const insertEmailVerificationTokenSchema = createInsertSchema(emailVerificationTokens).omit({
@@ -94,6 +95,7 @@ export const magicLinkTokens = pgTable("magic_link_tokens", {
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  gradeShareToken: varchar("grade_share_token"),
 });
 
 export const insertMagicLinkTokenSchema = createInsertSchema(magicLinkTokens).omit({
@@ -361,6 +363,7 @@ export const websiteGrades = pgTable("website_grades", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   url: text("url").notNull(),
   email: text("email"),
+  userId: varchar("user_id"),
   overallScore: integer("overall_score").notNull(),
   seoScore: integer("seo_score").notNull(),
   securityScore: integer("security_score").notNull(),

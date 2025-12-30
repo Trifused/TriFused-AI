@@ -886,7 +886,7 @@ export async function registerRoutes(
 
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      const { email, password, firstName, lastName } = req.body;
+      const { email, password, firstName, lastName, gradeShareToken } = req.body;
       if (!email || !password) {
         return res.status(400).json({ error: "Email and password are required" });
       }
@@ -894,7 +894,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Password must be at least 8 characters" });
       }
       const { registerUser } = await import('./localAuth');
-      const result = await registerUser(email, password, firstName, lastName);
+      const result = await registerUser(email, password, firstName, lastName, gradeShareToken);
       if (!result.success) {
         return res.status(400).json({ error: result.error });
       }
@@ -1020,12 +1020,12 @@ export async function registerRoutes(
 
   app.post("/api/auth/magic-link", async (req: Request, res: Response) => {
     try {
-      const { email } = req.body;
+      const { email, gradeShareToken } = req.body;
       if (!email) {
         return res.status(400).json({ error: "Email is required" });
       }
       const { sendMagicLink } = await import('./localAuth');
-      await sendMagicLink(email);
+      await sendMagicLink(email, gradeShareToken);
       res.json({ success: true, message: "If this email is valid, a magic link has been sent. Check your inbox." });
     } catch (error: any) {
       console.error("Magic link error:", error);

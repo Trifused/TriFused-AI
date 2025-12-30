@@ -21,6 +21,8 @@ export default function Auth() {
   const params = new URLSearchParams(searchString);
   const modeParam = params.get('mode') as AuthMode || 'login';
   const token = params.get('token');
+  const websiteParam = params.get('website') || '';
+  const gradeParam = params.get('grade') || '';
   
   const [mode, setMode] = useState<AuthMode>(modeParam);
   const [email, setEmail] = useState("");
@@ -44,7 +46,7 @@ export default function Auth() {
   }, [modeParam, token]);
 
   const registerMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string; firstName?: string; lastName?: string }) => {
+    mutationFn: async (data: { email: string; password: string; firstName?: string; lastName?: string; website?: string; gradeShareToken?: string }) => {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -163,11 +165,11 @@ export default function Auth() {
   });
 
   const sendMagicLinkMutation = useMutation({
-    mutationFn: async (email: string) => {
+    mutationFn: async (data: { email: string; gradeShareToken?: string }) => {
       const res = await fetch('/api/auth/magic-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: data.email, gradeShareToken: data.gradeShareToken }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
@@ -193,7 +195,14 @@ export default function Auth() {
         toast({ title: "Error", description: "Password must be at least 8 characters", variant: "destructive" });
         return;
       }
-      registerMutation.mutate({ email, password, firstName, lastName });
+      registerMutation.mutate({ 
+        email, 
+        password, 
+        firstName, 
+        lastName,
+        website: websiteParam || undefined,
+        gradeShareToken: gradeParam || undefined
+      });
     } else if (mode === 'login') {
       loginMutation.mutate({ email, password });
     } else if (mode === 'forgot-password') {
@@ -205,7 +214,7 @@ export default function Auth() {
       }
       resetPasswordMutation.mutate({ token, password });
     } else if (mode === 'magic-link') {
-      sendMagicLinkMutation.mutate(email);
+      sendMagicLinkMutation.mutate({ email, gradeShareToken: gradeParam || undefined });
     }
   };
 
