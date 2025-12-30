@@ -191,16 +191,23 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
 
   const gradeMutation = useMutation({
     mutationFn: async (websiteUrl: string) => {
-      const response = await fetch("/api/grade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: websiteUrl }),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to grade website");
+      try {
+        const response = await fetch("/api/grade", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: websiteUrl }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || errorData.message || "Failed to grade website");
+        }
+        return response.json();
+      } catch (err: any) {
+        if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+          throw new Error("Network error - please check your connection and try again");
+        }
+        throw err;
       }
-      return response.json();
     },
     onSuccess: (data) => {
       setResult(data);

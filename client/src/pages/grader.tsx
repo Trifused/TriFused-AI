@@ -328,16 +328,23 @@ export default function Grader() {
 
   const gradeMutation = useMutation({
     mutationFn: async (websiteUrl: string) => {
-      const response = await fetch("/api/grade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: websiteUrl, complianceChecks, forceRefresh, useLighthouse }),
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to analyze website");
+      try {
+        const response = await fetch("/api/grade", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: websiteUrl, complianceChecks, forceRefresh, useLighthouse }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || errorData.message || "Failed to analyze website");
+        }
+        return response.json() as Promise<GradeResult>;
+      } catch (err: any) {
+        if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+          throw new Error("Network error - please check your connection and try again");
+        }
+        throw err;
       }
-      return response.json() as Promise<GradeResult>;
     },
     onSuccess: (data) => {
       setResult(data);
