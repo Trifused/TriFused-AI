@@ -193,6 +193,7 @@ interface ScanHistoryItem {
   overallScore: number;
   createdAt: string;
   shareToken: string | null;
+  historyKey?: string;
 }
 
 const HISTORY_KEY = 'trifused_scan_history';
@@ -200,7 +201,12 @@ const HISTORY_KEY = 'trifused_scan_history';
 function loadHistory(): ScanHistoryItem[] {
   try {
     const stored = localStorage.getItem(HISTORY_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    const items = JSON.parse(stored);
+    return items.map((item: ScanHistoryItem) => ({
+      ...item,
+      historyKey: item.historyKey || `${item.id}-${new Date(item.createdAt).getTime()}`,
+    }));
   } catch {
     return [];
   }
@@ -708,12 +714,12 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}` : ''}`;
                     </tr>
                   </thead>
                   <tbody>
-                    {scanHistory.map((item, index) => (
+                    {scanHistory.map((item) => (
                       <tr 
-                        key={item.id}
+                        key={item.historyKey || item.id}
                         className="border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors"
                         onClick={() => handleHistoryClick(item)}
-                        data-testid={`row-history-${index}`}
+                        data-testid={`row-history-${item.historyKey || item.id}`}
                       >
                         <td className="py-3">
                           <span className="text-sm text-cyan-400 font-mono">{item.url}</span>

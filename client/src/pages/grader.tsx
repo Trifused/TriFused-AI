@@ -728,10 +728,10 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                     </div>
                     {scanHistory.map((item) => (
                       <button
-                        key={item.id}
+                        key={item.historyKey}
                         onClick={() => handleHistoryClick(item)}
                         className="w-full flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg transition-colors text-left"
-                        data-testid={`history-item-${item.id}`}
+                        data-testid={`history-item-${item.historyKey}`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
