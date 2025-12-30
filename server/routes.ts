@@ -438,6 +438,13 @@ export async function registerRoutes(
       }
     }
     
+    // vibe2a.com or www.vibe2a.com -> /vibe2a
+    if ((host === 'vibe2a.com' || host === 'www.vibe2a.com') && !req.path.startsWith('/vibe2a') && !req.path.startsWith('/api') && !req.path.startsWith('/report') && !req.path.startsWith('/portal')) {
+      if (req.path === '/') {
+        return res.redirect('/vibe2a' + queryString);
+      }
+    }
+    
     next();
   });
   
