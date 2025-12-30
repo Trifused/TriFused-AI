@@ -185,7 +185,7 @@ export default function Signup() {
     "Access to AI-powered security dashboards",
     "Website & API health checks (automated)",
     "Real-time monitoring, alerts, and status signals",
-    "API access for grading, AI readiness & checks",
+    "API access for grading, AI readiness & MCP toolbox",
     "Dedicated project & domain management portal",
     "Priority support and consultation booking",
     "Exclusive insights, reports, and AI readiness updates",
