@@ -744,7 +744,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
 
       <footer className="border-t border-white/5 py-8">
         <div className="container mx-auto px-4 text-center text-slate-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} Vibe2A. Powered by <a href="https://trifused.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline">TriFused Technology</a>.</p>
+          <p>&copy; {new Date().getFullYear()} Vibe2A. Powered by <a href="/" className="hover:text-white transition-colors underline">TriFused Technology</a>.</p>
           <div className="mt-4 flex justify-center gap-6">
             <a 
               href="/terms" 
