@@ -182,6 +182,7 @@ export default function Signup() {
   };
 
   const benefits = [
+    "Vibe Code to A faster with Vibe2A",
     "Access to AI-powered security dashboards",
     "Website & API health checks (automated)",
     "Real-time monitoring, alerts, and status signals",

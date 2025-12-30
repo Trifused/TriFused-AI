@@ -687,6 +687,10 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
               <ul className="space-y-3">
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
+                  <span>Vibe Code to A faster with Vibe2A</span>
+                </li>
+                <li className="flex items-center gap-3 text-slate-300">
+                  <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
                   <span>Access to AI-powered security dashboards</span>
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
@@ -697,12 +701,12 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
                   <span>Real-time monitoring, alerts, and status signals</span>
                 </li>
+              </ul>
+              <ul className="space-y-3">
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
                   <span>API access for grading, AI readiness & MCP toolbox</span>
                 </li>
-              </ul>
-              <ul className="space-y-3">
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
                   <span>Dedicated project & domain management portal</span>
