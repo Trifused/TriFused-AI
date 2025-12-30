@@ -242,7 +242,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-cyan-500 flex items-center justify-center">
               <Award className="w-5 h-5 text-slate-900" />
             </div>
-            <span className="text-xl font-bold text-white">Vibe2A</span>
+            <span className="text-xl font-bold text-white">Vibe2A Website Analysis Tool</span>
           </div>
           <Button
             onClick={() => setLocation('/portal/signup')}
