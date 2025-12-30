@@ -236,9 +236,8 @@ const complianceOptions: Array<{
 ];
 
 // Premium features (coming soon) - all grader and report related features (filter out free ones)
+// Note: GRADER_LIGHTHOUSE and GRADER_VISION_DETECTION are now interactive toggles, not coming soon
 const premiumFeatures = [
-  { ...FEATURE_FLAGS.GRADER_LIGHTHOUSE },
-  { ...FEATURE_FLAGS.GRADER_VISION_DETECTION },
   { ...FEATURE_FLAGS.GRADER_SCHEDULED_SCANS },
   { ...FEATURE_FLAGS.GRADER_MULTI_SITE },
   { ...FEATURE_FLAGS.GRADER_BULK_SCANS },
@@ -605,25 +604,51 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 ))}
               </div>
               
-              {premiumFeatures.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Premium Features:
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    {premiumFeatures.map((feature) => (
-                      <div
-                        key={feature.id}
-                        className="min-h-[44px] px-3 py-2 rounded-lg border bg-white/5 border-white/10 text-sm font-medium opacity-60 cursor-not-allowed flex items-center gap-2"
-                        data-testid={`feature-${feature.id}`}
-                      >
-                        <span className="text-muted-foreground">{feature.name}</span>
-                        <FeatureBadge status={feature.status} tier={feature.tier} />
-                      </div>
-                    ))}
-                  </div>
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Premium Features:
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setUseLighthouse(!useLighthouse)}
+                    className={`min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                      useLighthouse
+                        ? "bg-purple-500/20 border-purple-500 text-purple-400"
+                        : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
+                    }`}
+                    data-testid="checkbox-lighthouse"
+                  >
+                    <Zap className="w-4 h-4" />
+                    <span>Google Lighthouse Integration</span>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setUseAiReadiness(!useAiReadiness)}
+                    className={`min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                      useAiReadiness
+                        ? "bg-green-500/20 border-green-500 text-green-400"
+                        : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
+                    }`}
+                    data-testid="checkbox-ai-readiness"
+                  >
+                    <Bot className="w-4 h-4" />
+                    <span>AI Readiness Check</span>
+                  </button>
+                  
+                  {premiumFeatures.map((feature) => (
+                    <div
+                      key={feature.id}
+                      className="min-h-[44px] px-3 py-2 rounded-lg border bg-white/5 border-white/10 text-sm font-medium opacity-60 cursor-not-allowed flex items-center gap-2"
+                      data-testid={`feature-${feature.id}`}
+                    >
+                      <span className="text-muted-foreground">{feature.name}</span>
+                      <FeatureBadge status={feature.status} tier={feature.tier} />
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
               
               <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap gap-3">
                 <button
@@ -639,38 +664,6 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   <RefreshCw className="w-4 h-4" />
                   <span>Force Fresh Scan</span>
                   <span className="text-xs opacity-70">(bypass 24h cache)</span>
-                </button>
-                
-                {isSuperuser && (
-                  <button
-                    type="button"
-                    onClick={() => setUseLighthouse(!useLighthouse)}
-                    className={`min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-                      useLighthouse
-                        ? "bg-purple-500/20 border-purple-500 text-purple-400"
-                        : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
-                    }`}
-                    data-testid="checkbox-lighthouse"
-                  >
-                    <Zap className="w-4 h-4" />
-                    <span>Lighthouse</span>
-                    <span className="text-xs opacity-70">(superuser)</span>
-                  </button>
-                )}
-                
-                <button
-                  type="button"
-                  onClick={() => setUseAiReadiness(!useAiReadiness)}
-                  className={`min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-                    useAiReadiness
-                      ? "bg-green-500/20 border-green-500 text-green-400"
-                      : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
-                  }`}
-                  data-testid="checkbox-ai-readiness"
-                >
-                  <Bot className="w-4 h-4" />
-                  <span>AI Readiness</span>
-                  <span className="text-xs opacity-70">(LLM/Agent check)</span>
                 </button>
               </div>
             </div>
