@@ -1214,6 +1214,41 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                       ))}
                     </div>
                     <div className="mt-3 pt-3 border-t border-white/10">
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Premium Features:
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setUseLighthouse(!useLighthouse)}
+                          className={`min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                            useLighthouse
+                              ? "bg-purple-500/20 border-purple-500 text-purple-400"
+                              : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
+                          }`}
+                          data-testid="checkbox-lighthouse-bottom"
+                        >
+                          <Zap className="w-4 h-4" />
+                          <span>Google Lighthouse</span>
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => setUseAiReadiness(!useAiReadiness)}
+                          className={`min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                            useAiReadiness
+                              ? "bg-green-500/20 border-green-500 text-green-400"
+                              : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
+                          }`}
+                          data-testid="checkbox-ai-readiness-bottom"
+                        >
+                          <Bot className="w-4 h-4" />
+                          <span>AI Readiness</span>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap gap-3">
                       <button
                         type="button"
                         onClick={() => setForceRefresh(!forceRefresh)}
