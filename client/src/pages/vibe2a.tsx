@@ -22,7 +22,13 @@ import {
   Bot,
   Sparkles,
   Award,
-  Lock
+  Lock,
+  Copy,
+  Check,
+  Download,
+  Share2,
+  RefreshCw,
+  ExternalLink
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -115,8 +121,71 @@ function ScoreCircle({ score, label, icon: Icon }: { score: number; label: strin
 export default function Vibe2A() {
   const [url, setUrl] = useState("");
   const [result, setResult] = useState<GradeResult | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  const handleCopyResults = async () => {
+    if (!result) return;
+    const issues = result.findings.filter(f => !f.passed);
+    const passes = result.findings.filter(f => f.passed);
+    
+    const text = `# Website Grade Report for ${result.url}
+
+## Overall Score: ${result.overallScore}/100 (Grade: ${getGradeLetter(result.overallScore)})
+
+### Category Scores:
+- SEO: ${result.seoScore}/100
+- Security: ${result.securityScore}/100
+- Performance: ${result.performanceScore}/100
+- Keywords: ${result.keywordsScore}/100
+- Accessibility: ${result.accessibilityScore}/100
+- Email Security: ${result.emailSecurityScore || 0}/100
+- Mobile: ${result.mobileScore || 0}/100
+- AI Readiness: ${result.aiReadinessScore || 0}/100
+
+${issues.length > 0 ? `## Issues Found (${issues.length}):
+${issues.map(f => `
+### [${f.category.toUpperCase()}] ${f.issue} (${f.priority})
+**Impact:** ${f.impact}
+**Fix:** ${f.howToFix}
+`).join('')}` : '## No issues found!'}
+
+## Passed Checks (${passes.length}):
+${passes.map(f => `- ${f.issue}`).join('\n')}
+`;
+
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: "Copied!", description: "Report copied to clipboard for AI" });
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!result) return;
+    try {
+      const response = await fetch(`/api/grade/${result.id}/pdf`);
+      if (!response.ok) throw new Error("Failed to download PDF");
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `website-grade-${result.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to download PDF", variant: "destructive" });
+    }
+  };
+
+  const handleScanAgain = () => {
+    setResult(null);
+    setUrl("");
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const gradeMutation = useMutation({
     mutationFn: async (websiteUrl: string) => {
@@ -304,19 +373,67 @@ export default function Vibe2A() {
                   ))}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <div className="flex flex-wrap gap-3 justify-center mb-6">
+                  <Button
+                    onClick={handleCopyResults}
+                    variant="outline"
+                    className="gap-2 border-white/20 text-white hover:bg-white/10"
+                    data-testid="button-copy-results"
+                  >
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copied ? "Copied!" : "Copy for AI"}
+                  </Button>
+                  <Button
+                    onClick={handleDownloadPDF}
+                    variant="outline"
+                    className="gap-2 border-white/20 text-white hover:bg-white/10"
+                    data-testid="button-download-pdf"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download PDF
+                  </Button>
                   {result.shareToken && (
-                    <Button
-                      onClick={() => setLocation(`/report/${result.shareToken}`)}
-                      className="bg-white/10 hover:bg-white/20 text-white"
-                      data-testid="button-view-report"
-                    >
-                      View Full Report
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                    <>
+                      <Button
+                        onClick={() => window.location.href = `/report/${result.shareToken}`}
+                        variant="outline"
+                        className="gap-2 border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
+                        data-testid="button-view-report"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        View Report
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const shareUrl = `${window.location.origin}/report/${result.shareToken}`;
+                          navigator.clipboard.writeText(shareUrl);
+                          setShareCopied(true);
+                          setTimeout(() => setShareCopied(false), 2000);
+                          toast({ title: "Share link copied!", description: "Anyone with this link can view the report" });
+                        }}
+                        variant="outline"
+                        className="gap-2 border-white/20 text-white hover:bg-white/10"
+                        data-testid="button-share-link"
+                      >
+                        {shareCopied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                        {shareCopied ? "Copied!" : "Share"}
+                      </Button>
+                    </>
                   )}
                   <Button
+                    onClick={handleScanAgain}
+                    className="gap-2 bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900"
+                    data-testid="button-scan-again"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Scan Again
+                  </Button>
+                </div>
+
+                <div className="flex justify-center">
+                  <Button
                     onClick={() => setLocation(`/portal/signup?website=${encodeURIComponent(result.url)}&grade=${result.shareToken || ''}`)}
+                    size="lg"
                     className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900 font-semibold"
                     data-testid="button-signup-result"
                   >
