@@ -61,10 +61,14 @@ const PageLoader = () => (
 function Router() {
   useAnalytics();
   
+  // Domain-based routing: serve Vibe2A on vibe2a.com domain
+  const isVibe2ADomain = window.location.hostname.includes('vibe2a');
+  const HomeOrVibe2A = isVibe2ADomain ? Vibe2A : Home;
+  
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
-        <Route path="/" component={Home} />
+        <Route path="/" component={HomeOrVibe2A} />
         <Route path="/blog" component={Blog} />
         <Route path="/signup" component={Signup} />
         <Route path="/auth" component={Auth} />
