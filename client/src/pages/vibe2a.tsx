@@ -683,7 +683,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
             <p className="text-lg text-slate-300 mb-8 max-w-xl mx-auto">
               Create your account to access the TriFused client portal and unlock AI-native solutions for your enterprise.
             </p>
-            <div className="grid md:grid-cols-2 gap-8 mb-8 max-w-2xl mx-auto text-left">
+            <div className="grid md:grid-cols-2 gap-8 mb-8 max-w-3xl mx-auto text-left">
               <ul className="space-y-3">
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
@@ -691,21 +691,29 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
-                  <span>Real-time threat monitoring and alerts</span>
+                  <span>Website & API health checks (automated)</span>
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
-                  <span>Dedicated project management portal</span>
+                  <span>Real-time monitoring, alerts, and status signals</span>
+                </li>
+                <li className="flex items-center gap-3 text-slate-300">
+                  <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
+                  <span>API access for grading, AI readiness & checks</span>
                 </li>
               </ul>
               <ul className="space-y-3">
+                <li className="flex items-center gap-3 text-slate-300">
+                  <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
+                  <span>Dedicated project & domain management portal</span>
+                </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
                   <span>Priority support and consultation booking</span>
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
-                  <span>Exclusive insights and reports</span>
+                  <span>Exclusive insights, reports, and AI readiness updates</span>
                 </li>
               </ul>
             </div>

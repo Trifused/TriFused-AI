@@ -183,10 +183,12 @@ export default function Signup() {
 
   const benefits = [
     "Access to AI-powered security dashboards",
-    "Real-time threat monitoring and alerts",
-    "Dedicated project management portal",
+    "Website & API health checks (automated)",
+    "Real-time monitoring, alerts, and status signals",
+    "API access for grading, AI readiness & checks",
+    "Dedicated project & domain management portal",
     "Priority support and consultation booking",
-    "Exclusive insights and reports",
+    "Exclusive insights, reports, and AI readiness updates",
   ];
 
   return (
