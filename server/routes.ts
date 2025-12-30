@@ -4615,8 +4615,8 @@ Your primary goal is to help users AND capture their contact information natural
         }
       }
       
-      // Recalculate overall score with email security and mobile
-      const updatedOverallScore = Math.round((seoScore + Math.max(0, securityScore) + performanceScore + keywordsScore + accessibilityScore + emailSecurity.emailSecurityScore + finalScores.mobileScore) / 7);
+      // Calculate overall score using 6 core categories (excludes Email Security and AI Readiness)
+      const updatedOverallScore = Math.round((seoScore + Math.max(0, securityScore) + performanceScore + keywordsScore + accessibilityScore + finalScores.mobileScore) / 6);
 
       // Blind mode: return results without saving to database (for quick superuser lookups)
       if (blind) {
