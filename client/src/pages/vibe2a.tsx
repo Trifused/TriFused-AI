@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { useTranslation } from "react-i18next";
 
 interface Finding {
   category: string;
@@ -133,6 +134,7 @@ export default function Vibe2A() {
   const [forceRefresh, setForceRefresh] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const handleCopyResults = async () => {
     if (!result) return;
@@ -238,14 +240,14 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
   };
 
   const features = [
-    { icon: FileText, title: "SEO Analysis", desc: "Meta tags, headings, content structure" },
-    { icon: Shield, title: "Security Check", desc: "HTTPS, headers, vulnerabilities" },
-    { icon: Zap, title: "Performance", desc: "Load speed, optimization scores" },
-    { icon: Key, title: "Keywords", desc: "Density, placement, relevance" },
-    { icon: Accessibility, title: "Accessibility", desc: "WCAG compliance check" },
-    { icon: Mail, title: "Email Security", desc: "SPF, DKIM, DMARC records" },
-    { icon: Smartphone, title: "Mobile Ready", desc: "Responsive design analysis" },
-    { icon: Bot, title: "AI Readiness", desc: "LLM & agent compatibility" },
+    { icon: FileText, title: t('vibe2a.seo_analysis'), desc: t('vibe2a.seo_desc') },
+    { icon: Shield, title: t('vibe2a.security_check'), desc: t('vibe2a.security_desc') },
+    { icon: Zap, title: t('vibe2a.performance'), desc: t('vibe2a.performance_desc') },
+    { icon: Key, title: t('vibe2a.keywords'), desc: t('vibe2a.keywords_desc') },
+    { icon: Accessibility, title: t('vibe2a.accessibility'), desc: t('vibe2a.accessibility_desc') },
+    { icon: Mail, title: t('vibe2a.email_security'), desc: t('vibe2a.email_desc') },
+    { icon: Smartphone, title: t('vibe2a.mobile_ready'), desc: t('vibe2a.mobile_desc') },
+    { icon: Bot, title: t('vibe2a.ai_ready'), desc: t('vibe2a.ai_desc') },
   ];
 
   return (
@@ -256,7 +258,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-400 to-cyan-500 flex items-center justify-center">
               <Award className="w-5 h-5 text-slate-900" />
             </div>
-            <span className="text-xl font-bold text-white">Vibe2A Website Analysis Tool</span>
+            <span className="text-xl font-bold text-white">Vibe2A</span>
           </div>
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
@@ -266,7 +268,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
               data-testid="button-signup-nav"
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              Free Account
+              {t('vibe2a.free_account')}
             </Button>
           </div>
         </div>
@@ -281,17 +283,16 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium mb-6">
               <Award className="w-4 h-4" />
-              Free Website Analysis Tool
+              {t('vibe2a.badge')}
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-              Vibe Code Your Website to
+              {t('vibe2a.title_line1')}
               <span className="block bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                A with AI-Ready Reports
+                {t('vibe2a.title_line2')}
               </span>
             </h1>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-10">
-              Instantly analyze your website across SEO, security, performance, accessibility, and AI-readiness. 
-              Get actionable insights to improve your online presence and prepare for the AI era.
+              {t('vibe2a.subtitle')}
             </p>
           </motion.div>
 
@@ -313,7 +314,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
-                  placeholder="Enter your website URL (e.g., example.com)"
+                  placeholder={t('vibe2a.placeholder')}
                   className="pl-12 h-14 bg-transparent border-0 text-white text-lg placeholder:text-slate-500 focus-visible:ring-0"
                   data-testid="input-url"
                 />
@@ -327,12 +328,12 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 {gradeMutation.isPending ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Analyzing...
+                    {t('common.loading')}
                   </>
                 ) : (
                   <>
                     <Search className="w-5 h-5 mr-2" />
-                    Analyze
+                    {t('vibe2a.analyze')}
                   </>
                 )}
               </Button>
@@ -349,7 +350,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 data-testid="checkbox-lighthouse"
               >
                 <Zap className="w-4 h-4" />
-                <span>Deep Performance Scan</span>
+                <span>{t('vibe2a.deep_scan')}</span>
                 {useLighthouse && <CheckCircle2 className="w-4 h-4" />}
               </button>
               <button
@@ -363,7 +364,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 data-testid="checkbox-ai-readiness"
               >
                 <Bot className="w-4 h-4" />
-                <span>AI Readiness Check</span>
+                <span>{t('vibe2a.ai_readiness')}</span>
                 {useAiReadiness && <CheckCircle2 className="w-4 h-4" />}
               </button>
               <button
@@ -377,7 +378,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 data-testid="checkbox-force-refresh"
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>Force Fresh Scan</span>
+                <span>{t('vibe2a.force_refresh')}</span>
                 {forceRefresh && <CheckCircle2 className="w-4 h-4" />}
               </button>
             </div>
@@ -385,7 +386,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
               {useLighthouse && useAiReadiness ? "Full scan enabled (takes longer)" : 
                useLighthouse ? "Performance scan enabled" : 
                useAiReadiness ? "AI readiness check enabled" : 
-               "Enable optional deep scans for detailed analysis"}
+               t('vibe2a.scan_hint')}
             </p>
           </motion.form>
         </section>
@@ -647,8 +648,8 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl font-bold text-white mb-4">Comprehensive Analysis</h2>
-            <p className="text-slate-400">Get insights across 8 critical areas of your website</p>
+            <h2 className="text-3xl font-bold text-white mb-4">{t('vibe2a.comprehensive_title')}</h2>
+            <p className="text-slate-400">{t('vibe2a.comprehensive_subtitle')}</p>
           </motion.div>
 
           <div className="grid md:grid-cols-4 gap-6 max-w-5xl mx-auto">
@@ -682,46 +683,46 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
             className="max-w-4xl mx-auto bg-gradient-to-r from-green-500/20 via-cyan-500/20 to-blue-500/20 rounded-3xl border border-cyan-500/20 p-8 md:p-12 text-center"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 font-heading italic">
-              Join the Protocol
+              {t('vibe2a.join_protocol')}
             </h2>
             <p className="text-lg text-slate-300 mb-8 max-w-xl mx-auto">
-              Create your account to access the TriFused client portal and unlock AI-native solutions for your enterprise.
+              {t('vibe2a.join_subtitle')}
             </p>
             <div className="grid md:grid-cols-2 gap-8 mb-8 max-w-3xl mx-auto text-left">
               <ul className="space-y-3">
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
-                  <span>Vibe Code to A faster with Vibe2A</span>
+                  <span>{t('vibe2a.benefit_vibe')}</span>
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
-                  <span>Access to AI-powered security dashboards</span>
+                  <span>{t('vibe2a.benefit_dashboards')}</span>
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
-                  <span>Website & API health checks (automated)</span>
+                  <span>{t('vibe2a.benefit_health')}</span>
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
-                  <span>Real-time monitoring, alerts, and status signals</span>
+                  <span>{t('vibe2a.benefit_monitoring')}</span>
                 </li>
               </ul>
               <ul className="space-y-3">
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
-                  <span>API access for grading, AI readiness & MCP toolbox</span>
+                  <span>{t('vibe2a.benefit_api')}</span>
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
-                  <span>Dedicated project & domain management portal</span>
+                  <span>{t('vibe2a.benefit_portal')}</span>
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
-                  <span>Priority support and consultation booking</span>
+                  <span>{t('vibe2a.benefit_support')}</span>
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
-                  <span>Exclusive insights, reports, and AI readiness updates</span>
+                  <span>{t('vibe2a.benefit_insights')}</span>
                 </li>
               </ul>
             </div>
@@ -733,7 +734,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 data-testid="button-signup-cta"
               >
                 <ArrowRight className="w-5 h-5 mr-2" />
-                Create Your Account
+                {t('vibe2a.create_account')}
               </Button>
               <Button
                 size="lg"
@@ -743,10 +744,10 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 data-testid="button-login-cta"
               >
                 <Lock className="w-5 h-5 mr-2" />
-                Sign In
+                {t('vibe2a.sign_in')}
               </Button>
             </div>
-            <p className="text-sm text-slate-500 mt-4">Sign up with Google, GitHub, or your email address</p>
+            <p className="text-sm text-slate-500 mt-4">{t('vibe2a.signup_hint')}</p>
           </motion.div>
         </section>
 
@@ -758,7 +759,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
               viewport={{ once: true }}
             >
               <div className="text-4xl font-bold text-cyan-400 mb-2">17+</div>
-              <p className="text-slate-400">Metrics Analyzed</p>
+              <p className="text-slate-400">{t('vibe2a.metrics_analyzed')}</p>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -767,7 +768,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
               transition={{ delay: 0.1 }}
             >
               <div className="text-4xl font-bold text-green-400 mb-2">100</div>
-              <p className="text-slate-400">Free Tokens on Signup</p>
+              <p className="text-slate-400">{t('vibe2a.free_tokens')}</p>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -776,7 +777,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
               transition={{ delay: 0.2 }}
             >
               <div className="text-4xl font-bold text-blue-400 mb-2">AI</div>
-              <p className="text-slate-400">Readiness Scoring</p>
+              <p className="text-slate-400">{t('vibe2a.ai_scoring')}</p>
             </motion.div>
           </div>
         </section>
