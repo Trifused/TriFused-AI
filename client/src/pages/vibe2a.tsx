@@ -146,8 +146,8 @@ export default function Vibe2A() {
 - Keywords: ${result.keywordsScore}/100
 - Accessibility: ${result.accessibilityScore}/100
 - Email Security: ${result.emailSecurityScore || 0}/100
-- Mobile: ${result.mobileScore || 0}/100
-- AI Readiness: ${result.aiReadinessScore || 0}/100
+- Mobile: ${result.mobileScore || 0}/100${result.aiReadinessScore != null ? `
+- AI Readiness: ${result.aiReadinessScore}/100` : ''}
 
 ${issues.length > 0 ? `## Issues Found (${issues.length}):
 ${issues.map(f => `
@@ -448,7 +448,9 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   <ScoreCircle score={result.accessibilityScore} label="A11y" icon={Accessibility} />
                   <ScoreCircle score={result.emailSecurityScore || 0} label="Email" icon={Mail} />
                   <ScoreCircle score={result.mobileScore || 0} label="Mobile" icon={Smartphone} />
-                  <ScoreCircle score={result.aiReadinessScore || 0} label="AI" icon={Bot} />
+                  {result.aiReadinessScore != null && (
+                    <ScoreCircle score={result.aiReadinessScore} label="AI" icon={Bot} />
+                  )}
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4 mb-8">
