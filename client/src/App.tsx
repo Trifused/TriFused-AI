@@ -49,6 +49,7 @@ const Auth = lazy(() => import("@/pages/auth"));
 const About = lazy(() => import("@/pages/about"));
 const MCP = lazy(() => import("@/pages/mcp"));
 const MCPToolbox = lazy(() => import("@/pages/mcp-toolbox"));
+const Vibe2A = lazy(() => import("@/pages/vibe2a"));
 
 // Loading fallback for lazy components
 const PageLoader = () => (
@@ -98,6 +99,7 @@ function Router() {
         <Route path="/about" component={About} />
         <Route path="/mcp" component={MCP} />
         <Route path="/mcp-toolbox" component={MCPToolbox} />
+        <Route path="/vibe2a" component={Vibe2A} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>
