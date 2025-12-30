@@ -288,6 +288,7 @@ export default function Grader() {
   const [complianceChecks, setComplianceChecks] = useState<Record<string, boolean>>({});
   const [forceRefresh, setForceRefresh] = useState(false);
   const [useLighthouse, setUseLighthouse] = useState(false);
+  const [useAiReadiness, setUseAiReadiness] = useState(false);
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const { toast } = useToast();
@@ -332,7 +333,7 @@ export default function Grader() {
         const response = await fetch("/api/grade", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: websiteUrl, complianceChecks, forceRefresh, useLighthouse }),
+          body: JSON.stringify({ url: websiteUrl, complianceChecks, forceRefresh, useLighthouse, useAiReadiness }),
         });
         if (!response.ok) {
           const errorData = await response.json();
@@ -656,6 +657,21 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                     <span className="text-xs opacity-70">(superuser)</span>
                   </button>
                 )}
+                
+                <button
+                  type="button"
+                  onClick={() => setUseAiReadiness(!useAiReadiness)}
+                  className={`min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                    useAiReadiness
+                      ? "bg-green-500/20 border-green-500 text-green-400"
+                      : "bg-white/5 border-white/10 text-muted-foreground hover:border-white/30"
+                  }`}
+                  data-testid="checkbox-ai-readiness"
+                >
+                  <Bot className="w-4 h-4" />
+                  <span>AI Readiness</span>
+                  <span className="text-xs opacity-70">(LLM/Agent check)</span>
+                </button>
               </div>
             </div>
 

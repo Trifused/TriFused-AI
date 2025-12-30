@@ -2811,8 +2811,9 @@ Your primary goal is to help users AND capture their contact information natural
     complianceChecks: z.record(z.boolean()).optional(),
     forceRefresh: z.boolean().optional(),
     blind: z.boolean().optional(),
-    useLighthouse: z.boolean().optional().default(true),
+    useLighthouse: z.boolean().optional().default(false),
     useSecurityScan: z.boolean().optional().default(false),
+    useAiReadiness: z.boolean().optional().default(false),
   });
 
   interface Finding {
@@ -2970,7 +2971,7 @@ Your primary goal is to help users AND capture their contact information natural
     console.log(`[Grader:${requestId}] START: ${req.body?.url}`);
     
     try {
-      const { url, email, complianceChecks, forceRefresh, blind, useLighthouse, useSecurityScan } = gradeUrlSchema.parse(req.body);
+      const { url, email, complianceChecks, forceRefresh, blind, useLighthouse, useSecurityScan, useAiReadiness } = gradeUrlSchema.parse(req.body);
       
       // SSRF protection: validate URL before fetching
       console.log(`[Grader:${requestId}] Validating URL...`);
@@ -4084,26 +4085,28 @@ Your primary goal is to help users AND capture their contact information natural
       const visitorIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor || req.socket.remoteAddress || null;
       const visitorUserAgent = req.headers['user-agent'] || null;
 
-      // Get hosting geo info, email security, blacklist status, and AI readiness in parallel
+      // Get hosting geo info, email security, blacklist status, and optionally AI readiness in parallel
       const [geoInfo, emailSecurity, blacklistInfo, aiReadiness] = await Promise.all([
         getHostingGeoInfo(parsedDomain),
         getEmailSecurityRecords(parsedDomain),
         getHostingGeoInfo(parsedDomain).then(geo => checkBlacklists(geo.hostIp)),
-        validateAIReadiness(url, html, null, responseHeaders),
+        useAiReadiness ? validateAIReadiness(url, html, null, responseHeaders) : Promise.resolve({ score: 0, findings: [], breakdown: {} }),
       ]);
 
       // Add email security findings to main findings
       findings.push(...emailSecurity.findings);
       
-      // Add AI readiness findings to main findings
-      findings.push(...aiReadiness.findings.map(f => ({
-        category: f.subcategory,
-        issue: f.issue,
-        impact: f.impact,
-        priority: f.priority,
-        howToFix: f.howToFix + (f.codeExample ? `\n\nExample:\n${f.codeExample}` : ''),
-        passed: f.passed,
-      })));
+      // Add AI readiness findings to main findings (only if enabled)
+      if (useAiReadiness) {
+        findings.push(...aiReadiness.findings.map(f => ({
+          category: f.subcategory,
+          issue: f.issue,
+          impact: f.impact,
+          priority: f.priority,
+          howToFix: f.howToFix + (f.codeExample ? `\n\nExample:\n${f.codeExample}` : ''),
+          passed: f.passed,
+        })));
+      }
 
       // Add blacklist finding if listed
       if (blacklistInfo.blacklistStatus === 'listed') {

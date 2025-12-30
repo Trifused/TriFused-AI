@@ -126,6 +126,7 @@ export default function Vibe2A() {
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [useLighthouse, setUseLighthouse] = useState(false);
+  const [useAiReadiness, setUseAiReadiness] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -196,7 +197,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
         const response = await fetch("/api/grade", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: websiteUrl, useLighthouse }),
+          body: JSON.stringify({ url: websiteUrl, useLighthouse, useAiReadiness }),
         });
         if (!response.ok) {
           const errorData = await response.json();
@@ -328,7 +329,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 )}
               </Button>
             </div>
-            <div className="flex items-center justify-center gap-4 mt-4">
+            <div className="flex items-center justify-center gap-4 mt-4 flex-wrap">
               <button
                 type="button"
                 onClick={() => setUseLighthouse(!useLighthouse)}
@@ -343,9 +344,26 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 <span>Deep Performance Scan</span>
                 {useLighthouse && <CheckCircle2 className="w-4 h-4" />}
               </button>
+              <button
+                type="button"
+                onClick={() => setUseAiReadiness(!useAiReadiness)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                  useAiReadiness 
+                    ? 'bg-green-500/20 border border-green-500/50 text-green-400' 
+                    : 'bg-white/5 border border-white/10 text-slate-400 hover:border-white/20'
+                }`}
+                data-testid="checkbox-ai-readiness"
+              >
+                <Bot className="w-4 h-4" />
+                <span>AI Readiness Check</span>
+                {useAiReadiness && <CheckCircle2 className="w-4 h-4" />}
+              </button>
             </div>
             <p className="text-xs text-slate-500 text-center mt-2">
-              {useLighthouse ? "Performance scan enabled (takes longer)" : "Enable for detailed Core Web Vitals analysis"}
+              {useLighthouse && useAiReadiness ? "Full scan enabled (takes longer)" : 
+               useLighthouse ? "Performance scan enabled" : 
+               useAiReadiness ? "AI readiness check enabled" : 
+               "Enable optional deep scans for detailed analysis"}
             </p>
           </motion.form>
         </section>
