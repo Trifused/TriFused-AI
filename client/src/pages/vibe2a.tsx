@@ -217,9 +217,14 @@ export default function Vibe2A() {
               <div className="flex-1 relative">
                 <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <Input
+                  type="text"
+                  inputMode="url"
+                  autoCapitalize="off"
+                  autoCorrect="off"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="Enter your website URL..."
+                  onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+                  placeholder="Enter your website URL (e.g., example.com)"
                   className="pl-12 h-14 bg-transparent border-0 text-white text-lg placeholder:text-slate-500 focus-visible:ring-0"
                   data-testid="input-url"
                 />
