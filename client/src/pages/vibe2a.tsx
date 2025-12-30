@@ -28,7 +28,9 @@ import {
   Download,
   Share2,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  History,
+  Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -265,14 +267,14 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
               Free Website Analysis Tool
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-              Get Your Website's
+              Vibe Code Your Website to
               <span className="block bg-gradient-to-r from-green-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                Grade in Seconds
+                A with AI-Ready Reports
               </span>
             </h1>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-10">
               Instantly analyze your website across SEO, security, performance, accessibility, and AI-readiness. 
-              Get actionable insights to improve your online presence.
+              Get actionable insights to improve your online presence and prepare for the AI era.
             </p>
           </motion.div>
 
@@ -322,7 +324,60 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
         </section>
 
         <AnimatePresence mode="wait">
-          {result && (
+          {gradeMutation.isPending && (
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="container mx-auto px-4 mb-16"
+            >
+              <div className="max-w-2xl mx-auto text-center py-16">
+                <div className="relative w-32 h-32 mx-auto mb-8">
+                  <motion.div
+                    className="absolute inset-0 rounded-full border-4 border-cyan-500/20"
+                  />
+                  <motion.div
+                    className="absolute inset-0 rounded-full border-4 border-transparent border-t-cyan-500"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
+                  <motion.div
+                    className="absolute inset-4 rounded-full border-4 border-transparent border-t-green-500"
+                    animate={{ rotate: -360 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Search className="w-8 h-8 text-cyan-400" />
+                  </div>
+                </div>
+                <motion.h3
+                  className="text-2xl font-bold text-white mb-3"
+                  animate={{ opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  Analyzing Your Website
+                </motion.h3>
+                <p className="text-slate-400 mb-6">
+                  Scanning SEO, security, performance, accessibility, and AI-readiness...
+                </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {["SEO", "Security", "Performance", "Keywords", "Accessibility", "Email", "Mobile", "AI"].map((item, index) => (
+                    <motion.span
+                      key={item}
+                      className="px-3 py-1 rounded-full bg-white/5 text-xs text-slate-400 border border-white/10"
+                      initial={{ opacity: 0.3 }}
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1.5, repeat: Infinity, delay: index * 0.15 }}
+                    >
+                      {item}
+                    </motion.span>
+                  ))}
+                </div>
+              </div>
+            </motion.section>
+          )}
+
+          {result && !gradeMutation.isPending && (
             <motion.section
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
@@ -452,7 +507,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                     <Search className="w-5 h-5 text-cyan-400" />
                     <h3 className="text-lg font-semibold text-white">Rescan Website</h3>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 mb-4">
                     <Input
                       type="text"
                       inputMode="url"
@@ -487,7 +542,17 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                       )}
                     </Button>
                   </div>
-                  <p className="text-xs text-slate-500 mt-3">Free tool - Results are for informational purposes only</p>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {["FDIC", "SEC", "ADA", "PCI", "FCA", "GDPR"].map((label) => (
+                      <span
+                        key={label}
+                        className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-400"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500">Free tool - Results are for informational purposes only</p>
                 </div>
 
                 <div className="flex justify-center mt-6">
