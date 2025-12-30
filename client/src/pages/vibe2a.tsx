@@ -58,6 +58,7 @@ interface GradeResult {
   aiReadinessScore?: number;
   findings: Finding[];
   shareToken: string | null;
+  createdAt: string;
 }
 
 function getGradeLetter(score: number): string {
@@ -128,6 +129,7 @@ export default function Vibe2A() {
   const [shareCopied, setShareCopied] = useState(false);
   const [useLighthouse, setUseLighthouse] = useState(false);
   const [useAiReadiness, setUseAiReadiness] = useState(false);
+  const [forceRefresh, setForceRefresh] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -137,6 +139,7 @@ export default function Vibe2A() {
     const passes = result.findings.filter(f => f.passed);
     
     const text = `# Website Grade Report for ${result.url}
+**Scanned:** ${new Date(result.createdAt).toLocaleString()}
 
 ## Overall Score: ${result.overallScore}/100 (Grade: ${getGradeLetter(result.overallScore)})
 
@@ -198,7 +201,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
         const response = await fetch("/api/grade", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: websiteUrl, useLighthouse, useAiReadiness }),
+          body: JSON.stringify({ url: websiteUrl, useLighthouse, useAiReadiness, forceRefresh }),
         });
         if (!response.ok) {
           const errorData = await response.json();
@@ -358,6 +361,20 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 <Bot className="w-4 h-4" />
                 <span>AI Readiness Check</span>
                 {useAiReadiness && <CheckCircle2 className="w-4 h-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setForceRefresh(!forceRefresh)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                  forceRefresh 
+                    ? 'bg-orange-500/20 border border-orange-500/50 text-orange-400' 
+                    : 'bg-white/5 border border-white/10 text-slate-400 hover:border-white/20'
+                }`}
+                data-testid="checkbox-force-refresh"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Force Fresh Scan</span>
+                {forceRefresh && <CheckCircle2 className="w-4 h-4" />}
               </button>
             </div>
             <p className="text-xs text-slate-500 text-center mt-2">

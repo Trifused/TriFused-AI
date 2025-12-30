@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Shield, Lock, FileText, Calculator, Globe, Book, Wrench } from "lucide-react";
+import { Shield, Lock, FileText, Calculator, Globe, Book, Wrench, Award } from "lucide-react";
 
 export function Footer() {
   const [, setLocation] = useLocation();
@@ -44,6 +44,11 @@ export function Footer() {
               <li>
                 <button onClick={() => setLocation("/grader")} className="min-h-[44px] py-2 px-1 -ml-1 hover:text-primary transition-colors flex items-center gap-2">
                   <Globe className="w-4 h-4" /> Website Grader
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setLocation("/vibe2a")} className="min-h-[44px] py-2 px-1 -ml-1 hover:text-primary transition-colors flex items-center gap-2">
+                  <Award className="w-4 h-4" /> Vibe2A
                 </button>
               </li>
               <li>

@@ -427,8 +427,8 @@ export default function Grader() {
     const passes = result.findings.filter(f => f.passed);
     
     const text = `# Website Grade Report for ${result.url}
+**Scanned:** ${new Date(result.createdAt).toLocaleString()}
 *(Free Tool - For informational purposes only)*
-**Source:** Grader Page
 
 ## Overall Score: ${result.overallScore}/100 (Grade: ${getGradeLetter(result.overallScore)})
 
