@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { CookieConsent } from "@/components/ui/cookie-consent";
 import { 
   Search, 
   Shield, 
@@ -727,8 +728,26 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
       <footer className="border-t border-white/5 py-8">
         <div className="container mx-auto px-4 text-center text-slate-500 text-sm">
           <p>&copy; {new Date().getFullYear()} Vibe2A. Powered by TriFused Technology.</p>
+          <div className="mt-4 flex justify-center gap-6">
+            <a 
+              href="/terms" 
+              className="hover:text-white transition-colors"
+              data-testid="link-terms"
+            >
+              Terms & Conditions
+            </a>
+            <a 
+              href="/privacy" 
+              className="hover:text-white transition-colors"
+              data-testid="link-privacy"
+            >
+              Privacy Policy
+            </a>
+          </div>
         </div>
       </footer>
+      
+      <CookieConsent />
     </div>
   );
 }
