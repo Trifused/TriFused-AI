@@ -677,15 +677,38 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
             viewport={{ once: true }}
             className="max-w-4xl mx-auto bg-gradient-to-r from-green-500/20 via-cyan-500/20 to-blue-500/20 rounded-3xl border border-cyan-500/20 p-8 md:p-12 text-center"
           >
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-cyan-500 flex items-center justify-center mx-auto mb-6">
-              <Sparkles className="w-8 h-8 text-slate-900" />
-            </div>
-            <h2 className="text-3xl font-bold text-white mb-4">
-              Create Your Free Vibe2A Account
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 font-heading italic">
+              Join the Protocol
             </h2>
             <p className="text-lg text-slate-300 mb-8 max-w-xl mx-auto">
-              Get 100 free tokens to unlock premium features, save reports, track improvements, and access detailed analytics.
+              Create your account to access the TriFused client portal and unlock AI-native solutions for your enterprise.
             </p>
+            <div className="grid md:grid-cols-2 gap-8 mb-8 max-w-2xl mx-auto text-left">
+              <ul className="space-y-3">
+                <li className="flex items-center gap-3 text-slate-300">
+                  <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
+                  <span>Access to AI-powered security dashboards</span>
+                </li>
+                <li className="flex items-center gap-3 text-slate-300">
+                  <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
+                  <span>Real-time threat monitoring and alerts</span>
+                </li>
+                <li className="flex items-center gap-3 text-slate-300">
+                  <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
+                  <span>Dedicated project management portal</span>
+                </li>
+              </ul>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-3 text-slate-300">
+                  <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
+                  <span>Priority support and consultation booking</span>
+                </li>
+                <li className="flex items-center gap-3 text-slate-300">
+                  <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
+                  <span>Exclusive insights and reports</span>
+                </li>
+              </ul>
+            </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
                 size="lg"
@@ -693,8 +716,8 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900 font-semibold px-8"
                 data-testid="button-signup-cta"
               >
-                <Sparkles className="w-5 h-5 mr-2" />
-                Get Started Free
+                <ArrowRight className="w-5 h-5 mr-2" />
+                Create Your Account
               </Button>
               <Button
                 size="lg"
@@ -707,6 +730,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 Sign In
               </Button>
             </div>
+            <p className="text-sm text-slate-500 mt-4">Sign up with Google, GitHub, or your email address</p>
           </motion.div>
         </section>
 
