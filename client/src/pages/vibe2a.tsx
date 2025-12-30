@@ -34,6 +34,7 @@ import {
   Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 
 interface Finding {
   category: string;
@@ -257,14 +258,17 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
             </div>
             <span className="text-xl font-bold text-white">Vibe2A Website Analysis Tool</span>
           </div>
-          <Button
-            onClick={() => setLocation('/portal/signup')}
-            className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900 font-semibold"
-            data-testid="button-signup-nav"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Free Account
-          </Button>
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher />
+            <Button
+              onClick={() => setLocation('/portal/signup')}
+              className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900 font-semibold"
+              data-testid="button-signup-nav"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Free Account
+            </Button>
+          </div>
         </div>
       </nav>
 
