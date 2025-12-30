@@ -74,6 +74,8 @@ function Router() {
         <Route path="/shop">{() => { window.location.replace('/store'); return null; }}</Route>
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/portal" component={PortalLogin} />
+        <Route path="/portal/login">{() => { window.location.replace('/portal'); return null; }}</Route>
+        <Route path="/portal/signup">{() => { window.location.replace('/signup'); return null; }}</Route>
         <Route path="/portal/dashboard" component={Dashboard} />
         <Route path="/portal/admin" component={Admin} />
         <Route path="/portal/mft" component={MFT} />
