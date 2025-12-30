@@ -2993,7 +2993,14 @@ Your primary goal is to help users AND capture their contact information natural
         // Only use cached result if it has reasonable performance data
         // Skip cache if performanceScore is 0 (likely from failed Lighthouse scan)
         if (cached && cached.performanceScore > 0) {
-          return res.json(cached);
+          // Override AI readiness score based on current request setting
+          // If useAiReadiness is false, don't show AI readiness data from cached result
+          const result = {
+            ...cached,
+            aiReadinessScore: useAiReadiness ? cached.aiReadinessScore : null,
+            aiReadinessBreakdown: useAiReadiness ? cached.aiReadinessBreakdown : null,
+          };
+          return res.json(result);
         }
       }
 
