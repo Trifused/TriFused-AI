@@ -125,6 +125,7 @@ export default function Vibe2A() {
   const [result, setResult] = useState<GradeResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [useLighthouse, setUseLighthouse] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -195,7 +196,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
         const response = await fetch("/api/grade", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: websiteUrl }),
+          body: JSON.stringify({ url: websiteUrl, useLighthouse }),
         });
         if (!response.ok) {
           const errorData = await response.json();
@@ -327,6 +328,25 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                 )}
               </Button>
             </div>
+            <div className="flex items-center justify-center gap-4 mt-4">
+              <button
+                type="button"
+                onClick={() => setUseLighthouse(!useLighthouse)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                  useLighthouse 
+                    ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-400' 
+                    : 'bg-white/5 border border-white/10 text-slate-400 hover:border-white/20'
+                }`}
+                data-testid="checkbox-lighthouse"
+              >
+                <Zap className="w-4 h-4" />
+                <span>Deep Performance Scan</span>
+                {useLighthouse && <CheckCircle2 className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 text-center mt-2">
+              {useLighthouse ? "Performance scan enabled (takes longer)" : "Enable for detailed Core Web Vitals analysis"}
+            </p>
           </motion.form>
         </section>
 

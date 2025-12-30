@@ -2966,17 +2966,20 @@ Your primary goal is to help users AND capture their contact information natural
 
   app.post("/api/grade", async (req: Request, res: Response) => {
     const graderStart = Date.now();
-    console.log(`[Grader] START: ${req.body?.url}`);
+    const requestId = Math.random().toString(36).substring(7);
+    console.log(`[Grader:${requestId}] START: ${req.body?.url}`);
     
     try {
       const { url, email, complianceChecks, forceRefresh, blind, useLighthouse, useSecurityScan } = gradeUrlSchema.parse(req.body);
       
       // SSRF protection: validate URL before fetching
-      console.log(`[Grader] Validating URL...`);
+      console.log(`[Grader:${requestId}] Validating URL...`);
       const urlValidation = await validateUrl(url);
       if (!urlValidation.valid) {
+        console.log(`[Grader:${requestId}] FAILED: URL validation failed - ${urlValidation.error}`);
         return res.status(400).json({ error: urlValidation.error });
       }
+      console.log(`[Grader:${requestId}] URL validated in ${Date.now() - graderStart}ms`);
       
       // Check for cached result
       // Only use cache if no compliance checks are requested, not forcing refresh, and not using Lighthouse
@@ -3001,14 +3004,19 @@ Your primary goal is to help users AND capture their contact information natural
       let accessibilityScore = 100;
       let mobileScore = 100;
 
-      // Fetch the website
+      // Fetch the website with 30 second timeout
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+      const FETCH_TIMEOUT = 30000;
+      const timeout = setTimeout(() => {
+        console.log(`[Grader:${requestId}] TIMEOUT: Fetch exceeded ${FETCH_TIMEOUT/1000}s`);
+        controller.abort();
+      }, FETCH_TIMEOUT);
       
       let html = "";
       let responseHeaders: Record<string, string> = {};
       let isHttps = url.startsWith("https://");
       let redirectCount = 0;
+      console.log(`[Grader:${requestId}] Fetching website...`);
       
       const browserHeaders = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -3055,16 +3063,18 @@ Your primary goal is to help users AND capture their contact information natural
         });
         
         // Debug logging for troubleshooting fetch issues
-        console.log(`[Grader] Fetched in ${Date.now() - graderStart}ms, HTML length: ${html.length}`);
+        console.log(`[Grader:${requestId}] Fetched in ${Date.now() - graderStart}ms, HTML length: ${html.length}, redirects: ${redirectCount}`);
         if (html.length < 500 || !html.includes('<title')) {
-          console.log(`[Grader] WARNING: Potentially incomplete response`);
+          console.log(`[Grader:${requestId}] WARNING: Potentially incomplete response`);
         }
       } catch (fetchError: any) {
         clearTimeout(timeout);
+        const elapsed = Date.now() - graderStart;
+        console.log(`[Grader:${requestId}] FAILED: Fetch error after ${elapsed}ms - ${fetchError.name}: ${fetchError.message}`);
         return res.status(400).json({ 
           error: fetchError.name === 'AbortError' 
-            ? "Website took too long to respond (>15 seconds)" 
-            : "Could not fetch the website. Please check the URL."
+            ? `Website took too long to respond (>${FETCH_TIMEOUT/1000} seconds). The site may be slow or blocking our request.` 
+            : `Could not fetch the website: ${fetchError.message || 'Connection failed'}`
         });
       }
 
@@ -3656,12 +3666,12 @@ Your primary goal is to help users AND capture their contact information natural
       
       // Performance - Direct Lighthouse analysis (free, no API key needed)
       // Only run Lighthouse if explicitly enabled (superuser toggle)
-      console.log(`[Grader] Analysis done in ${Date.now() - graderStart}ms, useLighthouse: ${useLighthouse}`);
+      console.log(`[Grader:${requestId}] Analysis done in ${Date.now() - graderStart}ms, useLighthouse: ${useLighthouse}`);
       if (useLighthouse) {
-        console.log(`[Grader] Starting Lighthouse audit...`);
+        console.log(`[Grader:${requestId}] Starting Lighthouse audit...`);
         try {
           const lighthouseResult = await lighthouseService.runAudit(url);
-          console.log(`[Grader] Lighthouse complete in ${Date.now() - graderStart}ms`);
+          console.log(`[Grader:${requestId}] Lighthouse complete in ${Date.now() - graderStart}ms`);
           
           // Populate Core Web Vitals
           coreWebVitals = {
