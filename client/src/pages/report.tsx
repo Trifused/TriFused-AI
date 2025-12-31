@@ -10,6 +10,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/context/cart-context";
 import { 
   Shield, 
   Zap, 
@@ -39,7 +40,9 @@ import {
   Check,
   Smartphone,
   Bot,
-  Sparkles
+  Sparkles,
+  Plus,
+  Crown
 } from "lucide-react";
 import { trackPageView } from "@/lib/analytics";
 
@@ -196,6 +199,22 @@ interface ScanHistoryItem {
   historyKey?: string;
 }
 
+interface Vibe2AOffer {
+  id: string;
+  name: string;
+  description: string | null;
+  active: boolean;
+  metadata: Record<string, string>;
+  prices: {
+    id: string;
+    unit_amount: number;
+    currency: string;
+    recurring: { interval: string } | null;
+    active: boolean;
+    metadata: Record<string, string>;
+  }[];
+}
+
 const HISTORY_KEY = 'trifused_scan_history';
 
 function loadHistory(): ScanHistoryItem[] {
@@ -234,6 +253,50 @@ export default function Report() {
   const [selectedCompliance, setSelectedCompliance] = useState<string[]>([]);
   const viewTrackedRef = useRef(false);
   const { toast } = useToast();
+  const { setSubscription } = useCart();
+  const [websiteSaved, setWebsiteSaved] = useState(false);
+
+  // Fetch Vibe2A offers
+  const { data: offersData, isLoading: offersLoading } = useQuery<{ data: Vibe2AOffer[] }>({
+    queryKey: ['vibe2a-offers'],
+    queryFn: async () => {
+      const response = await fetch('/api/vibe2a/offers');
+      if (!response.ok) throw new Error('Failed to fetch offers');
+      return response.json();
+    },
+  });
+
+  // Mutation to save website to dashboard
+  const saveWebsiteMutation = useMutation({
+    mutationFn: async (websiteUrl: string) => {
+      if (!user) {
+        throw new Error('UNAUTHORIZED');
+      }
+      const response = await fetch('/api/user/websites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ url: websiteUrl }),
+      });
+      if (response.status === 401) {
+        throw new Error('UNAUTHORIZED');
+      }
+      if (!response.ok) throw new Error('Failed to save website');
+      return response.json();
+    },
+    onSuccess: () => {
+      setWebsiteSaved(true);
+      toast({ title: "Website saved!", description: "Added to your dashboard for tracking" });
+    },
+    onError: (error: Error) => {
+      if (error.message === 'UNAUTHORIZED') {
+        toast({ title: "Please sign in", description: "You need to be logged in to save websites" });
+        setLocation('/portal/login');
+      } else {
+        toast({ title: "Error", description: "Failed to save website. Please try again.", variant: "destructive" });
+      }
+    },
+  });
 
   useEffect(() => {
     trackPageView('/report');
@@ -747,6 +810,140 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}` : ''}`;
               </div>
             </div>
           )}
+
+          {/* Save to Dashboard Section */}
+          {result && (
+            <div className="bg-gradient-to-br from-cyan-500/10 to-purple-500/10 rounded-2xl p-6 border border-cyan-500/30 mb-8">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-cyan-400" />
+                    Track This Website
+                  </h3>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Save to your dashboard for ongoing monitoring and scheduled reports
+                  </p>
+                </div>
+                {user ? (
+                  <Button
+                    onClick={() => saveWebsiteMutation.mutate(result.url)}
+                    disabled={websiteSaved || saveWebsiteMutation.isPending}
+                    className={websiteSaved 
+                      ? "bg-green-500/20 text-green-400 border border-green-500/30" 
+                      : "bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-slate-900"
+                    }
+                    data-testid="button-save-to-dashboard"
+                  >
+                    {saveWebsiteMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : websiteSaved ? (
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                    ) : (
+                      <Plus className="w-4 h-4 mr-2" />
+                    )}
+                    {websiteSaved ? "Saved to Dashboard" : "Add to My Dashboard"}
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setLocation('/portal/login')}
+                    className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-slate-900"
+                    data-testid="button-login-to-save"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Sign in to Save
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Vibe2A Offers Section */}
+          <div className="bg-gradient-to-br from-purple-500/5 to-cyan-500/5 rounded-2xl p-8 border border-white/10 mb-8">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-white flex items-center justify-center gap-2">
+                <Crown className="w-6 h-6 text-yellow-400" />
+                Upgrade to Vibe2A Pro
+              </h3>
+              <p className="text-muted-foreground mt-2">
+                Unlock advanced features, scheduled scans, and priority support
+              </p>
+            </div>
+            
+            {offersLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+              </div>
+            ) : offersData?.data && offersData.data.length > 0 ? (
+              <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                {offersData.data.map((offer, index) => {
+                  const price = offer.prices[0];
+                  const priceAmount = price ? (price.unit_amount / 100).toFixed(2) : '0.00';
+                  const isRecurring = price?.recurring;
+                  
+                  return (
+                    <motion.div
+                      key={offer.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className={`p-6 rounded-xl border transition-all cursor-pointer ${
+                        index === 0 
+                          ? 'bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border-purple-500/50'
+                          : 'bg-white/5 border-white/10 hover:border-purple-500/30'
+                      }`}
+                      data-testid={`report-offer-card-${offer.id}`}
+                    >
+                      {index === 0 && (
+                        <span className="text-xs font-semibold bg-gradient-to-r from-purple-500 to-cyan-500 text-white px-3 py-1 rounded-full mb-3 inline-block">
+                          Most Popular
+                        </span>
+                      )}
+                      <h4 className="text-lg font-bold text-white">{offer.name}</h4>
+                      <p className="text-slate-400 text-sm mt-1 mb-4">
+                        {offer.description || 'Access premium Vibe2A features'}
+                      </p>
+                      <div className="flex items-baseline gap-1 mb-4">
+                        <span className="text-2xl font-bold text-white">${priceAmount}</span>
+                        {isRecurring && (
+                          <span className="text-slate-400 text-sm">/ {isRecurring.interval}</span>
+                        )}
+                      </div>
+                      <Button
+                        onClick={() => {
+                          if (price) {
+                            setSubscription({
+                              priceId: price.id,
+                              productId: offer.id,
+                              productName: offer.name,
+                              unitAmount: price.unit_amount,
+                              currency: price.currency,
+                              type: 'subscription',
+                              quantity: 1,
+                              recurring: price.recurring ? { interval: price.recurring.interval } : undefined,
+                            });
+                            toast({
+                              title: "Added to cart",
+                              description: `${offer.name} added to your cart`,
+                            });
+                          }
+                          setLocation('/store');
+                        }}
+                        className={`w-full ${
+                          index === 0
+                            ? 'bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 text-slate-900'
+                            : 'bg-white/10 hover:bg-white/20 text-white'
+                        }`}
+                        data-testid={`report-offer-select-${offer.id}`}
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Get Started
+                      </Button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
 
           <div className="bg-white/5 rounded-2xl p-8 border border-white/10 mb-8">
             <h3 className="text-xl font-bold text-white mb-2 text-center">Need Help Improving Your Score?</h3>
