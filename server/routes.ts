@@ -6060,6 +6060,75 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
+  // List Vibe2A-specific offers/products
+  app.get("/api/vibe2a/offers", async (req: Request, res: Response) => {
+    try {
+      const rows = await stripeService.listVibe2AProducts();
+      
+      const productsMap = new Map();
+      for (const row of rows as any[]) {
+        if (!productsMap.has(row.product_id)) {
+          productsMap.set(row.product_id, {
+            id: row.product_id,
+            name: row.product_name,
+            description: row.product_description,
+            active: row.product_active,
+            metadata: row.product_metadata,
+            prices: []
+          });
+        }
+        if (row.price_id) {
+          productsMap.get(row.product_id).prices.push({
+            id: row.price_id,
+            unit_amount: row.unit_amount,
+            currency: row.currency,
+            recurring: row.recurring,
+            active: row.price_active,
+            metadata: row.price_metadata,
+          });
+        }
+      }
+
+      res.json({ data: Array.from(productsMap.values()) });
+    } catch (error) {
+      console.error("List Vibe2A offers error:", error);
+      res.status(500).json({ error: "Failed to list offers" });
+    }
+  });
+
+  // Vibe2A signup attempt notification (public endpoint with rate limiting)
+  app.post("/api/vibe2a/signup-attempt", generalApiRateLimit, async (req: Request, res: Response) => {
+    try {
+      const { email, source = 'vibe2a', attemptType = 'signup_attempt', selectedOffer, offerId, websiteUrl, niche } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      const { sendVibe2ASignupNotification } = await import('./emailService');
+      
+      console.log(`[Vibe2A] Signup attempt logged: ${email}, type: ${attemptType}, offer: ${selectedOffer || 'none'}`);
+      
+      // Send admin notification (fire and forget)
+      sendVibe2ASignupNotification({
+        email,
+        source,
+        attemptType,
+        selectedOffer,
+        offerId,
+        websiteUrl,
+        niche,
+        userAgent: req.headers['user-agent'],
+        ipAddress: req.ip,
+      }).catch(err => console.error('[Vibe2A] Failed to send notification:', err));
+      
+      res.json({ success: true, message: "Signup attempt logged" });
+    } catch (error) {
+      console.error("Vibe2A signup attempt error:", error);
+      res.status(500).json({ error: "Failed to log signup attempt" });
+    }
+  });
+
   // Create checkout session
   app.post("/api/stripe/checkout", isAuthenticated, async (req: any, res: Response) => {
     try {

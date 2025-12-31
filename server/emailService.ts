@@ -690,3 +690,126 @@ export async function sendEmailSignupNotification(email: string) {
     return { success: false, error: error.message };
   }
 }
+
+export interface Vibe2ASignupNotificationData {
+  email: string;
+  source: 'vibe2a' | 'portal' | 'grader' | 'vibe2a_cta' | 'vibe2a_offer_card';
+  attemptType: 'signup_attempt' | 'signup_complete' | 'offer_click' | 'signup_click';
+  selectedOffer?: string | null;
+  offerId?: string | null;
+  websiteUrl?: string | null;
+  niche?: string | null;
+  userAgent?: string | null;
+  ipAddress?: string | null;
+}
+
+export async function sendVibe2ASignupNotification(
+  data: Vibe2ASignupNotificationData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { client, fromEmail } = await getResendClient();
+    const verifiedFrom = (fromEmail && fromEmail.includes('mailout1.trifused.com')) 
+      ? fromEmail 
+      : 'TriFused <noreply@mailout1.trifused.com>';
+    
+    const isDev = process.env.NODE_ENV === 'development';
+    const devBadge = isDev 
+      ? '<div style="background: #f59e0b; color: #000; padding: 8px 16px; border-radius: 8px; text-align: center; margin-bottom: 16px; font-weight: bold;">⚠️ DEV ENVIRONMENT</div>' 
+      : '';
+    
+    const typeColors: Record<string, { bg: string; text: string; label: string }> = {
+      'signup_attempt': { bg: '#3b82f6', text: 'white', label: '🔵 Signup Attempt' },
+      'signup_complete': { bg: '#22c55e', text: 'white', label: '✅ Signup Complete' },
+      'offer_click': { bg: '#f59e0b', text: 'black', label: '💰 Offer Clicked' },
+      'signup_click': { bg: '#8b5cf6', text: 'white', label: '👆 CTA Click (Anonymous)' },
+    };
+    
+    const typeInfo = typeColors[data.attemptType] || typeColors['signup_attempt'];
+    
+    const isAnonymous = data.email.includes('@visitor.vibe2a.com');
+    const anonymousBadge = isAnonymous 
+      ? '<div style="background: #6366f1; color: white; padding: 6px 12px; border-radius: 6px; text-align: center; margin-bottom: 12px; font-size: 12px;">📊 Anonymous Click Tracking - Real email will be collected on signup form</div>' 
+      : '';
+    
+    const result = await client.emails.send({
+      from: verifiedFrom,
+      to: 'trifused@gmail.com',
+      subject: `${isDev ? '[DEV] ' : ''}[Vibe2A] ${typeInfo.label}${isAnonymous ? ' (Tracking)' : ''} - ${isAnonymous ? 'Anonymous Visitor' : data.email}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0f; color: #ffffff; margin: 0; padding: 40px 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; border: 1px solid rgba(34, 211, 238, 0.2); padding: 40px;">
+            ${devBadge}
+            ${anonymousBadge}
+            <div style="text-align: center; margin-bottom: 24px;">
+              <span style="background: ${typeInfo.bg}; color: ${typeInfo.text}; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: bold;">${typeInfo.label}</span>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+              <h3 style="color: #22d3ee; margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">User Details</h3>
+              
+              <div style="margin-bottom: 12px;">
+                <span style="color: #94a3b8; font-size: 12px;">${isAnonymous ? 'Tracking ID:' : 'Email:'}</span><br>
+                ${isAnonymous 
+                  ? `<span style="color: #8b5cf6; font-size: 14px; font-family: monospace;">${data.email.split('@')[0]}</span>`
+                  : `<a href="mailto:${data.email}" style="color: #22d3ee; font-size: 16px; text-decoration: none;">${data.email}</a>`
+                }
+              </div>
+              
+              <div style="margin-bottom: 12px;">
+                <span style="color: #94a3b8; font-size: 12px;">Source:</span><br>
+                <span style="color: #ffffff; font-size: 16px;">${data.source}</span>
+              </div>
+              
+              ${data.selectedOffer ? `
+              <div style="margin-bottom: 12px;">
+                <span style="color: #94a3b8; font-size: 12px;">Selected Offer:</span><br>
+                <span style="color: #22c55e; font-size: 16px; font-weight: 600;">${data.selectedOffer}</span>
+              </div>
+              ` : ''}
+              
+              ${data.websiteUrl ? `
+              <div style="margin-bottom: 12px;">
+                <span style="color: #94a3b8; font-size: 12px;">Website:</span><br>
+                <a href="${data.websiteUrl}" style="color: #22d3ee; font-size: 16px; text-decoration: none;">${data.websiteUrl}</a>
+              </div>
+              ` : ''}
+              
+              ${data.niche ? `
+              <div style="margin-bottom: 12px;">
+                <span style="color: #94a3b8; font-size: 12px;">Industry/Niche:</span><br>
+                <span style="color: #ffffff; font-size: 16px;">${data.niche}</span>
+              </div>
+              ` : ''}
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="https://trifused.com/portal/admin" style="display: inline-block; background: linear-gradient(135deg, #22d3ee 0%, #0891b2 100%); color: #0a0a0f; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px;">
+                View in Admin Portal
+              </a>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 32px 0;">
+            
+            <p style="color: #64748b; font-size: 12px; text-align: center; margin: 0;">
+              Timestamp: ${new Date().toLocaleString()}<br>
+              &copy; ${new Date().getFullYear()} TriFused / Vibe2A. All rights reserved.
+            </p>
+          </div>
+        </body>
+        </html>
+      `
+    });
+    
+    console.log('[Vibe2A] Admin notification sent:', data.attemptType, data.email);
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Vibe2A] Failed to send admin notification:', error);
+    return { success: false, error: error.message };
+  }
+}

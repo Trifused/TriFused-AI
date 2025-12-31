@@ -65,6 +65,36 @@ export class StripeService {
     return result.rows;
   }
 
+  async listVibe2AProducts() {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          p.id as product_id,
+          p.name as product_name,
+          p.description as product_description,
+          p.active as product_active,
+          p.metadata as product_metadata,
+          pr.id as price_id,
+          pr.unit_amount,
+          pr.currency,
+          pr.recurring,
+          pr.active as price_active,
+          pr.metadata as price_metadata
+        FROM stripe.products p
+        LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
+        WHERE p.active = true
+          AND (
+            p.metadata->>'tag' = 'vibe2a'
+            OR p.metadata->>'category' = 'vibe2a'
+            OR p.name ILIKE '%vibe2a%'
+            OR p.name ILIKE '%demo%vibe%'
+          )
+        ORDER BY pr.unit_amount ASC NULLS LAST
+      `
+    );
+    return result.rows;
+  }
+
   async listProductsWithPrices(activeOnly = true, limit = 20, offset = 0) {
     if (activeOnly) {
       const result = await db.execute(

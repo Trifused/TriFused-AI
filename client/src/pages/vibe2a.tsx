@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { CookieConsent } from "@/components/ui/cookie-consent";
 import { 
@@ -41,7 +41,9 @@ import {
   Dumbbell,
   Palette,
   Code,
-  Rocket
+  Rocket,
+  Package,
+  Crown
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
@@ -134,6 +136,21 @@ function ScoreCircle({ score, label, icon: Icon }: { score: number; label: strin
   );
 }
 
+interface Vibe2AOffer {
+  id: string;
+  name: string;
+  description: string;
+  active: boolean;
+  metadata: Record<string, string>;
+  prices: {
+    id: string;
+    unit_amount: number;
+    currency: string;
+    recurring: { interval: string } | null;
+    active: boolean;
+  }[];
+}
+
 export default function Vibe2A() {
   const [url, setUrl] = useState("");
   const [result, setResult] = useState<GradeResult | null>(null);
@@ -143,6 +160,30 @@ export default function Vibe2A() {
   const [useAiReadiness, setUseAiReadiness] = useState(false);
   const [forceRefresh, setForceRefresh] = useState(false);
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<Vibe2AOffer | null>(null);
+
+  // Fetch Vibe2A offers from Stripe
+  const { data: offersData, isLoading: offersLoading, isError: offersError, error: offersErrorData } = useQuery<{ data: Vibe2AOffer[] }>({
+    queryKey: ['/api/vibe2a/offers'],
+    queryFn: async () => {
+      const res = await fetch('/api/vibe2a/offers');
+      if (!res.ok) throw new Error('Failed to fetch offers');
+      return res.json();
+    },
+  });
+
+  // Mutation to track signup attempts and notify admin
+  const signupAttemptMutation = useMutation({
+    mutationFn: async (data: { email: string; attemptType: string; selectedOffer?: string; offerId?: string; websiteUrl?: string; niche?: string }) => {
+      const res = await fetch('/api/vibe2a/signup-attempt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, source: 'vibe2a' }),
+      });
+      if (!res.ok) throw new Error('Failed to log signup');
+      return res.json();
+    },
+  });
 
   const niches = [
     { id: 'local', label: 'Local Business', icon: Store, examples: 'Restaurant, Salon, Contractor' },
@@ -881,7 +922,19 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
                 size="lg"
-                onClick={() => setLocation('/portal/signup')}
+                onClick={() => {
+                  // Log anonymous signup click - actual email will be collected on signup form
+                  const clickId = `anon-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                  signupAttemptMutation.mutate({
+                    email: `${clickId}@visitor.vibe2a.com`,
+                    attemptType: 'signup_click',
+                    selectedOffer: selectedOffer?.name,
+                    offerId: selectedOffer?.id,
+                    niche: selectedNiche || undefined,
+                    source: 'vibe2a_cta',
+                  });
+                  setLocation('/portal/signup');
+                }}
                 className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900 font-semibold px-8"
                 data-testid="button-signup-cta"
               >
@@ -900,6 +953,154 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
               </Button>
             </div>
             <p className="text-sm text-slate-500 mt-4">{t('vibe2a.signup_hint')}</p>
+          </motion.div>
+        </section>
+
+        {/* Vibe2A Offers Section */}
+        <section className="container mx-auto px-4 mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="max-w-4xl mx-auto"
+          >
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium mb-4">
+                <Crown className="w-4 h-4" />
+                Premium Offers
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                Upgrade Your Experience
+              </h2>
+              <p className="text-slate-400">
+                Choose a plan that fits your needs and unlock advanced features
+              </p>
+            </div>
+
+            {/* Loading State */}
+            {offersLoading && (
+              <div className="flex justify-center items-center py-12" data-testid="offers-loading">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                <span className="ml-3 text-slate-400">Loading offers...</span>
+              </div>
+            )}
+
+            {/* Error State */}
+            {offersError && (
+              <div className="text-center py-8 px-4 bg-red-500/10 border border-red-500/20 rounded-xl" data-testid="offers-error">
+                <p className="text-red-400 mb-2">Unable to load offers at this time.</p>
+                <p className="text-slate-500 text-sm">Please try again later or contact support.</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation('/contact')}
+                  className="mt-4 border-red-500/30 text-red-400 hover:bg-red-500/10"
+                >
+                  Contact Support
+                </Button>
+              </div>
+            )}
+
+            {/* Offers List */}
+            {offersData?.data && offersData.data.length > 0 && (
+              <>
+              <div className="grid md:grid-cols-2 gap-6">
+                {offersData.data.slice(0, 2).map((offer, index) => {
+                  const primaryPrice = offer.prices.find(p => p.active) || offer.prices[0];
+                  const isRecurring = primaryPrice?.recurring;
+                  const priceAmount = primaryPrice?.unit_amount ? (primaryPrice.unit_amount / 100).toFixed(2) : '0';
+                  const isSelected = selectedOffer?.id === offer.id;
+                  
+                  return (
+                    <motion.div
+                      key={offer.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.1 }}
+                      className={`relative p-6 rounded-2xl border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border-purple-500/50 scale-[1.02]'
+                          : 'bg-white/5 border-white/10 hover:border-purple-500/30 hover:bg-white/10'
+                      }`}
+                      onClick={() => setSelectedOffer(isSelected ? null : offer)}
+                      data-testid={`offer-card-${offer.id}`}
+                    >
+                      {index === 0 && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                          <span className="px-3 py-1 bg-gradient-to-r from-purple-500 to-cyan-500 text-slate-900 text-xs font-bold rounded-full">
+                            POPULAR
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-3 rounded-xl ${isSelected ? 'bg-purple-500/20' : 'bg-white/10'}`}>
+                            <Package className={`w-6 h-6 ${isSelected ? 'text-purple-400' : 'text-cyan-400'}`} />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-white">{offer.name}</h3>
+                            <span className="text-xs text-green-400 font-medium px-2 py-0.5 bg-green-500/20 rounded-full">Active</span>
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <div className="p-1 bg-purple-500 rounded-full">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      <p className="text-slate-400 text-sm mb-4 min-h-[40px]">
+                        {offer.description || 'Access to premium Vibe2A features and tools'}
+                      </p>
+                      
+                      <div className="flex items-baseline gap-1 mb-4">
+                        <span className="text-3xl font-bold text-white">${priceAmount}</span>
+                        {isRecurring && (
+                          <span className="text-slate-400 text-sm">/ {isRecurring.interval}</span>
+                        )}
+                        {!isRecurring && (
+                          <span className="text-slate-400 text-sm">one-time</span>
+                        )}
+                      </div>
+                      
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedOffer(offer);
+                          // Log offer click with unique tracking ID
+                          const clickId = `offer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                          signupAttemptMutation.mutate({
+                            email: `${clickId}@visitor.vibe2a.com`,
+                            attemptType: 'offer_click',
+                            selectedOffer: offer.name,
+                            offerId: offer.id,
+                            source: 'vibe2a_offer_card',
+                          });
+                          // Navigate to signup with offer
+                          setLocation(`/portal/signup?offer=${offer.id}&offerName=${encodeURIComponent(offer.name)}`);
+                        }}
+                        className={`w-full ${
+                          isSelected
+                            ? 'bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 text-slate-900'
+                            : 'bg-white/10 hover:bg-white/20 text-white'
+                        }`}
+                        data-testid={`offer-select-${offer.id}`}
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Get Started
+                      </Button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+              
+              <p className="text-center text-xs text-slate-500 mt-6">
+                Products are managed in the Stripe Dashboard. Click "Sync from Stripe" to update the local cache.
+              </p>
+              </>
+            )}
           </motion.div>
         </section>
 
