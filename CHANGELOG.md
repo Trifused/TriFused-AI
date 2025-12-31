@@ -2,6 +2,18 @@
 
 All notable changes to the TriFused platform will be documented in this file.
 
+## [2.6.0] - 2025-12-31
+
+### Added
+- **Rate Limit Monitoring Dashboard** - Enhanced admin panel with comprehensive rate limiting visualization
+- **Tier Distribution Pie Chart** - Visual breakdown of requests by tier (free, starter, pro, enterprise)
+- **Blocked by Tier Bar Chart** - Side-by-side comparison of requests vs blocked by tier
+- **Top Endpoints Horizontal Bar Chart** - Visualization of busiest API endpoints with request/blocked counts
+
+### Changed
+- Added PieChart and Cell components from recharts for enhanced data visualization
+- Rate limits admin tab now provides visual insights alongside tabular data
+
 ## [2.5.0] - 2025-12-25
 
 ### Added

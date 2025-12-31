@@ -12,6 +12,20 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
   {
+    version: "2.7.0",
+    date: "December 31, 2025",
+    type: "feature",
+    title: "Rate Limit Monitoring Dashboard",
+    description: "Enhanced admin panel with comprehensive rate limiting visualization and analytics.",
+    items: [
+      "Tier distribution pie chart showing requests breakdown by tier",
+      "Blocked by tier bar chart comparing requests vs blocked",
+      "Top endpoints horizontal bar chart for busiest API routes",
+      "Visual insights alongside existing tabular data",
+      "Real-time stats with configurable time ranges (1h, 6h, 24h)",
+    ]
+  },
+  {
     version: "2.6.0",
     date: "December 29, 2025",
     type: "feature",
