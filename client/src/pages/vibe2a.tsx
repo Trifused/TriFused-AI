@@ -48,6 +48,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useTranslation } from "react-i18next";
+import { useCart } from "@/context/cart-context";
 
 interface Finding {
   category: string;
@@ -157,6 +158,7 @@ export default function Vibe2A() {
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [useLighthouse, setUseLighthouse] = useState(false);
+  const { setSubscription } = useCart();
   const [useAiReadiness, setUseAiReadiness] = useState(false);
   const [forceRefresh, setForceRefresh] = useState(false);
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
@@ -1125,8 +1127,26 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                             offerId: offer.id,
                             source: 'vibe2a_offer_card',
                           });
-                          // Navigate to signup with offer
-                          setLocation(`/portal/signup?offer=${offer.id}&offerName=${encodeURIComponent(offer.name)}`);
+                          // Add to cart as subscription
+                          const price = offer.prices[0];
+                          if (price) {
+                            setSubscription({
+                              priceId: price.id,
+                              productId: offer.id,
+                              productName: offer.name,
+                              unitAmount: price.unit_amount,
+                              currency: price.currency,
+                              type: 'subscription',
+                              quantity: 1,
+                              recurring: price.recurring ? { interval: price.recurring.interval } : undefined,
+                            });
+                            toast({
+                              title: "Added to cart",
+                              description: `${offer.name} added to your cart`,
+                            });
+                          }
+                          // Navigate to store to view cart
+                          setLocation('/store');
                         }}
                         className={`w-full ${
                           isSelected
