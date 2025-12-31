@@ -27,7 +27,12 @@ export function serveStatic(app: Express) {
         if (err) {
           return res.sendFile(indexPath);
         }
-        const modifiedHtml = applyRouteMeta(html, req.originalUrl);
+        // Build base URL from request
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+        const host = req.headers['x-forwarded-host'] || req.headers.host || '';
+        const baseUrl = `${protocol}://${host}`;
+        
+        const modifiedHtml = applyRouteMeta(html, req.originalUrl, baseUrl);
         res.type('html').send(modifiedHtml);
       });
     } else {
