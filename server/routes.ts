@@ -1835,7 +1835,8 @@ export async function registerRoutes(
       res.json({ url: session.url });
     } catch (error: any) {
       console.error("Token checkout error:", error);
-      res.status(500).json({ error: "Failed to create checkout session" });
+      const message = error?.message || error?.raw?.message || "Failed to create checkout session";
+      res.status(500).json({ error: message });
     }
   });
 
@@ -6165,9 +6166,10 @@ Your primary goal is to help users AND capture their contact information natural
       );
 
       res.json({ url: session.url });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Checkout error:", error);
-      res.status(500).json({ error: "Failed to create checkout session" });
+      const message = error?.message || error?.raw?.message || "Failed to create checkout session";
+      res.status(500).json({ error: message });
     }
   });
 
@@ -6586,7 +6588,7 @@ Your primary goal is to help users AND capture their contact information natural
     }
   });
 
-  // Get user's subscriptions
+  // Get user's subscriptions (fetches directly from Stripe for accurate data)
   app.get("/api/stripe/subscriptions", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user?.claims?.sub;
@@ -6599,9 +6601,34 @@ Your primary goal is to help users AND capture their contact information natural
         return res.json({ data: [] });
       }
 
-      const limit = parseInt(req.query.limit as string) || 50;
-      const offset = parseInt(req.query.offset as string) || 0;
-      const subscriptions = await stripeService.getUserSubscriptions(user.stripeCustomerId, limit, offset);
+      const stripe = await getUncachableStripeClient();
+      const stripeSubscriptions = await stripe.subscriptions.list({
+        customer: user.stripeCustomerId,
+        limit: 50,
+        expand: ['data.items.data.price.product'],
+      });
+
+      const subscriptions = stripeSubscriptions.data.map(sub => {
+        const item = sub.items.data[0];
+        const price = item?.price;
+        const product = typeof price?.product === 'object' ? price.product : null;
+        
+        return {
+          subscription_id: sub.id,
+          status: sub.status,
+          current_period_start: sub.current_period_start,
+          current_period_end: sub.current_period_end,
+          cancel_at_period_end: sub.cancel_at_period_end,
+          canceled_at: sub.canceled_at,
+          created: sub.created,
+          product_name: product?.name || null,
+          product_description: product?.description || null,
+          unit_amount: price?.unit_amount || null,
+          currency: price?.currency || null,
+          recurring: price?.recurring || null,
+        };
+      });
+
       res.json({ data: subscriptions });
     } catch (error) {
       console.error("Get user subscriptions error:", error);

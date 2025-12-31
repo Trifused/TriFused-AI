@@ -182,6 +182,8 @@ export default function Billing() {
         description: error.message,
         variant: "destructive",
       });
+      setCancelDialog({ open: false, subscription: null });
+      queryClient.invalidateQueries({ queryKey: ["/api/stripe/subscriptions"] });
     },
   });
 
