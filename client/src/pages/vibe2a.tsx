@@ -264,14 +264,14 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
   };
 
   const features = [
-    { icon: FileText, title: t('vibe2a.seo_analysis'), desc: t('vibe2a.seo_desc') },
-    { icon: Shield, title: t('vibe2a.security_check'), desc: t('vibe2a.security_desc') },
-    { icon: Zap, title: t('vibe2a.performance'), desc: t('vibe2a.performance_desc') },
-    { icon: Key, title: t('vibe2a.keywords'), desc: t('vibe2a.keywords_desc') },
-    { icon: Accessibility, title: t('vibe2a.accessibility'), desc: t('vibe2a.accessibility_desc') },
-    { icon: Mail, title: t('vibe2a.email_security'), desc: t('vibe2a.email_desc') },
-    { icon: Smartphone, title: t('vibe2a.mobile_ready'), desc: t('vibe2a.mobile_desc') },
-    { icon: Bot, title: t('vibe2a.ai_ready'), desc: t('vibe2a.ai_desc') },
+    { icon: FileText, title: t('vibe2a.seo_analysis'), headline: t('vibe2a.seo_headline'), desc: t('vibe2a.seo_desc') },
+    { icon: Shield, title: t('vibe2a.security_check'), headline: t('vibe2a.security_headline'), desc: t('vibe2a.security_desc') },
+    { icon: Zap, title: t('vibe2a.performance'), headline: t('vibe2a.performance_headline'), desc: t('vibe2a.performance_desc') },
+    { icon: Key, title: t('vibe2a.keywords'), headline: t('vibe2a.keywords_headline'), desc: t('vibe2a.keywords_desc') },
+    { icon: Accessibility, title: t('vibe2a.accessibility'), headline: t('vibe2a.accessibility_headline'), desc: t('vibe2a.accessibility_desc') },
+    { icon: Mail, title: t('vibe2a.email_security'), headline: t('vibe2a.email_headline'), desc: t('vibe2a.email_desc') },
+    { icon: Smartphone, title: t('vibe2a.mobile_ready'), headline: t('vibe2a.mobile_headline'), desc: t('vibe2a.mobile_desc') },
+    { icon: Bot, title: t('vibe2a.ai_ready'), headline: t('vibe2a.ai_headline'), desc: t('vibe2a.ai_desc') },
   ];
 
   return (
@@ -716,6 +716,31 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
             viewport={{ once: true }}
             className="text-center mb-12"
           >
+            <h2 className="text-2xl font-bold text-white mb-6">{t('vibe2a.social_proof_title')}</h2>
+            <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto">
+              <div>
+                <div className="text-3xl md:text-4xl font-bold text-cyan-400 mb-1">500+</div>
+                <p className="text-sm text-slate-400">{t('vibe2a.sites_analyzed')}</p>
+              </div>
+              <div>
+                <div className="text-3xl md:text-4xl font-bold text-green-400 mb-1">+15</div>
+                <p className="text-sm text-slate-400">{t('vibe2a.avg_improvement')}</p>
+              </div>
+              <div>
+                <div className="text-3xl md:text-4xl font-bold text-purple-400 mb-1">100%</div>
+                <p className="text-sm text-slate-400">{t('vibe2a.actionable_rate')}</p>
+              </div>
+            </div>
+          </motion.div>
+        </section>
+
+        <section className="container mx-auto px-4 mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
             <h2 className="text-3xl font-bold text-white mb-4">{t('vibe2a.comprehensive_title')}</h2>
             <p className="text-slate-400">{t('vibe2a.comprehensive_subtitle')}</p>
           </motion.div>
@@ -735,12 +760,71 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500/20 to-cyan-500/20 flex items-center justify-center mb-4">
                     <Icon className="w-6 h-6 text-cyan-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
+                  <h3 className="text-lg font-semibold text-white mb-1">{feature.title}</h3>
+                  <p className="text-sm text-cyan-400 mb-2">{feature.headline}</p>
                   <p className="text-sm text-slate-400">{feature.desc}</p>
                 </motion.div>
               );
             })}
           </div>
+        </section>
+
+        <section className="container mx-auto px-4 mb-16">
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center p-6 bg-white/5 rounded-2xl border border-white/10"
+            >
+              <div className="text-4xl mb-4">⚡</div>
+              <h3 className="text-xl font-bold text-white mb-2">{t('vibe2a.value_instant_title')}</h3>
+              <p className="text-slate-400">{t('vibe2a.value_instant_desc')}</p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="text-center p-6 bg-white/5 rounded-2xl border border-white/10"
+            >
+              <div className="text-4xl mb-4">🎯</div>
+              <h3 className="text-xl font-bold text-white mb-2">{t('vibe2a.value_actionable_title')}</h3>
+              <p className="text-slate-400">{t('vibe2a.value_actionable_desc')}</p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="text-center p-6 bg-white/5 rounded-2xl border border-white/10"
+            >
+              <div className="text-4xl mb-4">🤖</div>
+              <h3 className="text-xl font-bold text-white mb-2">{t('vibe2a.value_ai_title')}</h3>
+              <p className="text-slate-400">{t('vibe2a.value_ai_desc')}</p>
+            </motion.div>
+          </div>
+        </section>
+
+        <section className="container mx-auto px-4 mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="max-w-2xl mx-auto text-center py-12"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{t('vibe2a.final_cta_title')}</h2>
+            <p className="text-lg text-slate-400 mb-8">{t('vibe2a.final_cta_subtitle')}</p>
+            <Button
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              size="lg"
+              className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900 font-semibold px-8"
+              data-testid="button-final-cta"
+            >
+              <Search className="w-5 h-5 mr-2" />
+              {t('vibe2a.analyze')}
+            </Button>
+          </motion.div>
         </section>
 
         <section className="container mx-auto px-4 mb-16">
