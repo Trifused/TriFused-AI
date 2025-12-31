@@ -31,7 +31,17 @@ import {
   RefreshCw,
   ExternalLink,
   History,
-  Trash2
+  Trash2,
+  Store,
+  Briefcase,
+  Building2,
+  Stethoscope,
+  Scale,
+  GraduationCap,
+  Dumbbell,
+  Palette,
+  Code,
+  Rocket
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
@@ -132,6 +142,20 @@ export default function Vibe2A() {
   const [useLighthouse, setUseLighthouse] = useState(false);
   const [useAiReadiness, setUseAiReadiness] = useState(false);
   const [forceRefresh, setForceRefresh] = useState(false);
+  const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
+
+  const niches = [
+    { id: 'local', label: 'Local Business', icon: Store, examples: 'Restaurant, Salon, Contractor' },
+    { id: 'ecommerce', label: 'E-Commerce', icon: Briefcase, examples: 'Online Store, Retail' },
+    { id: 'realestate', label: 'Real Estate', icon: Building2, examples: 'Agent, Property Listings' },
+    { id: 'healthcare', label: 'Healthcare', icon: Stethoscope, examples: 'Clinic, Dentist, Therapist' },
+    { id: 'legal', label: 'Legal', icon: Scale, examples: 'Law Firm, Attorney' },
+    { id: 'education', label: 'Education', icon: GraduationCap, examples: 'Tutor, Online Course' },
+    { id: 'fitness', label: 'Fitness', icon: Dumbbell, examples: 'Gym, Trainer, Wellness' },
+    { id: 'agency', label: 'Agency', icon: Palette, examples: 'Marketing, Design, Creative' },
+    { id: 'saas', label: 'SaaS / Tech', icon: Code, examples: 'Software, Developer Tools' },
+    { id: 'startup', label: 'Startup', icon: Rocket, examples: 'New Venture, MVP' },
+  ];
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -625,16 +649,60 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   <p className="text-xs text-slate-500">Free tool - Results are for informational purposes only</p>
                 </div>
 
-                <div className="flex justify-center mt-6">
-                  <Button
-                    onClick={() => setLocation(`/portal/signup?website=${encodeURIComponent(result.url)}&grade=${result.shareToken || ''}`)}
-                    size="lg"
-                    className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900 font-semibold"
-                    data-testid="button-signup-result"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Save Report - Get 100 Free Tokens
-                  </Button>
+                <div className="mt-10 p-6 bg-gradient-to-r from-purple-500/10 via-cyan-500/10 to-green-500/10 rounded-2xl border border-cyan-500/20">
+                  <div className="text-center mb-6">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-400 text-sm font-medium mb-4">
+                      <Bot className="w-4 h-4" />
+                      AI-Powered Analysis
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      Get Your Personalized "Vibe to A" Plan
+                    </h3>
+                    <p className="text-slate-400 max-w-lg mx-auto">
+                      Select your industry and our AI will generate tailored recommendations to improve your website based on your scan results.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                    {niches.map((niche) => {
+                      const Icon = niche.icon;
+                      const isSelected = selectedNiche === niche.id;
+                      return (
+                        <button
+                          key={niche.id}
+                          onClick={() => setSelectedNiche(isSelected ? null : niche.id)}
+                          className={`p-3 rounded-xl border transition-all text-left ${
+                            isSelected
+                              ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400'
+                              : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'
+                          }`}
+                          data-testid={`niche-${niche.id}`}
+                        >
+                          <Icon className={`w-5 h-5 mb-2 ${isSelected ? 'text-cyan-400' : 'text-slate-500'}`} />
+                          <div className="font-medium text-sm">{niche.label}</div>
+                          <div className="text-xs text-slate-500 mt-0.5">{niche.examples}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-col items-center gap-4">
+                    <Button
+                      onClick={() => {
+                        const nicheParam = selectedNiche ? `&niche=${selectedNiche}` : '';
+                        setLocation(`/portal/signup?website=${encodeURIComponent(result.url)}&grade=${result.shareToken || ''}${nicheParam}&aiAnalysis=true`);
+                      }}
+                      size="lg"
+                      className="bg-gradient-to-r from-purple-500 via-cyan-500 to-green-500 hover:from-purple-400 hover:via-cyan-400 hover:to-green-400 text-slate-900 font-semibold px-8"
+                      data-testid="button-ai-analysis-signup"
+                    >
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      {selectedNiche ? `Get AI Recommendations for ${niches.find(n => n.id === selectedNiche)?.label}` : 'Sign Up for AI Analysis'}
+                    </Button>
+                    <p className="text-xs text-slate-500">
+                      Free signup • 100 tokens included • Build on Replit
+                    </p>
+                  </div>
                 </div>
               </div>
             </motion.section>
