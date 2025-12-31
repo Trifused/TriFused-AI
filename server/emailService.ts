@@ -554,3 +554,139 @@ export async function sendServiceLeadNotificationEmail(
     return { success: false, error: error.message };
   }
 }
+
+export async function sendChatLeadNotification(data: {
+  name: string;
+  contactMethod: string;
+  contactValue: string;
+  inquiry: string;
+  sessionId: string;
+}) {
+  try {
+    const { client, fromEmail } = await getResendClient();
+    
+    const verifiedFrom = (fromEmail && fromEmail.includes('mailout1.trifused.com')) 
+      ? fromEmail 
+      : 'TriFused <noreply@mailout1.trifused.com>';
+    
+    const result = await client.emails.send({
+      from: verifiedFrom,
+      to: 'larry@trifused.com',
+      subject: `New Chat Lead: ${data.name}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0f; color: #ffffff; margin: 0; padding: 40px 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; border: 1px solid rgba(16, 185, 129, 0.3); padding: 40px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              <div style="display: inline-block; background: rgba(16, 185, 129, 0.2); padding: 12px; border-radius: 12px; margin-bottom: 16px;">
+                <span style="font-size: 32px;">💬</span>
+              </div>
+              <h1 style="color: #10b981; font-size: 24px; margin: 0;">New Chat Lead Captured</h1>
+            </div>
+            
+            <div style="display: grid; gap: 16px; margin-bottom: 24px;">
+              <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;">
+                <span style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">Name</span><br>
+                <span style="color: #ffffff; font-size: 18px; font-weight: 600;">${data.name}</span>
+              </div>
+              
+              <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;">
+                <span style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">${data.contactMethod}</span><br>
+                <a href="${data.contactMethod === 'email' ? 'mailto:' + data.contactValue : ''}" style="color: #10b981; font-size: 18px; font-weight: 600; text-decoration: none;">${data.contactValue}</a>
+              </div>
+              
+              <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;">
+                <span style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">Inquiry</span><br>
+                <span style="color: #ffffff; font-size: 16px;">${data.inquiry}</span>
+              </div>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="https://trifused.com/portal/admin" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px;">
+                View in Admin Portal
+              </a>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 32px 0;">
+            
+            <p style="color: #64748b; font-size: 12px; text-align: center; margin: 0;">
+              Session ID: ${data.sessionId}<br>
+              &copy; ${new Date().getFullYear()} TriFused. All rights reserved.
+            </p>
+          </div>
+        </body>
+        </html>
+      `
+    });
+    
+    console.log('Chat lead notification email sent:', result);
+    return { success: true };
+  } catch (error: any) {
+    console.error('Failed to send chat lead notification email:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function sendEmailSignupNotification(email: string) {
+  try {
+    const { client, fromEmail } = await getResendClient();
+    
+    const verifiedFrom = (fromEmail && fromEmail.includes('mailout1.trifused.com')) 
+      ? fromEmail 
+      : 'TriFused <noreply@mailout1.trifused.com>';
+    
+    const result = await client.emails.send({
+      from: verifiedFrom,
+      to: 'larry@trifused.com',
+      subject: `New Email Signup: ${email}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0f; color: #ffffff; margin: 0; padding: 40px 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 16px; border: 1px solid rgba(59, 130, 246, 0.3); padding: 40px;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              <div style="display: inline-block; background: rgba(59, 130, 246, 0.2); padding: 12px; border-radius: 12px; margin-bottom: 16px;">
+                <span style="font-size: 32px;">📧</span>
+              </div>
+              <h1 style="color: #3b82f6; font-size: 24px; margin: 0;">New Email Signup</h1>
+            </div>
+            
+            <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
+              <span style="color: #94a3b8; font-size: 12px; text-transform: uppercase;">Email Address</span><br>
+              <a href="mailto:${email}" style="color: #3b82f6; font-size: 20px; font-weight: 600; text-decoration: none;">${email}</a>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="https://trifused.com/portal/admin" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #ffffff; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px;">
+                View in Admin Portal
+              </a>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 32px 0;">
+            
+            <p style="color: #64748b; font-size: 12px; text-align: center; margin: 0;">
+              Subscribed at: ${new Date().toLocaleString()}<br>
+              &copy; ${new Date().getFullYear()} TriFused. All rights reserved.
+            </p>
+          </div>
+        </body>
+        </html>
+      `
+    });
+    
+    console.log('Email signup notification sent:', result);
+    return { success: true };
+  } catch (error: any) {
+    console.error('Failed to send email signup notification:', error);
+    return { success: false, error: error.message };
+  }
+}

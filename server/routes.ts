@@ -35,7 +35,7 @@ import { websiteReportFrequencies } from "@shared/schema";
 import { tokenPricing } from "@shared/schema";
 import { mcpService, handleMCPRequest, MCPHealthCheckService } from "./mcpService";
 import { validateAIReadiness, type AIReadinessResult } from "./aiReadinessService";
-import { sendServiceLeadNotificationEmail } from "./emailService";
+import { sendServiceLeadNotificationEmail, sendChatLeadNotification, sendEmailSignupNotification } from "./emailService";
 
 // AI Vision helper for FDIC badge detection
 async function detectFdicWithVision(url: string): Promise<{ found: boolean; confidence: string; location: string | null }> {
@@ -1160,6 +1160,9 @@ export async function registerRoutes(
 
       const validatedData = insertEmailSubscriberSchema.parse({ email });
       await storage.createEmailSubscriber(validatedData);
+      
+      sendEmailSignupNotification(email).catch(err => console.error('Failed to send email signup notification:', err));
+      
       res.json({ success: true, message: "Successfully subscribed" });
     } catch (error: any) {
       console.error("Subscribe error:", error);
@@ -2403,6 +2406,14 @@ Your primary goal is to help users AND capture their contact information natural
           inquiry: lead.inquiry,
         });
         console.log(`Lead captured: ${lead.name} (${lead.contactMethod}: ${lead.contactValue})`);
+        
+        sendChatLeadNotification({
+          name: lead.name,
+          contactMethod: lead.contactMethod,
+          contactValue: lead.contactValue,
+          inquiry: lead.inquiry,
+          sessionId,
+        }).catch(err => console.error('Failed to send chat lead notification:', err));
       }
 
       await storage.createChatMessage({
