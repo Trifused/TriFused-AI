@@ -1,0 +1,174 @@
+Here's an updated Privacy Policy with worldwide compliance considerations:
+
+---
+
+**Privacy Policy**
+
+**Effective Date:** December 06, 2025  
+**Last Updated:** [Current Date]
+
+## 1. Introduction & Scope
+
+TriFused ("we," "our," or "us") respects your privacy and is committed to protecting your personal data. This Privacy Policy explains how we collect, use, store, and share information when you use our services, in compliance with applicable data protection laws worldwide, including:
+
+- EU General Data Protection Regulation (GDPR)
+- California Consumer Privacy Act (CCPA) / California Privacy Rights Act (CPRA)
+- Japan's Act on the Protection of Personal Information (APPI)
+- Other applicable regional data protection laws
+
+**Your Rights:** Depending on your location, you may have specific rights regarding your personal data. See Section 8 below.
+
+## 2. Data We Collect
+
+We collect minimal data necessary for system optimization and service delivery:
+
+**Automatically Collected Data:**
+- IP addresses (for security, fraud prevention, and geolocation)
+- Browser fingerprints and device information (for UX optimization and security)
+- Interaction logs and usage analytics (pages viewed, features used, timestamps)
+- Cookies and similar tracking technologies (see Section 5)
+
+**Information You Provide:**
+- Account information (email, username, authentication credentials)
+- User-generated content and website URLs you submit for analysis
+- Communication data (support inquiries, feedback)
+
+**Legal Basis for Processing (GDPR):**
+- Contractual necessity (to provide our services)
+- Legitimate interests (security, fraud prevention, service improvement)
+- Consent (where required by law, such as for non-essential cookies)
+
+## 3. How We Use Your Data
+
+We process your data for the following purposes:
+
+- **Service Delivery:** Operating and maintaining our platform, performing website analysis
+- **Security & Fraud Prevention:** Protecting against unauthorized access, abuse, and attacks
+- **Service Improvement:** Analyzing usage patterns to enhance features and performance
+- **Communications:** Responding to inquiries and sending service-related notifications
+- **Legal Compliance:** Meeting regulatory requirements and responding to lawful requests
+
+**Data Retention:** We retain personal data only as long as necessary for these purposes or as required by law. Interaction logs are typically retained for 90 days unless needed for security investigations.
+
+## 4. Neural Processing & Data Security
+
+**Encryption & Security Measures:**
+- All data is encrypted at rest using AES-256 encryption standards
+- Data in transit is protected using TLS 1.3 or higher
+- Our autonomous agents process data in ephemeral states, minimizing persistent storage
+- Access controls and authentication mechanisms protect against unauthorized access
+
+**Data Processing:** Sensitive information is processed ephemerally and is never permanently stored without your explicit cryptographic consent.
+
+Despite our security measures, no system is completely secure. We cannot guarantee absolute security of your data.
+
+## 5. Cookies & Tracking Technologies
+
+**Cookie Types We Use:**
+
+**Essential Cookies** (no consent required) - Necessary for authentication, security, and basic site functionality
+
+**Analytics Cookies** (consent required in EU/UK) - Track usage patterns to improve our service
+
+**Preference Cookies** - Remember your settings and choices
+
+**Your Cookie Choices:**
+- EU/UK/Switzerland users: We obtain consent before deploying non-essential cookies
+- You can manage cookie preferences through your browser settings or our cookie consent tool
+- Blocking cookies may limit certain functionality
+
+## 6. reCAPTCHA & Bot Protection
+
+This site uses Google reCAPTCHA to prevent spam, abuse, and automated attacks.
+
+**Data Collected by reCAPTCHA:**
+- IP address
+- Browser type, version, and settings
+- Device and application data
+- Date, time, and referring URL of your request
+- Interaction data (mouse movements, keystrokes on forms)
+
+**Purpose:** This data is used solely for security purposes to distinguish humans from bots. Google does not use this data for personalized advertising in reCAPTCHA contexts.
+
+**Third-Party Governance:** Your use of reCAPTCHA is subject to [Google's Privacy Policy](https://policies.google.com/privacy) and [Terms of Service](https://policies.google.com/terms).
+
+## 7. Third-Party Services & Data Sharing
+
+We work with select service providers for infrastructure and functionality:
+
+**Service Providers:**
+- **Neon, Replit, Lovable** - Infrastructure and development platforms
+- **Cloud hosting providers** - Data storage and processing
+- **Analytics providers** - Service improvement
+
+**Data Sharing Principles:**
+- Zero-trust architecture protocols govern all third-party data sharing
+- Service providers are contractually bound to protect your data
+- We share only the minimum data necessary for specific purposes
+- We do not sell your personal data to third parties
+
+**International Transfers:** Your data may be transferred to and processed in countries outside your residence. We implement appropriate safeguards (Standard Contractual Clauses, adequacy decisions) to protect your data during international transfers.
+
+## 8. Your Privacy Rights
+
+Depending on your location, you may have the following rights:
+
+**GDPR Rights (EU/UK/Switzerland):**
+- **Access:** Request a copy of your personal data
+- **Rectification:** Correct inaccurate data
+- **Erasure:** Request deletion ("right to be forgotten")
+- **Restriction:** Limit how we process your data
+- **Portability:** Receive your data in a structured format
+- **Objection:** Object to processing based on legitimate interests
+- **Withdraw Consent:** Where processing is based on consent
+- **Lodge a Complaint:** Contact your local data protection authority
+
+**CCPA/CPRA Rights (California):**
+- Know what personal information is collected, used, and shared
+- Delete personal information
+- Opt-out of sale/sharing (we do not sell personal data)
+- Correct inaccurate information
+- Limit use of sensitive personal information
+- Non-discrimination for exercising your rights
+
+**APPI Rights (Japan):**
+- Request disclosure of personal information
+- Request correction or deletion
+- Request suspension of use or provision to third parties
+
+**Exercising Your Rights:** To exercise any of these rights, contact us at [privacy@trifused.com]. We will respond within the timeframes required by applicable law (typically 30 days).
+
+## 9. Children's Privacy
+
+Our services are not directed to individuals under 18 (or the age of majority in your jurisdiction). We do not knowingly collect data from minors. If you believe we have collected data from a minor, please contact us immediately.
+
+## 10. Changes to This Policy
+
+We may update this Privacy Policy to reflect changes in our practices or legal requirements. We will notify you of material changes by:
+- Posting the updated policy with a new "Last Updated" date
+- Sending email notifications for significant changes (where required)
+- Requesting renewed consent where legally necessary
+
+## 11. Contact Information
+
+**Data Controller:** TriFused  
+**Privacy Contact:** [privacy@trifused.com]  
+**Address:** [Your registered business address]
+
+**EU Representative (if applicable):** [EU representative details if you're non-EU but process EU data]
+
+**For GDPR Supervisory Authority Complaints:**
+Contact your local data protection authority. [List of EU authorities](https://edpb.europa.eu/about-edpb/board/members_en)
+
+---
+
+## Additional Compliance Notes:
+
+1. **Add specific contact details** - Replace bracketed placeholders with actual information
+2. **Cookie Consent Banner** - Implement a compliant cookie consent tool for EU visitors
+3. **Privacy by Design** - Document your data minimization and protection measures
+4. **Data Processing Agreements** - Ensure contracts with Neon, Replit, Lovable include GDPR-compliant DPA clauses
+5. **Privacy Impact Assessments** - Consider conducting PIAs for high-risk processing
+6. **Breach Notification Procedures** - Have protocols ready to notify authorities within 72 hours (GDPR) if needed
+
+Would you like me to elaborate on any specific compliance requirement or help draft supporting documents like a Cookie Policy or Data Processing Agreement?

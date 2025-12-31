@@ -92,8 +92,11 @@ function Router() {
         <Route path="/portal/websites" component={WebsitesPortal} />
         <Route path="/grade/:slug" component={GradeEmbed} />
         <Route path="/media" component={PublicMedia} />
+        <Route path="/privacy" component={Privacy} />
         <Route path="/legal/privacy" component={Privacy} />
+        <Route path="/terms" component={Terms} />
         <Route path="/legal/terms" component={Terms} />
+        <Route path="/cookies" component={Cookies} />
         <Route path="/legal/cookies" component={Cookies} />
         <Route path="/backup-calculator" component={BackupCalculator} />
         <Route path="/docs" component={Docs} />
