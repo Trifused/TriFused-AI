@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sparkles, Zap, Shield, Bug, ChevronRight, X, ExternalLink } from "lucide-react";
@@ -114,7 +114,7 @@ export function WhatsNewModal({ forceShow = false, onClose }: WhatsNewModalProps
               </motion.div>
               <div>
                 <DialogTitle className="text-2xl font-bold text-white">What's New</DialogTitle>
-                <p className="text-sm text-muted-foreground mt-1">Recent updates to TriFused</p>
+                <DialogDescription className="text-sm text-muted-foreground mt-1">Recent updates to TriFused</DialogDescription>
               </div>
             </div>
             <button
