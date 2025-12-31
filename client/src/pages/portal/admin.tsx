@@ -113,7 +113,10 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Legend
+  Legend,
+  PieChart,
+  Pie,
+  Cell
 } from "recharts";
 
 interface User {
@@ -4240,6 +4243,64 @@ function RateLimitsTab() {
         </div>
       </div>
 
+      {/* Tier Distribution Chart */}
+      {stats?.requestsByTier && Object.keys(stats.requestsByTier).length > 0 && (
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="glass-panel rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Requests by Tier</h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={Object.entries(stats.requestsByTier).map(([tier, count]) => ({ name: tier, value: count }))}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    labelLine={false}
+                  >
+                    {Object.keys(stats.requestsByTier).map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={['#22d3ee', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'][index % 5]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                    labelStyle={{ color: '#fff' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="glass-panel rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Blocked by Tier</h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={Object.entries(stats.requestsByTier).map(([tier, count]) => ({
+                  tier,
+                  requests: count as number,
+                  blocked: (stats.blockedByTier?.[tier] || 0) as number
+                }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <XAxis dataKey="tier" stroke="#94a3b8" fontSize={12} />
+                  <YAxis stroke="#94a3b8" fontSize={12} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                    labelStyle={{ color: '#fff' }}
+                  />
+                  <Legend />
+                  <Bar dataKey="requests" name="Requests" fill="#22d3ee" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="blocked" name="Blocked" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tier Limits */}
       <div className="glass-panel rounded-2xl p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Tier Limits</h3>
@@ -4307,6 +4368,36 @@ function RateLimitsTab() {
           <p className="text-muted-foreground text-center py-8">No custom overrides configured</p>
         )}
       </div>
+
+      {/* Top Endpoints Chart */}
+      {stats?.topEndpoints?.length > 0 && (
+        <div className="glass-panel rounded-2xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Top Endpoints</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.topEndpoints.slice(0, 8)} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis type="number" stroke="#94a3b8" fontSize={12} />
+                <YAxis 
+                  type="category" 
+                  dataKey="endpoint" 
+                  stroke="#94a3b8" 
+                  fontSize={11}
+                  width={120}
+                  tickFormatter={(value) => value.length > 18 ? value.substring(0, 18) + '...' : value}
+                />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                  labelStyle={{ color: '#fff' }}
+                />
+                <Legend />
+                <Bar dataKey="requestCount" name="Requests" fill="#22d3ee" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="blockedCount" name="Blocked" fill="#ef4444" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Top Clients */}
       {stats?.topIdentifiers?.length > 0 && (
