@@ -1,0 +1,245 @@
+Here's an updated Terms of Service with worldwide compliance:
+
+---
+
+**Terms of Service**
+
+**Last Updated:** December 06, 2025  
+**Effective Date:** December 06, 2025
+
+## 1. Acceptance of Terms
+
+By accessing or using TriFused's services, website, or platform (collectively, the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not access or use the Service.
+
+**Jurisdiction-Specific Terms:** Users in certain jurisdictions may have additional rights that cannot be waived. Nothing in these Terms limits your statutory rights under applicable consumer protection laws.
+
+**Changes to Terms:** We reserve the right to modify these Terms at any time. Material changes will be notified via email or prominent notice on our Service at least 30 days before taking effect. Continued use after changes constitutes acceptance.
+
+## 2. Eligibility & Account Registration
+
+**Age Requirements:** You must be at least 18 years old (or the age of majority in your jurisdiction) to use our Service. By using the Service, you represent that you meet these requirements.
+
+**Account Security:** You are responsible for:
+- Maintaining the confidentiality of your account credentials
+- All activities that occur under your account
+- Notifying us immediately of any unauthorized access
+
+**Accurate Information:** You agree to provide accurate, current, and complete information during registration and to update it as necessary.
+
+## 3. System Access & Acceptable Use
+
+**Access Rights:** Access to TriFused infrastructure is granted as a limited, non-exclusive, non-transferable license. This is a privilege that may be revoked at our discretion.
+
+**Prohibited Activities:** You agree NOT to:
+- Attempt unauthorized access, penetration testing, or security breaches without prior written consent
+- Conduct or facilitate Distributed Denial of Service (DDoS) attacks or similar disruptive actions
+- Use the Service for illegal purposes or to violate any applicable laws
+- Reverse engineer, decompile, or attempt to extract source code from our Service
+- Scrape, harvest, or collect data from the Service using automated means without permission
+- Transmit malware, viruses, or harmful code
+- Impersonate others or misrepresent your affiliation
+- Interfere with or disrupt the Service or servers/networks connected to it
+- Violate the intellectual property rights of TriFused or third parties
+
+**Enforcement:** We reserve the right to:
+- Immediately terminate or suspend access for violations
+- Investigate suspected violations and cooperate with law enforcement
+- Remove content that violates these Terms
+- Take legal action for damages resulting from violations
+
+## 4. Service Availability & Modifications
+
+**Uptime:** While we strive for high availability, we do not guarantee uninterrupted or error-free Service.
+
+**Changes to Service:** We may:
+- Modify, suspend, or discontinue any aspect of the Service at any time
+- Impose limits on features or restrict access to parts of the Service
+- Update our AI models, algorithms, and features without prior notice
+
+**Scheduled Maintenance:** We will provide reasonable notice for planned maintenance that may affect Service availability.
+
+## 5. Disclaimer of Warranties
+
+**"AS IS" BASIS:** THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+
+**NO GUARANTEES:** To the maximum extent permitted by law, TriFused disclaims all warranties, including but not limited to:
+- Merchantability, fitness for a particular purpose, and non-infringement
+- Accuracy, reliability, or completeness of results, analysis, or recommendations
+- Uninterrupted, secure, or error-free operation
+- That defects will be corrected
+
+**AI MODEL LIMITATIONS:** While our AI models are designed for high accuracy, we explicitly disclaim liability for:
+- AI hallucinations, errors, or inaccuracies in generated content
+- Predictive errors or incorrect analysis results
+- Unexpected outputs or behaviors from generative engines
+- Any decisions made based on AI-generated recommendations
+
+**YOUR RESPONSIBILITY:** You are solely responsible for:
+- Evaluating the accuracy and appropriateness of Service outputs
+- Verifying any recommendations or analysis before implementation
+- Any decisions or actions taken based on Service results
+
+**Consumer Protection Laws:** Some jurisdictions do not allow exclusion of implied warranties. If these laws apply to you, some of the above exclusions may not apply.
+
+## 6. Limitation of Liability
+
+**MAXIMUM LIABILITY:** TO THE FULLEST EXTENT PERMITTED BY LAW, TRIFUSED'S TOTAL LIABILITY FOR ANY CLAIMS ARISING FROM YOUR USE OF THE SERVICE SHALL NOT EXCEED THE GREATER OF:
+- The amount you paid to TriFused in the 12 months preceding the claim, OR
+- $100 USD
+
+**EXCLUDED DAMAGES:** TriFused SHALL NOT BE LIABLE FOR:
+- Indirect, incidental, special, consequential, or punitive damages
+- Loss of profits, revenue, data, or business opportunities
+- Service interruptions or data loss
+- Third-party actions or content
+- Any "sentient uprisings" or unintended behaviors resulting from misuse of generative AI engines (though we take reasonable measures to prevent such scenarios)
+
+**Exceptions:** Nothing in these Terms excludes or limits liability for:
+- Death or personal injury caused by negligence
+- Fraud or fraudulent misrepresentation  
+- Gross negligence or willful misconduct
+- Any liability that cannot be excluded under applicable law
+
+**Japan-Specific:** Under Japan's Consumer Contract Act, limitations that are unreasonably unfavorable to consumers may be void. Our liability for intentional misconduct or gross negligence cannot be waived.
+
+**EU/UK-Specific:** Under EU/UK consumer protection laws, we remain liable for damages caused by our failure to exercise reasonable care.
+
+## 7. Intellectual Property Rights
+
+**TriFused Ownership:** All intellectual property rights in the Service, including but not limited to:
+- Software, source code, and algorithms
+- Neural network architectures and trained model weights
+- Visual assets, design elements, trademarks, and branding
+- Documentation and proprietary methodologies
+
+...remain the exclusive property of TriFused Technologies or its licensors.
+
+**User Content:** You retain ownership of content you submit to the Service ("User Content"). By submitting User Content, you grant TriFused a worldwide, non-exclusive, royalty-free license to:
+- Use, reproduce, and process User Content to provide the Service
+- Create derivative works for service improvement and AI model training
+- Display results and analysis derived from your User Content
+
+**Generated Output:** Regarding content generated by our AI models based on your inputs:
+- **Standard License:** You receive a limited, non-exclusive license to use generated outputs for your internal business purposes
+- **Transfer of Rights:** Intellectual property rights in generated outputs may be explicitly transferred via written agreement or verified smart contract transaction
+- **Training Data:** We may use anonymized, aggregated patterns from generated outputs to improve our models
+
+**Third-Party Content:** Some Service features may incorporate third-party intellectual property. Your use must comply with applicable third-party licenses.
+
+**DMCA Compliance:** If you believe content on our Service infringes your copyright, contact our DMCA agent at [dmca@trifused.com] with the required information under 17 U.S.C. § 512(c).
+
+## 8. User Data & Privacy
+
+**Data Processing:** Your use of the Service is governed by our Privacy Policy, which is incorporated by reference into these Terms. Please review it at [link to Privacy Policy].
+
+**Data Security:** While we implement industry-standard security measures, you acknowledge that no system is completely secure. You use the Service at your own risk regarding data transmission and storage.
+
+**Data Rights:** You may have rights to access, correct, or delete your data under applicable privacy laws. See our Privacy Policy for details.
+
+## 9. Third-Party Services & Integration
+
+**reCAPTCHA:** This site uses Google reCAPTCHA to protect against spam and abuse. By using our forms and interactive features, you agree to be bound by:
+- [Google Privacy Policy](https://policies.google.com/privacy)
+- [Google Terms of Service](https://policies.google.com/terms)
+
+reCAPTCHA may collect device and browser information to verify you're human. This data is subject to Google's policies, not ours.
+
+**Other Third-Party Services:** The Service may integrate with or link to third-party services (Neon, Replit, Lovable, etc.). Your use of these services is governed by their respective terms and privacy policies. TriFused is not responsible for third-party services.
+
+## 10. Payment Terms (if applicable)
+
+**Subscription Fees:** If you subscribe to paid features:
+- Fees are stated in USD or local currency and are non-refundable except as required by law
+- You authorize recurring billing until you cancel
+- We may change pricing with 30 days' notice
+- Non-payment may result in service suspension or termination
+
+**Refund Policy:** [Specify your refund policy in compliance with local consumer protection laws]
+
+**Taxes:** You are responsible for all applicable taxes except those based on TriFused's net income.
+
+## 11. Indemnification
+
+You agree to indemnify, defend, and hold harmless TriFused, its affiliates, officers, directors, employees, and agents from any claims, damages, losses, liabilities, and expenses (including reasonable attorneys' fees) arising from:
+- Your use or misuse of the Service
+- Your violation of these Terms
+- Your violation of any third-party rights
+- Your User Content
+
+**Limitations:** This indemnification does not apply to claims arising solely from our negligence or misconduct. Some jurisdictions may limit indemnification clauses under consumer protection laws.
+
+## 12. Dispute Resolution
+
+**Informal Resolution:** Before filing any legal claim, you agree to contact us at [legal@trifused.com] to attempt informal resolution for at least 30 days.
+
+**Governing Law:**
+- **International Users:** These Terms are governed by [specify jurisdiction, e.g., "the laws of Japan, excluding conflict of law provisions"]
+- **EU Users:** You may also rely on mandatory consumer protection laws in your country of residence
+- **California Users:** These Terms are governed by California law and applicable U.S. federal law
+
+**Jurisdiction & Venue:**
+- **Non-Consumer Disputes:** Exclusive jurisdiction in [specify courts, e.g., "Tokyo District Court"]
+- **Consumer Disputes:** EU/UK consumers may bring proceedings in their country of residence
+- **Arbitration:** [If applicable, specify arbitration terms compliant with local laws - note that mandatory arbitration may be unenforceable for consumers in many jurisdictions]
+
+**Class Action Waiver:** To the extent permitted by law, you agree to resolve disputes individually and waive the right to participate in class actions. This waiver does not apply where prohibited by law (e.g., many EU countries).
+
+## 13. Termination
+
+**By You:** You may terminate your account at any time through account settings or by contacting support.
+
+**By Us:** We may suspend or terminate your access:
+- For violations of these Terms
+- For prolonged inactivity
+- If required by law or government request
+- If we cease offering the Service
+
+**Effect of Termination:**
+- Your license to use the Service ends immediately
+- We may delete your User Content after a reasonable period
+- Provisions that should survive (liability limitations, indemnification, dispute resolution) remain in effect
+
+**EU Consumer Rights:** EU consumers have the right to withdraw from service contracts within 14 days under EU Directive 2011/83/EU, subject to certain conditions.
+
+## 14. General Provisions
+
+**Entire Agreement:** These Terms, together with our Privacy Policy, constitute the entire agreement between you and TriFused.
+
+**Severability:** If any provision is found unenforceable, the remaining provisions remain in full effect.
+
+**No Waiver:** Our failure to enforce any right or provision doesn't constitute a waiver.
+
+**Assignment:** You may not assign these Terms without our consent. We may assign our rights and obligations freely.
+
+**Force Majeure:** Neither party is liable for delays or failures due to circumstances beyond reasonable control.
+
+**Export Controls:** You agree to comply with all applicable export control and sanctions laws.
+
+**Language:** These Terms are written in English. Translations may be provided for convenience, but the English version governs in case of conflicts.
+
+**Notices:** Legal notices should be sent to [legal@trifused.com] or [physical address].
+
+## 15. Contact Information
+
+**TriFused Technologies**  
+Email: [legal@trifused.com]  
+Address: [Your registered business address]  
+Support: [support@trifused.com]
+
+**Regional Representatives (if applicable):**
+- EU Representative: [Details if required under GDPR]
+- Japan Representative: [Details if required under APPI]
+
+---
+
+## Implementation Checklist:
+
+1. ✅ **Add your actual contact information** in bracketed sections
+2. ✅ **Specify governing law and jurisdiction** based on your business location
+3. ✅ **Define payment/refund terms** if you charge for services
+4. ✅ **Review with legal counsel** familiar with your target markets
+5. ✅ **Implement version control** to track changes over time
+6. ✅ **Create acceptance mechanism** (checkbox during signup)
+7. ✅ **Draft region-specific addendums** if needed for EU, Japan, California, etc.
+
+Would you like me to create any supplementary documents like a Cookie Policy, Acceptable Use Policy, or SLA (Service Level Agreement)?
