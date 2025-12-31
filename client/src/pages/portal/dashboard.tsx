@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { GuidedTour, HelpButton } from "@/components/ui/help-tooltip";
 import { useHelp } from "@/context/help-context";
 import { TermsModal } from "@/components/terms-modal";
+import { WhatsNewModal } from "@/components/whats-new-modal";
 import { 
   LayoutDashboard, 
   LogOut, 
@@ -551,6 +552,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <TermsModal isOpen={needsTermsAcceptance} userTermsVersion={user?.termsVersion} />
+      <WhatsNewModal />
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-white/5">
         <div className="container mx-auto px-3 md:px-6">
           <div className="flex items-center justify-between h-14 md:h-16">
