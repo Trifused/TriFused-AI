@@ -44,6 +44,7 @@ export const users = pgTable("users", {
   suspendedAt: timestamp("suspended_at"),
   suspendedReason: text("suspended_reason"),
   deletedAt: timestamp("deleted_at"),
+  onboardingMetadata: jsonb("onboarding_metadata"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

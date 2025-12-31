@@ -7,6 +7,9 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import { db } from "../db";
+import { websiteGrades, users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 const getOidcConfig = memoize(
   async () => {
@@ -54,11 +57,10 @@ const SUPERUSER_EMAILS = [
   "trifused@gmail.com",
 ];
 
-async function upsertUser(
-  claims: any,
-) {
+async function upsertUser(claims: any) {
   const email = claims["email"];
-  const existingUser = await storage.getUser(claims["sub"]);
+  const userId = claims["sub"];
+  const existingUser = await storage.getUser(userId);
   
   let role = existingUser?.role || "guest";
   if (email && SUPERUSER_EMAILS.includes(email.toLowerCase()) && role !== "superuser") {
@@ -66,7 +68,7 @@ async function upsertUser(
   }
 
   await storage.upsertUser({
-    id: claims["sub"],
+    id: userId,
     email: email,
     firstName: claims["first_name"],
     lastName: claims["last_name"],
@@ -87,8 +89,11 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
+    const user: any = {};
     updateUserSession(user, tokens);
+    // Store claims on user for later processing
+    user.claims = tokens.claims();
+    // Just upsert user without onboarding context - that happens in callback
     await upsertUser(tokens.claims());
     verified(null, user);
   };
@@ -122,6 +127,70 @@ export async function setupAuth(app: Express) {
       (req.session as any).returnTo = returnTo;
     }
     
+    // Store onboarding context for linking after OAuth callback
+    if (req.session) {
+      const onboardingContext: any = {};
+      
+      // Capture gradeShareToken for linking website grade to user
+      if (req.query.gradeShareToken) {
+        onboardingContext.gradeShareToken = req.query.gradeShareToken as string;
+      }
+      
+      // Capture offer selection from vibe2a
+      if (req.query.offerId) {
+        onboardingContext.offerId = req.query.offerId as string;
+      }
+      if (req.query.offerName) {
+        onboardingContext.offerName = req.query.offerName as string;
+      }
+      
+      // Capture website URL that was graded
+      if (req.query.websiteUrl) {
+        onboardingContext.websiteUrl = req.query.websiteUrl as string;
+      }
+      
+      // Capture source page
+      if (req.query.source) {
+        onboardingContext.source = req.query.source as string;
+      }
+      
+      // Capture niche selection
+      if (req.query.niche) {
+        onboardingContext.niche = req.query.niche as string;
+      }
+      
+      // Capture session tracking data (clickPath, pageViews, utmParams)
+      if (req.query.clickPath) {
+        try {
+          onboardingContext.clickPath = JSON.parse(req.query.clickPath as string);
+        } catch (e) {
+          console.error('[Auth] Failed to parse clickPath:', e);
+        }
+      }
+      if (req.query.pageViews) {
+        try {
+          onboardingContext.pageViews = JSON.parse(req.query.pageViews as string);
+        } catch (e) {
+          console.error('[Auth] Failed to parse pageViews:', e);
+        }
+      }
+      if (req.query.utmParams) {
+        try {
+          onboardingContext.utmParams = JSON.parse(req.query.utmParams as string);
+        } catch (e) {
+          console.error('[Auth] Failed to parse utmParams:', e);
+        }
+      }
+      if (req.query.sessionDuration) {
+        onboardingContext.sessionDuration = parseInt(req.query.sessionDuration as string, 10);
+      }
+      
+      if (Object.keys(onboardingContext).length > 0) {
+        (req.session as any).onboardingContext = onboardingContext;
+        console.log('[Auth] Stored onboarding context:', JSON.stringify(onboardingContext));
+      }
+    }
+    
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
@@ -134,14 +203,90 @@ export async function setupAuth(app: Express) {
     
     // Get stored returnTo URL from session
     const returnTo = (req.session as any)?.returnTo || "/portal/dashboard";
-    // Clear it from session
+    // Get onboarding context from session
+    const onboardingContext = (req.session as any)?.onboardingContext;
+    
+    // Clear stored session data
     if (req.session) {
       delete (req.session as any).returnTo;
+      delete (req.session as any).onboardingContext;
     }
     
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: returnTo,
-      failureRedirect: "/api/login",
+    passport.authenticate(`replitauth:${req.hostname}`, async (err: any, user: any, info: any) => {
+      if (err) {
+        console.error('[Auth] Callback error:', err);
+        return res.redirect('/api/login');
+      }
+      if (!user) {
+        console.error('[Auth] No user returned:', info);
+        return res.redirect('/api/login');
+      }
+      
+      // Log in the user
+      req.login(user, async (loginErr) => {
+        if (loginErr) {
+          console.error('[Auth] Login error:', loginErr);
+          return res.redirect('/api/login');
+        }
+        
+        // Process onboarding context after successful login
+        if (onboardingContext && Object.keys(onboardingContext).length > 0) {
+          const userId = user.claims?.sub;
+          if (userId) {
+            console.log(`[Auth] Processing onboarding context for user ${userId}:`, JSON.stringify(onboardingContext));
+            
+            // Link website grade to user if gradeShareToken was provided
+            if (onboardingContext.gradeShareToken) {
+              try {
+                const result = await db.update(websiteGrades)
+                  .set({ userId: userId })
+                  .where(eq(websiteGrades.shareToken, onboardingContext.gradeShareToken))
+                  .returning();
+                if (result.length > 0) {
+                  console.log(`[Auth] Linked grade ${onboardingContext.gradeShareToken} to user ${userId}`);
+                } else {
+                  console.log(`[Auth] No grade found with shareToken ${onboardingContext.gradeShareToken}`);
+                }
+              } catch (gradeError) {
+                console.error('[Auth] Failed to link grade to user:', gradeError);
+              }
+            }
+            
+            // Store onboarding metadata on user record
+            try {
+              const existingUser = await storage.getUser(userId);
+              if (!existingUser?.onboardingMetadata) {
+                const metadata = {
+                  source: onboardingContext.source || 'oauth',
+                  signupTimestamp: new Date().toISOString(),
+                  gradeShareToken: onboardingContext.gradeShareToken,
+                  websiteUrl: onboardingContext.websiteUrl,
+                  offerId: onboardingContext.offerId,
+                  offerName: onboardingContext.offerName,
+                  niche: onboardingContext.niche,
+                  clickPath: onboardingContext.clickPath,
+                  pageViews: onboardingContext.pageViews,
+                  utmParams: onboardingContext.utmParams,
+                  sessionDuration: onboardingContext.sessionDuration,
+                };
+                
+                await db.update(users)
+                  .set({ 
+                    onboardingMetadata: metadata,
+                    updatedAt: new Date()
+                  })
+                  .where(eq(users.id, userId));
+                console.log(`[Auth] Stored onboarding metadata for user ${userId}`);
+              }
+            } catch (metaError) {
+              console.error('[Auth] Failed to store onboarding metadata:', metaError);
+            }
+          }
+        }
+        
+        // Redirect to the intended destination
+        return res.redirect(returnTo);
+      });
     })(req, res, next);
   });
 

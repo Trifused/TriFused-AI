@@ -49,6 +49,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useTranslation } from "react-i18next";
 import { useCart } from "@/context/cart-context";
+import { useSessionTracking } from "@/hooks/useSessionTracking";
 
 interface Finding {
   category: string;
@@ -163,6 +164,43 @@ export default function Vibe2A() {
   const [forceRefresh, setForceRefresh] = useState(false);
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
   const [selectedOffer, setSelectedOffer] = useState<Vibe2AOffer | null>(null);
+  const { getSessionData } = useSessionTracking();
+  
+  const buildLoginUrl = (options?: { returnTo?: string }) => {
+    const sessionData = getSessionData();
+    const params = new URLSearchParams();
+    
+    params.set('source', 'vibe2a');
+    params.set('returnTo', options?.returnTo || '/portal/dashboard');
+    
+    if (result?.shareToken) {
+      params.set('gradeShareToken', result.shareToken);
+    }
+    if (result?.url) {
+      params.set('websiteUrl', result.url);
+    }
+    if (selectedOffer) {
+      params.set('offerId', selectedOffer.id);
+      params.set('offerName', selectedOffer.name);
+    }
+    if (selectedNiche) {
+      params.set('niche', selectedNiche);
+    }
+    if (sessionData.clickPath && sessionData.clickPath.length > 0) {
+      params.set('clickPath', JSON.stringify(sessionData.clickPath.slice(-20)));
+    }
+    if (sessionData.pageViews && sessionData.pageViews.length > 0) {
+      params.set('pageViews', JSON.stringify(sessionData.pageViews));
+    }
+    if (sessionData.utmParams && Object.keys(sessionData.utmParams).length > 0) {
+      params.set('utmParams', JSON.stringify(sessionData.utmParams));
+    }
+    if (sessionData.sessionDuration) {
+      params.set('sessionDuration', String(sessionData.sessionDuration));
+    }
+    
+    return `/api/login?${params.toString()}`;
+  };
 
   // Fetch Vibe2A offers from Stripe
   const { data: offersData, isLoading: offersLoading, isError: offersError, error: offersErrorData } = useQuery<{ data: Vibe2AOffer[] }>({
@@ -377,7 +415,9 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
           <div className="flex items-center gap-4">
             <LanguageSwitcher />
             <Button
-              onClick={() => setLocation('/portal/signup')}
+              onClick={() => {
+                window.location.href = buildLoginUrl();
+              }}
               className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900 font-semibold"
               data-testid="button-signup-nav"
             >
@@ -779,8 +819,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   <div className="flex flex-col items-center gap-4">
                     <Button
                       onClick={() => {
-                        const nicheParam = selectedNiche ? `&niche=${selectedNiche}` : '';
-                        setLocation(`/portal/signup?website=${encodeURIComponent(result.url)}&grade=${result.shareToken || ''}${nicheParam}&aiAnalysis=true`);
+                        window.location.href = buildLoginUrl({ returnTo: '/portal/dashboard?aiAnalysis=true' });
                       }}
                       size="lg"
                       className="bg-gradient-to-r from-purple-500 via-cyan-500 to-green-500 hover:from-purple-400 hover:via-cyan-400 hover:to-green-400 text-slate-900 font-semibold px-8"
@@ -972,7 +1011,6 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
               <Button
                 size="lg"
                 onClick={() => {
-                  // Log anonymous signup click - actual email will be collected on signup form
                   const clickId = `anon-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                   signupAttemptMutation.mutate({
                     email: `${clickId}@visitor.vibe2a.com`,
@@ -980,9 +1018,10 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                     selectedOffer: selectedOffer?.name,
                     offerId: selectedOffer?.id,
                     niche: selectedNiche || undefined,
+                    websiteUrl: result?.url,
                     source: 'vibe2a_cta',
                   });
-                  setLocation('/portal/signup');
+                  window.location.href = buildLoginUrl();
                 }}
                 className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-400 hover:to-cyan-400 text-slate-900 font-semibold px-8"
                 data-testid="button-signup-cta"
@@ -993,7 +1032,9 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => setLocation('/portal/login')}
+                onClick={() => {
+                  window.location.href = buildLoginUrl();
+                }}
                 className="border-white/20 text-white hover:bg-white/10"
                 data-testid="button-login-cta"
               >

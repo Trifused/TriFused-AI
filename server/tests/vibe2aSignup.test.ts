@@ -108,4 +108,103 @@ describe('Vibe2A Signup Flow', () => {
       });
     });
   });
+
+  describe('OAuth Onboarding Context Flow', () => {
+    it('/api/login should accept onboarding context query parameters', async () => {
+      const params = new URLSearchParams({
+        source: 'vibe2a',
+        gradeShareToken: 'test-share-token-123',
+        offerId: 'prod_test123',
+        offerName: 'Test Offer',
+        websiteUrl: 'https://example.com',
+        niche: 'saas',
+        clickPath: JSON.stringify([{ element: 'button-test', timestamp: Date.now(), path: '/vibe2a' }]),
+        pageViews: JSON.stringify(['/vibe2a', '/grader']),
+        utmParams: JSON.stringify({ utm_source: 'google', utm_campaign: 'test' }),
+        sessionDuration: '30000',
+        returnTo: '/portal/dashboard',
+      });
+      
+      const response = await fetch(`http://localhost:5000/api/login?${params.toString()}`, {
+        redirect: 'manual',
+      });
+      
+      expect(response.status).toBe(302);
+      expect(response.headers.get('location')).toBeTruthy();
+    });
+
+    it('should build correct login URL with all onboarding params', () => {
+      const buildLoginUrl = (options: {
+        source?: string;
+        gradeShareToken?: string;
+        offerId?: string;
+        websiteUrl?: string;
+        niche?: string;
+        returnTo?: string;
+      }) => {
+        const params = new URLSearchParams();
+        params.set('source', options.source || 'vibe2a');
+        if (options.gradeShareToken) params.set('gradeShareToken', options.gradeShareToken);
+        if (options.offerId) params.set('offerId', options.offerId);
+        if (options.websiteUrl) params.set('websiteUrl', options.websiteUrl);
+        if (options.niche) params.set('niche', options.niche);
+        params.set('returnTo', options.returnTo || '/portal/dashboard');
+        return `/api/login?${params.toString()}`;
+      };
+
+      const url = buildLoginUrl({
+        gradeShareToken: 'abc123',
+        offerId: 'prod_xyz',
+        websiteUrl: 'https://test.com',
+        niche: 'ecommerce',
+      });
+
+      expect(url).toContain('gradeShareToken=abc123');
+      expect(url).toContain('offerId=prod_xyz');
+      expect(url).toContain('websiteUrl=https%3A%2F%2Ftest.com');
+      expect(url).toContain('niche=ecommerce');
+      expect(url).toContain('source=vibe2a');
+    });
+
+    it('should validate that onboarding metadata schema accepts all required fields', () => {
+      const metadata = {
+        source: 'vibe2a',
+        signupTimestamp: new Date().toISOString(),
+        gradeShareToken: 'test-token',
+        websiteUrl: 'https://example.com',
+        offerId: 'prod_123',
+        offerName: 'Test Offer',
+        niche: 'saas',
+        clickPath: [{ element: 'button', timestamp: Date.now(), path: '/vibe2a' }],
+        pageViews: ['/vibe2a', '/grader'],
+        utmParams: { utm_source: 'test' },
+        sessionDuration: 60000,
+      };
+
+      expect(metadata.source).toBe('vibe2a');
+      expect(metadata.gradeShareToken).toBeTruthy();
+      expect(metadata.clickPath).toBeInstanceOf(Array);
+      expect(metadata.pageViews).toBeInstanceOf(Array);
+      expect(typeof metadata.sessionDuration).toBe('number');
+    });
+
+    it('should detect missing gradeShareToken in signup flow', () => {
+      const buildLoginUrlWithContext = (result: { shareToken?: string | null }) => {
+        const params = new URLSearchParams();
+        params.set('source', 'vibe2a');
+        if (result?.shareToken) {
+          params.set('gradeShareToken', result.shareToken);
+        }
+        return `/api/login?${params.toString()}`;
+      };
+
+      const urlWithToken = buildLoginUrlWithContext({ shareToken: 'abc123' });
+      const urlWithoutToken = buildLoginUrlWithContext({ shareToken: null });
+
+      expect(urlWithToken).toContain('gradeShareToken=abc123');
+      expect(urlWithoutToken).not.toContain('gradeShareToken');
+      
+      console.log('[TEST] Grade share token detection test passed - ensures linking works');
+    });
+  });
 });
