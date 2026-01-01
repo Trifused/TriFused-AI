@@ -1,0 +1,136 @@
+Here’s a clean, practical breakdown of the SEO card loading standard—what matters today, what bots actually read, and how to make your cards load fast and correctly across platforms.
+
+⸻
+
+What people mean by “SEO card loading”
+
+They’re usually talking about link preview cards that load when a URL is shared or crawled:
+	•	Google search results (title + description)
+	•	Social previews (X/Twitter Cards, Open Graph for Facebook/LinkedIn)
+	•	Messaging apps (Slack, iMessage, Discord)
+	•	AI crawlers and agents (preview + semantic extraction)
+
+These are not JavaScript-rendered. They must load fast, static, and clean.
+
+⸻
+
+Core standards (non-negotiable)
+
+1. HTML-first (no JS required)
+
+Bots do not wait for JS.
+
+Must be present in initial HTML:
+
+<title>Page Title</title>
+<meta name="description" content="Short, clear summary">
+<meta property="og:title" content="Open Graph Title">
+<meta property="og:description" content="OG description">
+<meta property="og:image" content="https://example.com/card.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+✅ If it’s not in View Source, it doesn’t exist.
+
+⸻
+
+2. Fast TTFB (Time To First Byte)
+
+Target:
+	•	🟢 Excellent: < 300 ms
+	•	🟡 Acceptable: < 800 ms
+	•	🔴 Risky: > 1s
+
+Why it matters:
+	•	Crawlers may abort
+	•	Social cards may fail to render
+	•	AI agents may skip enrichment
+
+⸻
+
+3. Correct image spec
+
+Your card image is the #1 failure point.
+
+Recommended:
+	•	Size: 1200 × 630
+	•	Aspect: 1.91:1
+	•	Format: JPG or PNG (WebP okay but not universal)
+	•	Max size: < 1 MB
+	•	Absolute URL (no relative paths)
+
+⸻
+
+Visual: how SEO cards are rendered
+
+⸻
+
+Metadata priority order (important)
+
+Crawlers typically read in this order:
+	1.	<title>
+	2.	<meta name="description">
+	3.	og:title
+	4.	og:description
+	5.	og:image
+	6.	twitter:*
+
+If og:* exists, social platforms ignore standard meta tags.
+
+⸻
+
+AI & modern crawler expectations (2025+)
+
+Search engines and AI agents now look for:
+
+✅ Semantic clarity
+
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://example.com/page">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Page Title",
+  "description": "Page summary"
+}
+</script>
+
+✅ Stability
+	•	No title swapping after load
+	•	No delayed meta injection
+	•	No A/B testing on metadata without bot detection
+
+⸻
+
+Common failures (what breaks cards)
+
+❌ Meta tags injected via JS
+❌ Missing og:image
+❌ Image blocked by robots.txt
+❌ Slow server response
+❌ Multiple conflicting titles
+❌ Returning 200 with empty HTML shell
+
+⸻
+
+Minimum “passes everywhere” checklist
+
+✔ Static HTML meta tags
+✔ <title> ≤ 60 chars
+✔ <meta description> ≤ 160 chars
+✔ OG image 1200×630
+✔ TTFB < 800ms
+✔ Canonical URL set
+✔ No JS dependency
+
+⸻
+
+One-sentence standard (use this in docs)
+
+SEO card loading standard:
+Link preview metadata must be present in the initial HTML response, load within 800ms TTFB, include valid Open Graph and Twitter tags, and reference a fast, crawlable 1200×630 image.
+
+If you want, I can:
+	•	Generate a drop-in SEO card template
+	•	Audit one of your URLs against this standard
+	•	Help you define this as an “AI-ready card compliance” spec for your grader 🚀
