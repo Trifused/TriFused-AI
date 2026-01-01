@@ -4099,6 +4099,29 @@ Your primary goal is to help users AND capture their contact information natural
       const companyDescription = ogDescription || metaDescription || null;
       const parsedDomain = new URL(url).hostname.replace(/^www\./, '');
       
+      // Extract favicon for social preview card
+      let favicon = $('link[rel="icon"]').attr('href') 
+        || $('link[rel="shortcut icon"]').attr('href')
+        || $('link[rel="apple-touch-icon"]').attr('href')
+        || $('link[rel="apple-touch-icon-precomposed"]').attr('href');
+      
+      // Make favicon URL absolute if it's relative
+      if (favicon && !favicon.startsWith('http')) {
+        const siteRoot = url.replace(/\/$/, '').split('/').slice(0, 3).join('/');
+        favicon = favicon.startsWith('/') ? `${siteRoot}${favicon}` : `${siteRoot}/${favicon}`;
+      }
+      // Default to /favicon.ico if no explicit favicon found
+      if (!favicon) {
+        favicon = `${url.replace(/\/$/, '').split('/').slice(0, 3).join('/')}/favicon.ico`;
+      }
+      
+      // Make og:image URL absolute if relative
+      let absoluteOgImage = ogImage;
+      if (ogImage && !ogImage.startsWith('http')) {
+        const siteRoot = url.replace(/\/$/, '').split('/').slice(0, 3).join('/');
+        absoluteOgImage = ogImage.startsWith('/') ? `${siteRoot}${ogImage}` : `${siteRoot}/${ogImage}`;
+      }
+      
       // Capture visitor info for lead tracking
       const forwardedFor = req.headers['x-forwarded-for'];
       const visitorIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor || req.socket.remoteAddress || null;
@@ -4701,6 +4724,12 @@ Your primary goal is to help users AND capture their contact information natural
         fcaScore,
         gdprScore,
         complianceFlags: complianceChecks || null,
+        // Open Graph preview data for social media card display
+        ogTitle: ogTitle || null,
+        ogDescription: ogDescription || null,
+        ogImage: absoluteOgImage || null,
+        ogSiteName: ogSiteName || null,
+        favicon: favicon || null,
       });
 
       // Generate and update share token and QR code

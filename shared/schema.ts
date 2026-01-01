@@ -406,6 +406,12 @@ export const websiteGrades = pgTable("website_grades", {
   shareToken: varchar("share_token").unique(),
   objectStorageKey: text("object_storage_key"),
   qrCodeData: text("qr_code_data"),
+  // Open Graph preview data for social media card display
+  ogTitle: text("og_title"),
+  ogDescription: text("og_description"),
+  ogImage: text("og_image"),
+  ogSiteName: text("og_site_name"),
+  favicon: text("favicon"),
   viewCount: integer("view_count").default(0),
   downloadCount: integer("download_count").default(0),
   lastViewedAt: timestamp("last_viewed_at"),
