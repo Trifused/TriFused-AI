@@ -252,6 +252,7 @@ export default function Vibe2A() {
     const originalTwitterTitle = document.querySelector('meta[name="twitter:title"]')?.getAttribute('content');
     const originalOgDescription = document.querySelector('meta[property="og:description"]')?.getAttribute('content');
     const originalTwitterDescription = document.querySelector('meta[name="twitter:description"]')?.getAttribute('content');
+    const originalDescription = document.querySelector('meta[name="description"]')?.getAttribute('content');
     const originalOgUrl = document.querySelector('meta[property="og:url"]')?.getAttribute('content');
 
     // Get the base URL for the image
@@ -259,7 +260,7 @@ export default function Vibe2A() {
     const vibe2aOgImage = `${baseUrl}/vibe2a-og-image.jpg`;
 
     // Update title
-    document.title = 'Vibe2A | AI-Powered Website Grader';
+    document.title = 'Vibe2A | AI-Native Website Grader - Free SEO & Security Analysis';
 
     // Update meta tags
     const updateMeta = (selector: string, attribute: string, value: string) => {
@@ -271,10 +272,11 @@ export default function Vibe2A() {
 
     updateMeta('meta[property="og:image"]', 'content', vibe2aOgImage);
     updateMeta('meta[name="twitter:image"]', 'content', vibe2aOgImage);
-    updateMeta('meta[property="og:title"]', 'content', 'Vibe2A | AI-Powered Website Grader');
-    updateMeta('meta[name="twitter:title"]', 'content', 'Vibe2A | AI-Powered Website Grader');
-    updateMeta('meta[property="og:description"]', 'content', 'Grade your website for SEO, security, performance, and AI readiness. Get actionable insights in seconds.');
-    updateMeta('meta[name="twitter:description"]', 'content', 'Grade your website for SEO, security, performance, and AI readiness. Get actionable insights in seconds.');
+    updateMeta('meta[property="og:title"]', 'content', 'Vibe2A | AI-Native Website Grader');
+    updateMeta('meta[name="twitter:title"]', 'content', 'Vibe2A | AI-Native Website Grader');
+    updateMeta('meta[property="og:description"]', 'content', 'Grade your website for SEO, security, performance, and AI-native readiness. Get prioritized, actionable insights and improve your online presence in seconds.');
+    updateMeta('meta[name="twitter:description"]', 'content', 'Grade your website for SEO, security, performance, and AI-native readiness. Get prioritized, actionable insights and improve your online presence in seconds.');
+    updateMeta('meta[name="description"]', 'content', 'Grade your website for SEO, security, performance, and AI-native readiness. Get prioritized, actionable insights and improve your online presence in seconds.');
     updateMeta('meta[property="og:url"]', 'content', `${baseUrl}/vibe2a`);
 
     // Cleanup: restore original meta tags when component unmounts
@@ -286,6 +288,7 @@ export default function Vibe2A() {
       if (originalTwitterTitle) updateMeta('meta[name="twitter:title"]', 'content', originalTwitterTitle);
       if (originalOgDescription) updateMeta('meta[property="og:description"]', 'content', originalOgDescription);
       if (originalTwitterDescription) updateMeta('meta[name="twitter:description"]', 'content', originalTwitterDescription);
+      if (originalDescription) updateMeta('meta[name="description"]', 'content', originalDescription);
       if (originalOgUrl) updateMeta('meta[property="og:url"]', 'content', originalOgUrl);
     };
   }, []);
