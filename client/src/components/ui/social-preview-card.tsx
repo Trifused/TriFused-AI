@@ -60,8 +60,8 @@ export function SocialPreviewCard({
               src={ogImage}
               alt={displayTitle}
               className="w-full h-full object-cover"
-              onError={(e) => {
-                console.log('[SocialPreviewCard] Image load error for:', ogImage, e);
+              onError={() => {
+                console.log('[SocialPreviewCard] Image load error for:', ogImage);
                 setImageError(true);
               }}
               onLoad={() => console.log('[SocialPreviewCard] Image loaded successfully:', ogImage)}
