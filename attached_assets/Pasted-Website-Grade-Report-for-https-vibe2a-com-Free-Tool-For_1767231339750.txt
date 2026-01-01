@@ -1,0 +1,58 @@
+Website Grade Report for https://vibe2a.com
+(Free Tool - For informational purposes only)
+Source: Report Page
+
+Overall Score: 89/100 (Grade: B)
+
+Category Scores:
+- SEO: 95/100
+- Security: 100/100
+- Performance: 75/100
+- Keywords: 75/100
+- Accessibility: 100/100
+- Email Security: 55/100
+- Mobile: 90/100
+
+Issues Found (7):
+- [IMPORTANT] Meta description length is 116 characters (recommended: 150-160): Descriptions that are too short or long may not display optimally in search results
+  Fix: Adjust your meta description to be between 150-160 characters
+
+- [IMPORTANT] Top keyword "ainative" not in title or H1: Main keywords should appear in title and H1 for better SEO
+  Fix: Include "ainative" naturally in your page title and H1 heading
+
+- [IMPORTANT] Keyword "ainative" density is 3.8% (may be too high): Keyword stuffing can hurt SEO rankings
+  Fix: Reduce repetition of this keyword. Aim for 1-2% density
+
+- [OPTIONAL] JavaScript files may not be minified: Unminified JS can slow down mobile page loads on cellular networks
+  Fix: Minify your JavaScript files to reduce file size and improve load times
+
+- [OPTIONAL] CSS files may not be minified: Unminified CSS can slow down mobile page loads on cellular networks
+  Fix: Minify your CSS files to reduce file size and improve load times
+
+- [CRITICAL] Missing SPF record: Emails may be marked as spam or spoofed
+  Fix: Add an SPF TXT record like: v=spf1 include:_spf.google.com ~all
+
+- [IMPORTANT] No DKIM signature detected: Emails cannot be verified as authentic
+  Fix: Configure DKIM with your email provider and add the public key to DNS
+
+Passing Checks (20):
+- Page title is present and well-optimized
+- Single H1 heading present
+- Open Graph meta tags present
+- robots.txt file present
+- sitemap.xml file present
+- Site uses HTTPS
+- Content-Security-Policy header present
+- X-Frame-Options header present
+- X-Content-Type-Options header present
+- HSTS header present
+- Proper heading hierarchy
+- Language attribute present
+- Skip navigation link present
+- Performance estimated (Lighthouse analysis not enabled)
+- Responsive viewport configured
+- No extremely small inline font sizes detected
+- Single redirect detected
+- 5 MX record(s) configured
+- DMARC policy configured
+- Domain IP not on any checked blacklists
