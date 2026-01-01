@@ -74,6 +74,7 @@ interface GradeResult {
   emailSecurityScore: number;
   mobileScore: number;
   aiReadinessScore?: number;
+  seoCardScore?: number | null;
   findings: Finding[];
   shareToken: string | null;
   createdAt: string;
@@ -168,6 +169,7 @@ export default function Vibe2A() {
   const [useLighthouse, setUseLighthouse] = useState(false);
   const { setSubscription } = useCart();
   const [useAiReadiness, setUseAiReadiness] = useState(false);
+  const [useSeoCard, setUseSeoCard] = useState(false);
   const [forceRefresh, setForceRefresh] = useState(false);
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
   const [selectedOffer, setSelectedOffer] = useState<Vibe2AOffer | null>(null);
@@ -367,7 +369,7 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
         const response = await fetch("/api/grade", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: websiteUrl, useLighthouse, useAiReadiness, forceRefresh }),
+          body: JSON.stringify({ url: websiteUrl, useLighthouse, useAiReadiness, useSeoCard, forceRefresh }),
         });
         if (!response.ok) {
           const errorData = await response.json();
@@ -543,6 +545,20 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
               </button>
               <button
                 type="button"
+                onClick={() => setUseSeoCard(!useSeoCard)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                  useSeoCard 
+                    ? 'bg-purple-500/20 border border-purple-500/50 text-purple-400' 
+                    : 'bg-white/5 border border-white/10 text-slate-400 hover:border-white/20'
+                }`}
+                data-testid="checkbox-seo-card"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>SEO Card</span>
+                {useSeoCard && <CheckCircle2 className="w-4 h-4" />}
+              </button>
+              <button
+                type="button"
                 onClick={() => setForceRefresh(!forceRefresh)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
                   forceRefresh 
@@ -557,9 +573,13 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
               </button>
             </div>
             <p className="text-xs text-slate-500 text-center mt-2">
-              {useLighthouse && useAiReadiness ? "Full scan enabled (takes longer)" : 
+              {useLighthouse && useAiReadiness && useSeoCard ? "Full scan with all checks enabled" : 
+               useLighthouse && useAiReadiness ? "Full scan enabled (takes longer)" : 
+               useLighthouse && useSeoCard ? "Performance + SEO Card scan enabled" :
+               useAiReadiness && useSeoCard ? "AI readiness + SEO Card check enabled" :
                useLighthouse ? "Performance scan enabled" : 
                useAiReadiness ? "AI readiness check enabled" : 
+               useSeoCard ? "SEO Card compliance check enabled" :
                t('vibe2a.scan_hint')}
             </p>
           </motion.form>
@@ -647,6 +667,9 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   <ScoreCircle score={result.mobileScore || 0} label="Mobile" icon={Smartphone} />
                   {result.aiReadinessScore != null && (
                     <ScoreCircle score={result.aiReadinessScore} label="AI" icon={Bot} />
+                  )}
+                  {result.seoCardScore != null && (
+                    <ScoreCircle score={result.seoCardScore} label="Card" icon={ExternalLink} />
                   )}
                 </div>
 

@@ -296,6 +296,18 @@ export async function validateSEOCard(
 
   let ogImageDimensions: { width: number; height: number } | null = null;
   
+  // Resolve relative og:image URL to absolute
+  let absoluteOgImage = ogImage;
+  if (ogImage && !ogImage.startsWith('http://') && !ogImage.startsWith('https://')) {
+    try {
+      const parsedUrl = new URL(url);
+      const baseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`;
+      absoluteOgImage = ogImage.startsWith('/') ? `${baseUrl}${ogImage}` : `${baseUrl}/${ogImage}`;
+    } catch {
+      // URL parsing failed, keep original
+    }
+  }
+  
   if (!ogImage) {
     findings.push({
       category: 'seo-card',
@@ -320,7 +332,7 @@ export async function validateSEOCard(
       passed: true,
     });
     
-    // Check if image URL is absolute
+    // Check if image URL is absolute (warn if relative, but still try to fetch)
     if (!ogImage.startsWith('http://') && !ogImage.startsWith('https://')) {
       findings.push({
         category: 'seo-card',
@@ -333,9 +345,11 @@ export async function validateSEOCard(
         passed: false,
       });
       imageSpecScore -= 25;
-    } else {
-      // Try to fetch and check image dimensions
-      ogImageDimensions = await fetchImageDimensions(ogImage);
+    }
+    
+    // Try to fetch and check image dimensions using the absolute URL
+    if (absoluteOgImage) {
+      ogImageDimensions = await fetchImageDimensions(absoluteOgImage);
       
       if (ogImageDimensions) {
         const { width, height } = ogImageDimensions;

@@ -35,6 +35,7 @@ import { websiteReportFrequencies } from "@shared/schema";
 import { tokenPricing } from "@shared/schema";
 import { mcpService, handleMCPRequest, MCPHealthCheckService } from "./mcpService";
 import { validateAIReadiness, type AIReadinessResult } from "./aiReadinessService";
+import { validateSEOCard, type SEOCardResult } from "./seoCardService";
 import { sendServiceLeadNotificationEmail, sendChatLeadNotification, sendEmailSignupNotification } from "./emailService";
 
 // AI Vision helper for FDIC badge detection
@@ -2873,10 +2874,11 @@ Your primary goal is to help users AND capture their contact information natural
     useLighthouse: z.boolean().optional().default(false),
     useSecurityScan: z.boolean().optional().default(false),
     useAiReadiness: z.boolean().optional().default(false),
+    useSeoCard: z.boolean().optional().default(false),
   });
 
   interface Finding {
-    category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "mobile" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr" | "secrets" | "exposedFiles" | "content-accessibility" | "structured-data" | "mcp-compliance" | "llms-txt" | "crawlability";
+    category: "seo" | "security" | "performance" | "keywords" | "accessibility" | "email" | "mobile" | "fdic" | "sec" | "ada" | "pci" | "fca" | "gdpr" | "secrets" | "exposedFiles" | "content-accessibility" | "structured-data" | "mcp-compliance" | "llms-txt" | "crawlability" | "seo-card";
     issue: string;
     impact: string;
     priority: "critical" | "important" | "optional";
@@ -3030,7 +3032,7 @@ Your primary goal is to help users AND capture their contact information natural
     console.log(`[Grader:${requestId}] START: ${req.body?.url}`);
     
     try {
-      const { url, email, complianceChecks, forceRefresh, blind, useLighthouse, useSecurityScan, useAiReadiness } = gradeUrlSchema.parse(req.body);
+      const { url, email, complianceChecks, forceRefresh, blind, useLighthouse, useSecurityScan, useAiReadiness, useSeoCard } = gradeUrlSchema.parse(req.body);
       
       // SSRF protection: validate URL before fetching
       console.log(`[Grader:${requestId}] Validating URL...`);
@@ -3084,6 +3086,7 @@ Your primary goal is to help users AND capture their contact information natural
       let responseHeaders: Record<string, string> = {};
       let isHttps = url.startsWith("https://");
       let redirectCount = 0;
+      let ttfbMs = 0; // Time to First Byte for SEO Card scoring
       console.log(`[Grader:${requestId}] Fetching website...`);
       
       const browserHeaders = {
@@ -3097,11 +3100,13 @@ Your primary goal is to help users AND capture their contact information natural
       
       try {
         let finalUrl = url;
+        const fetchStart = Date.now();
         let response = await fetch(url, {
           signal: controller.signal,
           headers: browserHeaders,
           redirect: 'manual',
         });
+        ttfbMs = Date.now() - fetchStart; // Capture TTFB from initial request
         
         // Handle redirects safely (up to 5 redirects)
         while (response.status >= 300 && response.status < 400 && redirectCount < 5) {
@@ -4175,12 +4180,13 @@ Your primary goal is to help users AND capture their contact information natural
       const visitorIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor || req.socket.remoteAddress || null;
       const visitorUserAgent = req.headers['user-agent'] || null;
 
-      // Get hosting geo info, email security, blacklist status, and optionally AI readiness in parallel
-      const [geoInfo, emailSecurity, blacklistInfo, aiReadiness] = await Promise.all([
+      // Get hosting geo info, email security, blacklist status, AI readiness, and SEO card validation in parallel
+      const [geoInfo, emailSecurity, blacklistInfo, aiReadiness, seoCard] = await Promise.all([
         getHostingGeoInfo(parsedDomain),
         getEmailSecurityRecords(parsedDomain),
         getHostingGeoInfo(parsedDomain).then(geo => checkBlacklists(geo.hostIp)),
         useAiReadiness ? validateAIReadiness(url, html, null, responseHeaders) : Promise.resolve({ score: 0, findings: [], breakdown: {} }),
+        useSeoCard ? validateSEOCard(url, html, ttfbMs) : Promise.resolve({ score: 0, findings: [], breakdown: {}, metadata: {} }),
       ]);
 
       // Add email security findings to main findings
@@ -4190,6 +4196,18 @@ Your primary goal is to help users AND capture their contact information natural
       if (useAiReadiness) {
         findings.push(...aiReadiness.findings.map(f => ({
           category: f.subcategory,
+          issue: f.issue,
+          impact: f.impact,
+          priority: f.priority,
+          howToFix: f.howToFix + (f.codeExample ? `\n\nExample:\n${f.codeExample}` : ''),
+          passed: f.passed,
+        })));
+      }
+      
+      // Add SEO card findings to main findings (only if enabled)
+      if (useSeoCard && seoCard.findings) {
+        findings.push(...seoCard.findings.map(f => ({
+          category: 'seo-card' as const,
           issue: f.issue,
           impact: f.impact,
           priority: f.priority,
@@ -4723,6 +4741,8 @@ Your primary goal is to help users AND capture their contact information natural
           mobileScore: finalScores.mobileScore,
           aiReadinessScore: useAiReadiness ? aiReadiness.score : null,
           aiReadinessBreakdown: useAiReadiness ? aiReadiness.breakdown : null,
+          seoCardScore: useSeoCard ? seoCard.score : null,
+          seoCardBreakdown: useSeoCard ? seoCard.breakdown : null,
           findings,
           companyName: companyName || null,
           domain: parsedDomain,
@@ -4746,6 +4766,8 @@ Your primary goal is to help users AND capture their contact information natural
         mobileScore: finalScores.mobileScore,
         aiReadinessScore: useAiReadiness ? aiReadiness.score : null,
         aiReadinessBreakdown: useAiReadiness ? aiReadiness.breakdown as any : null,
+        seoCardScore: useSeoCard ? seoCard.score : null,
+        seoCardBreakdown: useSeoCard ? seoCard.breakdown as any : null,
         findings: findings as any,
         companyName: companyName || null,
         companyDescription: companyDescription || null,
@@ -4784,7 +4806,14 @@ Your primary goal is to help users AND capture their contact information natural
       const shareAssets = await generateShareAssets(grade.id, baseUrl);
       await storage.updateWebsiteGradeShareInfo(grade.id, shareAssets.shareToken, shareAssets.qrCodeData);
 
-      res.json({ ...grade, shareToken: shareAssets.shareToken, qrCodeData: shareAssets.qrCodeData, coreWebVitals });
+      res.json({ 
+        ...grade, 
+        shareToken: shareAssets.shareToken, 
+        qrCodeData: shareAssets.qrCodeData, 
+        coreWebVitals,
+        seoCardScore: useSeoCard ? seoCard.score : null,
+        seoCardBreakdown: useSeoCard ? seoCard.breakdown : null,
+      });
     } catch (error: any) {
       console.error("Website grader error:", error);
       if (error instanceof z.ZodError) {
