@@ -3004,7 +3004,8 @@ Your primary goal is to help users AND capture their contact information natural
         const cached = await storage.getRecentGradeForUrl(url);
         // Only use cached result if it has reasonable performance data
         // Skip cache if performanceScore is 0 (likely from failed Lighthouse scan)
-        if (cached && cached.performanceScore > 0) {
+        // Skip cache if favicon is null (cached before OG extraction feature was added)
+        if (cached && cached.performanceScore > 0 && cached.favicon !== null) {
           // Override AI readiness score based on current request setting
           // If useAiReadiness is false, don't show AI readiness data from cached result
           const result = {
