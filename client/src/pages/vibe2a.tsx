@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { CookieConsent } from "@/components/ui/cookie-consent";
+import { Fireworks } from "@/components/ui/fireworks";
 import { 
   Search, 
   Shield, 
@@ -165,6 +166,7 @@ export default function Vibe2A() {
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
   const [selectedOffer, setSelectedOffer] = useState<Vibe2AOffer | null>(null);
   const { getSessionData } = useSessionTracking();
+  const [showFireworks, setShowFireworks] = useState(false);
   
   const buildLoginUrl = (options?: { returnTo?: string }) => {
     const sessionData = getSessionData();
@@ -373,6 +375,9 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
     onSuccess: (data) => {
       setResult(data);
       setUrl(data.url);
+      if (data.overallScore >= 90) {
+        setShowFireworks(true);
+      }
       toast({ title: "Analysis Complete!", description: `Your website scored ${data.overallScore}/100` });
     },
     onError: (error: Error) => {
@@ -404,6 +409,12 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {showFireworks && (
+        <Fireworks 
+          duration={5000} 
+          onComplete={() => setShowFireworks(false)} 
+        />
+      )}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
