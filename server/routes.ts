@@ -1095,6 +1095,53 @@ export async function registerRoutes(
     res.json({ siteKey });
   });
 
+  // Image proxy to bypass CORS restrictions for social preview cards
+  app.get("/api/proxy-image", async (req, res) => {
+    try {
+      const imageUrl = req.query.url as string;
+      if (!imageUrl) {
+        return res.status(400).json({ error: "URL parameter required" });
+      }
+
+      // Validate URL
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(imageUrl);
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+          return res.status(400).json({ error: "Invalid URL protocol" });
+        }
+      } catch {
+        return res.status(400).json({ error: "Invalid URL" });
+      }
+
+      // Fetch the image
+      const response = await fetch(imageUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; Vibe2A/1.0)',
+          'Accept': 'image/*',
+        },
+      });
+
+      if (!response.ok) {
+        return res.status(response.status).json({ error: "Failed to fetch image" });
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.startsWith('image/')) {
+        return res.status(400).json({ error: "URL does not point to an image" });
+      }
+
+      // Stream the image to the client
+      const arrayBuffer = await response.arrayBuffer();
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+      res.send(Buffer.from(arrayBuffer));
+    } catch (error: any) {
+      console.error("Image proxy error:", error);
+      res.status(500).json({ error: "Failed to proxy image" });
+    }
+  });
+
   app.post("/api/subscribe", async (req, res) => {
     try {
       const { email, captchaToken } = req.body;

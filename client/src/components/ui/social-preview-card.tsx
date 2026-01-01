@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ExternalLink, Globe } from "lucide-react";
+import { ExternalLink, Globe, Loader2 } from "lucide-react";
 
 interface SocialPreviewCardProps {
   url: string;
@@ -18,16 +18,62 @@ export function SocialPreviewCard({
   ogSiteName,
   favicon,
 }: SocialPreviewCardProps) {
-  const [imageError, setImageError] = useState(false);
+  const [imageStatus, setImageStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   const [faviconError, setFaviconError] = useState(false);
+  const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
 
+  // Preload image in background using proxy to bypass CORS
   useEffect(() => {
-    console.log('[SocialPreviewCard] Props received:', { url, ogTitle, ogDescription, ogImage, ogSiteName, favicon });
-  }, [url, ogTitle, ogDescription, ogImage, ogSiteName, favicon]);
+    if (!ogImage) {
+      setImageStatus('error');
+      setLoadedImageUrl(null);
+      return;
+    }
 
-  useEffect(() => {
-    console.log('[SocialPreviewCard] ogImage changed:', ogImage, '-> resetting imageError');
-    setImageError(false);
+    setImageStatus('loading');
+    
+    // Use proxy for external images to bypass CORS restrictions
+    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(ogImage)}`;
+    const img = new Image();
+    
+    // Set a timeout for slow-loading images
+    const timeoutId = setTimeout(() => {
+      console.log('[SocialPreviewCard] Image load timeout for:', ogImage);
+      setImageStatus('error');
+    }, 15000); // 15 second timeout
+
+    img.onload = () => {
+      clearTimeout(timeoutId);
+      console.log('[SocialPreviewCard] Image preloaded successfully via proxy:', ogImage);
+      setLoadedImageUrl(proxyUrl);
+      setImageStatus('loaded');
+    };
+
+    img.onerror = () => {
+      clearTimeout(timeoutId);
+      console.log('[SocialPreviewCard] Proxy image load error, trying direct URL:', ogImage);
+      // Fallback to direct URL if proxy fails
+      const directImg = new Image();
+      directImg.onload = () => {
+        console.log('[SocialPreviewCard] Direct image load successful:', ogImage);
+        setLoadedImageUrl(ogImage);
+        setImageStatus('loaded');
+      };
+      directImg.onerror = () => {
+        console.log('[SocialPreviewCard] Direct image load also failed:', ogImage);
+        setImageStatus('error');
+        setLoadedImageUrl(null);
+      };
+      directImg.src = ogImage;
+    };
+
+    img.src = proxyUrl;
+
+    return () => {
+      clearTimeout(timeoutId);
+      img.onload = null;
+      img.onerror = null;
+    };
   }, [ogImage]);
 
   useEffect(() => {
@@ -45,7 +91,6 @@ export function SocialPreviewCard({
   const displayTitle = ogTitle || domain;
   const displayDescription = ogDescription || '';
   const displaySiteName = ogSiteName || domain;
-  const showImage = ogImage && !imageError;
 
   return (
     <div className="w-full max-w-lg mx-auto" data-testid="social-preview-card">
@@ -54,19 +99,21 @@ export function SocialPreviewCard({
         Social Media Preview
       </p>
       <div className="bg-white rounded-lg overflow-hidden shadow-lg border border-slate-200">
-        {showImage ? (
+        {imageStatus === 'loaded' && loadedImageUrl ? (
           <div className="w-full aspect-[1.91/1] bg-slate-100 overflow-hidden">
             <img
-              src={ogImage}
+              src={loadedImageUrl}
               alt={displayTitle}
               className="w-full h-full object-cover"
-              onError={() => {
-                console.log('[SocialPreviewCard] Image load error for:', ogImage);
-                setImageError(true);
-              }}
-              onLoad={() => console.log('[SocialPreviewCard] Image loaded successfully:', ogImage)}
               data-testid="social-preview-image"
             />
+          </div>
+        ) : imageStatus === 'loading' ? (
+          <div className="w-full aspect-[1.91/1] bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
+            <div className="text-center text-slate-400">
+              <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin opacity-50" />
+              <p className="text-xs">Loading preview...</p>
+            </div>
           </div>
         ) : (
           <div className="w-full aspect-[1.91/1] bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
