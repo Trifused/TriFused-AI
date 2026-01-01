@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { CookieConsent } from "@/components/ui/cookie-consent";
 import { Fireworks } from "@/components/ui/fireworks";
+import { SocialPreviewCard } from "@/components/ui/social-preview-card";
 import { 
   Search, 
   Shield, 
@@ -76,6 +77,11 @@ interface GradeResult {
   findings: Finding[];
   shareToken: string | null;
   createdAt: string;
+  ogTitle?: string | null;
+  ogDescription?: string | null;
+  ogImage?: string | null;
+  ogSiteName?: string | null;
+  favicon?: string | null;
 }
 
 function getGradeLetter(score: number): string {
@@ -642,6 +648,18 @@ ${passes.map(f => `- ${f.issue}`).join('\n')}
                   {result.aiReadinessScore != null && (
                     <ScoreCircle score={result.aiReadinessScore} label="AI" icon={Bot} />
                   )}
+                </div>
+
+                <div className="mb-8">
+                  <SocialPreviewCard
+                    key={result.id}
+                    url={result.url}
+                    ogTitle={result.ogTitle}
+                    ogDescription={result.ogDescription}
+                    ogImage={result.ogImage}
+                    ogSiteName={result.ogSiteName}
+                    favicon={result.favicon}
+                  />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4 mb-8">

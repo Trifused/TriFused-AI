@@ -1,4 +1,5 @@
-import { ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ExternalLink, Globe } from "lucide-react";
 
 interface SocialPreviewCardProps {
   url: string;
@@ -17,6 +18,17 @@ export function SocialPreviewCard({
   ogSiteName,
   favicon,
 }: SocialPreviewCardProps) {
+  const [imageError, setImageError] = useState(false);
+  const [faviconError, setFaviconError] = useState(false);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [ogImage]);
+
+  useEffect(() => {
+    setFaviconError(false);
+  }, [favicon]);
+
   const domain = (() => {
     try {
       return new URL(url).hostname.replace(/^www\./, '');
@@ -28,6 +40,7 @@ export function SocialPreviewCard({
   const displayTitle = ogTitle || domain;
   const displayDescription = ogDescription || '';
   const displaySiteName = ogSiteName || domain;
+  const showImage = ogImage && !imageError;
 
   return (
     <div className="w-full max-w-lg mx-auto" data-testid="social-preview-card">
@@ -36,31 +49,36 @@ export function SocialPreviewCard({
         Social Media Preview
       </p>
       <div className="bg-white rounded-lg overflow-hidden shadow-lg border border-slate-200">
-        {ogImage && (
+        {showImage ? (
           <div className="w-full aspect-[1.91/1] bg-slate-100 overflow-hidden">
             <img
               src={ogImage}
               alt={displayTitle}
               className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
+              onError={() => setImageError(true)}
               data-testid="social-preview-image"
             />
+          </div>
+        ) : (
+          <div className="w-full aspect-[1.91/1] bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
+            <div className="text-center text-slate-400">
+              <Globe className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p className="text-xs">No preview image available</p>
+            </div>
           </div>
         )}
         <div className="p-3 bg-[#f2f3f5]">
           <div className="flex items-center gap-2 mb-1">
-            {favicon && (
+            {favicon && !faviconError ? (
               <img
                 src={favicon}
                 alt=""
                 className="w-4 h-4 rounded-sm"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
+                onError={() => setFaviconError(true)}
                 data-testid="social-preview-favicon"
               />
+            ) : (
+              <Globe className="w-4 h-4 text-slate-400" />
             )}
             <span className="text-xs text-[#65676b] uppercase tracking-wide">
               {displaySiteName}
