@@ -22,6 +22,11 @@ export function SocialPreviewCard({
   const [faviconError, setFaviconError] = useState(false);
 
   useEffect(() => {
+    console.log('[SocialPreviewCard] Props received:', { url, ogTitle, ogDescription, ogImage, ogSiteName, favicon });
+  }, [url, ogTitle, ogDescription, ogImage, ogSiteName, favicon]);
+
+  useEffect(() => {
+    console.log('[SocialPreviewCard] ogImage changed:', ogImage, '-> resetting imageError');
     setImageError(false);
   }, [ogImage]);
 
@@ -55,7 +60,11 @@ export function SocialPreviewCard({
               src={ogImage}
               alt={displayTitle}
               className="w-full h-full object-cover"
-              onError={() => setImageError(true)}
+              onError={(e) => {
+                console.log('[SocialPreviewCard] Image load error for:', ogImage, e);
+                setImageError(true);
+              }}
+              onLoad={() => console.log('[SocialPreviewCard] Image loaded successfully:', ogImage)}
               data-testid="social-preview-image"
             />
           </div>
